@@ -7,6 +7,6 @@ subprojects {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("/Users/genz/dev/copilot-worktrees/faminity/susankhya-app-foundation/modules/foundation-session-android/build/repo") }
+        maven { url = uri("/Users/genz/dev/copilot-worktrees/faminity/lazydeepak-fantastic-chainsaw/susankhya-app-foundation/modules/foundation-session-android/build/repo") }
     }
 }
