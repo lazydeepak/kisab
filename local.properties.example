@@ -1,0 +1,5 @@
+# Android SDK location. Copy this file to `local.properties` and set the
+# `sdk.dir` value to the path of your local Android SDK installation.
+#
+# `local.properties` is machine-specific and is not tracked by Git.
+sdk.dir=/path/to/your/android-sdk

@@ -9,6 +9,8 @@ Prerequisites:
 - Android SDK with API 35 installed
 - a GitHub token with `read:packages` access for `https://maven.pkg.github.com/lazydeepak/susankhya-app-foundation`
 
+Create a machine-local `local.properties` from `local.properties.example` and point `sdk.dir` at your Android SDK. The file is gitignored and never committed; CI generates its own copy from `ANDROID_SDK_ROOT`.
+
 Set the token locally before building:
 
 ```bash
