@@ -44,14 +44,14 @@ object FarmPersistenceCodec {
 
     fun decodeOrNull(encoded: String): FarmState? {
         return try {
-            val parts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR))
+            val parts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex())
             if (parts.size == 4 && !parts[0].startsWith("2")) {
                 decodeLegacy(parts)
             } else {
                 val fields = encoded.split(FIELD_SEPARATOR)
                 require(fields.size >= 5) { "Invalid persisted farm data" }
 
-                val version = fields[0].toIntOrNull() ?: return decodeLegacy(encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR)))
+                val version = fields[0].toIntOrNull() ?: return decodeLegacy(encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex()))
                 require(version == CURRENT_SCHEMA_VERSION) { "Unsupported schema version: $version" }
 
                 val entries = fields[3].takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { entry ->
@@ -105,7 +105,7 @@ object FarmPersistenceCodec {
             val transactions = parts[3].takeIf { it.isNotBlank() }?.split(LEGACY_TRANSACTION_SEPARATOR)?.filter { it.isNotBlank() }?.mapIndexed { index, transaction ->
                 val (description, amount) = transaction.split(":", limit = 2)
                 val signedAmount = amount.toLong()
-                val type = if (signedAmount < 0) TransactionType.EXPENSE else TransactionType.INCOME
+                val type = if (signedAmount < 0) TransactionType.INCOME else TransactionType.EXPENSE
                 val category = if (type == TransactionType.INCOME) TransactionCategory.OTHER_INCOME else TransactionCategory.OTHER_EXPENSE
                 FarmTransaction(
                     id = "tx-migrated-$index",

@@ -314,7 +314,7 @@ class FarmActivity : AppCompatActivity() {
     private fun clearTransactionForm() {
         currentTransactionId = null
         transactionAmountInput.setText("")
-        transactionCurrencyInput.setText("USD")
+        transactionCurrencyInput.setText("")
         transactionDescriptionInput.setText("")
         transactionOccurredAtInput.setText("")
         transactionTypeSpinner.setSelection(0)
