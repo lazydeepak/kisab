@@ -71,9 +71,10 @@ keytool -genkeypair \
   -keyalg RSA \
   -keysize 4096 \
   -validity 10000 \
-  -dname "CN=Kisab Release, OU=Susankhya, O=Susankhya, L=Unknown, ST=Unknown, C=IN"
+  -dname "CN=Kisab Release, OU=Susankhya, O=Susankhya, C=NP"
 ```
 
+- The certificate distinguished name becomes part of the permanent signing identity. Use the owner's accurate legal or organizational identity (here a Nepal-based release identity, `C=NP`); do not publish knowingly false placeholders such as `L=Unknown` or `ST=Unknown`. If in doubt, omit `-dname` and let `keytool` prompt interactively for each field.
 - Use a **strong, unique** keystore password and a **strong, unique** key password. Do not reuse the debug keystore or the debug key.
 - Record the alias (`kisab-release` in the example) and both passwords in a password manager.
 - The key password may equal the keystore password, but a separate, strong password is preferred.
