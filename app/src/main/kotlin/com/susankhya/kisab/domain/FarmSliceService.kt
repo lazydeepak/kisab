@@ -60,7 +60,7 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
     fun createTransaction(farmId: String, draft: FarmTransactionDraft): FarmTransaction {
         val farm = getFarm(farmId)
         val transaction = draft.toTransaction(newTransactionId())
-        validateTransaction(transaction)
+        FarmStateValidator.validateTransaction(transaction)
         val updated = farm.copy(transactions = (farm.transactions + transaction).toMutableList())
         store.saveFarm(updated)
         return transaction
@@ -71,7 +71,7 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         val index = farm.transactions.indexOfFirst { it.id == transactionId }
         require(index >= 0) { "Transaction not found: $transactionId" }
         val transaction = draft.toTransaction(transactionId)
-        validateTransaction(transaction)
+        FarmStateValidator.validateTransaction(transaction)
         val updatedTransactions = farm.transactions.toMutableList()
         updatedTransactions[index] = transaction
         val updated = farm.copy(transactions = updatedTransactions)
@@ -89,8 +89,8 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
 
     fun summary(farmId: String): FarmSummary {
         val farm = getFarm(farmId)
+        FarmStateValidator.validateFarm(farm)
         val currencies = farm.transactions.map { it.currency }.toSet()
-        require(currencies.size <= 1) { "Transactions use multiple currencies" }
         var balanceMinor = 0L
         for (transaction in farm.transactions) {
             val signedAmount = if (transaction.type == TransactionType.INCOME) {
@@ -110,22 +110,11 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         )
     }
 
-    private fun validateTransaction(transaction: FarmTransaction) {
-        require(transaction.description.isNotBlank()) { "Transaction description is required" }
-        require(transaction.amountMinor > 0) { "Transaction amount must be positive" }
-        require(transaction.currency.matches(Regex("^[A-Z]{3}$"))) { "Currency must be a 3-letter ISO code" }
-        require(transaction.category.type == transaction.type) { "Transaction category is invalid for the selected type" }
-        require(transaction.occurredAt.format(DATE_TIME_FORMATTER).isNotBlank()) { "Transaction date/time is required" }
-    }
-
     private fun newTransactionId(): String = "tx-${UUID.randomUUID()}"
 
     private fun getFarm(farmId: String): FarmState =
         store.loadFarm(farmId) ?: throw IllegalArgumentException("Unknown farm: $farmId")
 
-    companion object {
-        private val DATE_TIME_FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME
-    }
 }
 
 data class FarmState(

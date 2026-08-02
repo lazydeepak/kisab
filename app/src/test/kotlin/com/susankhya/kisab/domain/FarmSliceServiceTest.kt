@@ -1,5 +1,6 @@
 package com.susankhya.kisab.domain
 
+import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.FarmPersistenceCodec
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
@@ -291,6 +292,84 @@ class FarmSliceServiceTest {
         }
 
         assertNull(service.loadFarm("missing"))
+    }
+
+    @Test
+    fun backupEnvelopeRoundTripsFarmState() {
+        val farm = service.createFarm("Demo Farm")
+        service.addEntry(farm.id, FarmEntry(FarmEntryKind.LIVESTOCK, "Goat", 2))
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 1500,
+                currency = "USD",
+                description = "Feed",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+
+        val encoded = FarmBackupCodec.encode(service.loadFarm(farm.id)!!)
+        val envelope = FarmBackupCodec.decode(encoded)
+
+        assertEquals(1, envelope.schemaVersion)
+        assertEquals(farm.id, envelope.farm.id)
+        assertEquals(1, envelope.farm.entries.size)
+        assertEquals(1, envelope.farm.transactions.size)
+    }
+
+    @Test
+    fun malformedBackupEnvelopeFailsSafely() {
+        assertNull(FarmBackupCodec.decodeOrNull("not-a-valid-payload"))
+    }
+
+    @Test
+    fun unsupportedBackupVersionFailsWithSpecificMessage() {
+        try {
+            FarmBackupCodec.decode("2\u001F2024-01-01T00:00:00Z\u001Ffarm")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Unsupported backup version: 2", exception.message)
+        }
+    }
+
+    @Test
+    fun oversizedBackupEnvelopeFailsSafely() {
+        val oversized = "1\u001F2024-01-01T00:00:00Z\u001F" + "x".repeat(FarmBackupCodec.MAX_BACKUP_BYTES + 1)
+        assertNull(FarmBackupCodec.decodeOrNull(oversized))
+    }
+
+    @Test
+    fun invalidBackupSnapshotFailsSafely() {
+        val farm = FarmState(
+            id = "farm-1",
+            name = "Demo Farm",
+            entries = mutableListOf(FarmEntry(FarmEntryKind.LIVESTOCK, "Goat", 2)),
+            transactions = mutableListOf(
+                FarmTransaction(
+                    id = "tx-1",
+                    type = TransactionType.INCOME,
+                    category = TransactionCategory.SALES,
+                    amountMinor = 1500,
+                    currency = "USD",
+                    description = "Sale",
+                    occurredAt = java.time.OffsetDateTime.parse("2024-01-01T12:00:00Z")
+                ),
+                FarmTransaction(
+                    id = "tx-2",
+                    type = TransactionType.EXPENSE,
+                    category = TransactionCategory.FEED,
+                    amountMinor = 500,
+                    currency = "EUR",
+                    description = "Feed",
+                    occurredAt = java.time.OffsetDateTime.parse("2024-01-02T12:00:00Z")
+                )
+            )
+        )
+
+        val encoded = FarmBackupCodec.encode(farm)
+        assertNull(FarmBackupCodec.decodeOrNull(encoded))
     }
 
     @Test
