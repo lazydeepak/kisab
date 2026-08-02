@@ -87,6 +87,9 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         store.saveFarm(updated)
     }
 
+    fun transactionsNewestFirst(farmId: String): List<FarmTransaction> =
+        getFarm(farmId).transactionsNewestFirst()
+
     fun summary(farmId: String): FarmSummary {
         val farm = getFarm(farmId)
         FarmStateValidator.validateFarm(farm)
@@ -124,6 +127,14 @@ data class FarmState(
     val transactions: MutableList<FarmTransaction> = mutableListOf(),
     val schemaVersion: Int = 2
 )
+
+fun FarmState.transactionsNewestFirst(): List<FarmTransaction> =
+    transactions.withIndex()
+        .sortedWith(
+            compareByDescending<IndexedValue<FarmTransaction>> { it.value.occurredAt }
+                .thenByDescending { it.index }
+        )
+        .map { it.value }
 
 data class FarmEntry(
     val kind: FarmEntryKind,

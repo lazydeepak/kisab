@@ -43,6 +43,7 @@ Run the validation suite:
 - Support stable transaction identifiers and explicit income/expense types.
 - Constrain categories by transaction type and store money in minor units with an ISO currency code.
 - Store explicit transaction timestamps, validate the complete transaction model, and support edit/delete flows with destructive-action confirmation.
+- Present transaction history newest-first by timestamp with a deterministic tie-breaker for equal timestamps.
 - Preserve local farm data through versioned persistence migration and cover the model with unit, persistence, migration, and Android integration tests.
 
 ## Kisab M3 acceptance criteria

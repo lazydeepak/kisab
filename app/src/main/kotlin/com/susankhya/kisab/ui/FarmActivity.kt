@@ -350,16 +350,17 @@ class FarmActivity : AppCompatActivity() {
         } else {
             farm.entries.joinToString("\n") { entry -> "- ${entry.kind.name.lowercase()}: ${entry.label} x${entry.quantity}" }
         }
-        transactionsText.text = if (farm.transactions.isEmpty()) {
+        val newestFirstTransactions = service.transactionsNewestFirst(farm.id)
+        transactionsText.text = if (newestFirstTransactions.isEmpty()) {
             "No transactions yet"
         } else {
-            farm.transactions.joinToString("\n") { transaction ->
+            newestFirstTransactions.joinToString("\n") { transaction ->
                 "- ${transaction.displayDateTime()} | ${transaction.type.name.lowercase()} | ${transaction.category.name.lowercase()} | ${transaction.description} | ${transaction.currency} ${transaction.amountMinor}"
             }
         }
 
         clearTransactionForm()
-        populateTransactionSelection(farm.transactions)
+        populateTransactionSelection(newestFirstTransactions)
         validationMessageText.visibility = View.GONE
     }
 

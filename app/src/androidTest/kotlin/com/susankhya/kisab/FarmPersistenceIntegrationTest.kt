@@ -2,6 +2,7 @@ package com.susankhya.kisab
 
 import android.content.Context
 import android.widget.Button
+import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
@@ -24,6 +25,7 @@ import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.FarmActivity
 import org.hamcrest.CoreMatchers.containsString
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -106,5 +108,43 @@ class FarmPersistenceIntegrationTest {
         onView(withId(R.id.summaryText)).check(matches(withText(containsString("Entry count: 1"))))
         onView(withId(R.id.summaryText)).check(matches(withText(containsString("Transaction count: 1"))))
         onView(withId(R.id.summaryText)).check(matches(withText(containsString("Balance: 8000 USD"))))
+    }
+
+    @Test
+    fun transactionsRenderNewestFirstInHistory() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+
+        onView(withId(R.id.farmNameInput)).perform(typeText("Order Farm"), closeSoftKeyboard())
+        onView(withId(R.id.createFarmButton)).perform(click())
+
+        addTransaction(scenario, description = "Old transaction", amount = "1000", occurredAt = "2024-01-01T12:00:00Z")
+        addTransaction(scenario, description = "New transaction", amount = "2000", occurredAt = "2024-01-02T12:00:00Z")
+
+        scenario.recreate()
+
+        scenario.onActivity { activity ->
+            val history = activity.findViewById<TextView>(R.id.transactionsText).text.toString()
+            assertTrue(
+                "Expected newest transaction first in history, but was:\n$history",
+                history.indexOf("New transaction") < history.indexOf("Old transaction")
+            )
+        }
+    }
+
+    private fun addTransaction(
+        scenario: ActivityScenario<FarmActivity>,
+        description: String,
+        amount: String,
+        occurredAt: String
+    ) {
+        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
+        onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText(amount), closeSoftKeyboard())
+        onView(withId(R.id.transactionCurrencyInput)).perform(scrollTo(), replaceText("USD"), closeSoftKeyboard())
+        onView(withId(R.id.transactionOccurredAtInput)).perform(scrollTo(), replaceText(occurredAt), closeSoftKeyboard())
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        scenario.onActivity { activity ->
+            activity.findViewById<Button>(R.id.saveTransactionButton).performClick()
+        }
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 }

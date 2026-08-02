@@ -427,4 +427,197 @@ class FarmSliceServiceTest {
         assertEquals(secondFarm.id, service.loadFarm(secondFarm.id)?.id)
         assertEquals(firstFarm.name, service.loadFarm(firstFarm.id)?.name)
     }
+
+    @Test
+    fun transactionsRenderNewestFirstByOccurredAt() {
+        val farm = service.createFarm("Demo Farm")
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 1000,
+                currency = "USD",
+                description = "Oldest",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 2000,
+                currency = "USD",
+                description = "Newest",
+                occurredAt = "2024-01-03T12:00:00Z"
+            )
+        )
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SERVICES,
+                amountMinor = 3000,
+                currency = "USD",
+                description = "Middle",
+                occurredAt = "2024-01-02T12:00:00Z"
+            )
+        )
+
+        val newestFirst = service.transactionsNewestFirst(farm.id)
+
+        assertEquals(listOf("Newest", "Middle", "Oldest"), newestFirst.map { it.description })
+        assertEquals(listOf("Oldest", "Newest", "Middle"), service.loadFarm(farm.id)!!.transactions.map { it.description })
+    }
+
+    @Test
+    fun equalTimestampTransactionsTieBreakByLedgerOrder() {
+        val farm = service.createFarm("Demo Farm")
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 1000,
+                currency = "USD",
+                description = "First recorded",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 2000,
+                currency = "USD",
+                description = "Second recorded",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+
+        val newestFirst = service.transactionsNewestFirst(farm.id)
+
+        assertEquals(listOf("Second recorded", "First recorded"), newestFirst.map { it.description })
+    }
+
+    @Test
+    fun orderingRecomputesAfterEditingTimestamp() {
+        val farm = service.createFarm("Demo Farm")
+        val older = service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 1000,
+                currency = "USD",
+                description = "Older",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 2000,
+                currency = "USD",
+                description = "Newer",
+                occurredAt = "2024-01-02T12:00:00Z"
+            )
+        )
+
+        service.updateTransaction(
+            farm.id,
+            older.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 1500,
+                currency = "USD",
+                description = "Older",
+                occurredAt = "2024-01-03T12:00:00Z"
+            )
+        )
+
+        val newestFirst = service.transactionsNewestFirst(farm.id)
+
+        assertEquals(listOf("Older", "Newer"), newestFirst.map { it.description })
+        assertEquals(older.id, newestFirst.first().id)
+    }
+
+    @Test
+    fun orderingPreservedAcrossPersistenceRecreation() {
+        val farm = service.createFarm("Demo Farm")
+        val older = service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 1000,
+                currency = "USD",
+                description = "Older",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        val newer = service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 2000,
+                currency = "USD",
+                description = "Newer",
+                occurredAt = "2024-01-02T12:00:00Z"
+            )
+        )
+
+        val encoded = FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!)
+        val reloaded = FarmPersistenceCodec.decode(encoded)
+
+        assertEquals(listOf(newer.id, older.id), reloaded.transactionsNewestFirst().map { it.id })
+    }
+
+    @Test
+    fun orderingPreservedAcrossLegacyMigration() {
+        val farm = FarmPersistenceCodec.decode("farm-legacy|Legacy Farm|LIVESTOCK:Goat:2|Feed:1000;;Egg sale:-5000")
+
+        val newestFirst = farm.transactionsNewestFirst()
+
+        assertEquals(2, newestFirst.size)
+        assertEquals(listOf("tx-migrated-1", "tx-migrated-0"), newestFirst.map { it.id })
+    }
+
+    @Test
+    fun orderingPreservedAcrossBackupRestore() {
+        val farm = service.createFarm("Demo Farm")
+        val older = service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 1000,
+                currency = "USD",
+                description = "Older",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        val newer = service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 2000,
+                currency = "USD",
+                description = "Newer",
+                occurredAt = "2024-01-02T12:00:00Z"
+            )
+        )
+
+        val encoded = FarmBackupCodec.encode(service.loadFarm(farm.id)!!)
+        val envelope = FarmBackupCodec.decode(encoded)
+
+        assertEquals(listOf(newer.id, older.id), envelope.farm.transactionsNewestFirst().map { it.id })
+    }
 }
