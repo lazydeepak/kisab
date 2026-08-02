@@ -3,15 +3,28 @@ name: Release
 # Builds and signs a Kisab release APK for an annotated `v<versionName>` tag.
 #
 # Trigger:
-#   - manual workflow_dispatch with an existing annotated release tag name
+#   - repository_dispatch (event type `release-signing-request`), normally
+#     emitted by the secret-free `Release launcher` workflow, which provides
+#     the "Run workflow" UI button.
 #
-# This workflow is deliberately NOT tag-triggered. For a `push` event GitHub
-# sources the workflow from the pushed ref itself, so an unmerged tag could
-# carry its own modified copy of this file and defeat the gate that this file
-# enforces. `workflow_dispatch` is read from the default branch (main), so the
-# workflow code is always the trusted, reviewed version. Automatic tag-push
-# signing can be reconsidered later only with a trusted default-branch
-# dispatcher or a strict `v*` tag ruleset that prevents non-reviewer pushes.
+# Trust anchor: for a `repository_dispatch` run GitHub sources this workflow
+# from the default branch (main), sets GITHUB_REF and GITHUB_SHA to main, and
+# only triggers the run if this file exists on main. A manual
+# `workflow_dispatch` run can be started from a selected ref (Branch dropdown
+# or `--ref`), so it is deliberately NOT used to reach signing secrets.
+#
+# Defense-in-depth (in addition to the main-only sourcing above):
+#   - The `release-signing` GitHub Environment must be configured with
+#     "Selected branches and tags" permitting only the branch `main`, no
+#     tags, administrator bypass disabled, required reviewers enabled, and
+#     self-review prevented where possible. GitHub evaluates these
+#     deployment restrictions against the run's GITHUB_REF (main) before the
+#     job can start or receive its secrets.
+#   - The build-sign job also guards `github.ref == 'refs/heads/main'`.
+#     This is not the primary control (a malicious workflow could remove
+#     it); the environment policy and main-only sourcing are.
+#   - main itself should be branch-protected (required PR review) so the
+#     workflow source cannot be modified outside a reviewed pull request.
 #
 # Jobs:
 #   - validate: NO environment and NO secrets. Only git operations. Resolves
@@ -25,7 +38,8 @@ name: Release
 #     signs. Because it depends on validate, no environment approval is ever
 #     requested for an invalid or unmerged tag.
 #   - create-draft-release: depends on build-sign; creates a DRAFT GitHub
-#     release at the validated tag (never auto-publishes).
+#     release at the validated tag, with the release body read from the same
+#     validated immutable commit that produced the signed APK.
 #
 # Signing secrets (KISAB_KEYSTORE_B64, KISAB_KEYSTORE_PASSWORD, KISAB_KEY_ALIAS,
 # KISAB_KEY_PASSWORD) are environment-scoped and must live in the protected
@@ -34,11 +48,9 @@ name: Release
 # deleted automatically when the job ends.
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Annotated release tag to build and sign (e.g. v0.1.0). Must already exist and point to a commit contained in main.'
-        required: true
+  repository_dispatch:
+    types:
+      - release-signing-request
 
 permissions:
   contents: read
@@ -61,7 +73,7 @@ jobs:
       - name: Resolve release tag to an annotated commit
         id: resolve
         env:
-          DISPATCH_TAG: ${{ inputs.tag }}
+          DISPATCH_TAG: ${{ github.event.client_payload.tag }}
         run: |
           git fetch origin tag "$DISPATCH_TAG"
           if [ "$(git cat-file -t "$DISPATCH_TAG")" != "tag" ]; then
@@ -96,12 +108,14 @@ jobs:
 
   build-sign:
     needs: validate
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: release-signing
     outputs:
       release_tag: ${{ steps.tag.outputs.tag }}
       version_name: ${{ steps.version.outputs.version_name }}
+      commit_sha: ${{ needs.validate.outputs.commit_sha }}
     permissions:
       contents: read
       packages: read
@@ -217,8 +231,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout default branch (for release notes)
+      - name: Checkout validated release commit (for release notes)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.build-sign.outputs.commit_sha }}
+          fetch-depth: 0
 
       - name: Download signed APK and checksum
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093

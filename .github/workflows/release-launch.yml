@@ -1,0 +1,42 @@
+name: Release launcher
+
+# Secret-free entry point that starts the trusted `Release` workflow.
+#
+# This workflow provides the "Run workflow" UI button for a release. It holds
+# no secrets, does not sign anything, and does not reference any environment.
+# It only emits a `repository_dispatch` event (`release-signing-request`) that
+# the `Release` workflow reacts to.
+#
+# `repository_dispatch` is used instead of running the signing workflow via
+# `workflow_dispatch` because a manual dispatch can be started from a selected
+# ref (the Branch dropdown or `--ref`). GitHub sources a `repository_dispatch`
+# run from the default branch (main) and requires the workflow to exist there,
+# so the `Release` workflow that actually accesses signing secrets is always
+# the trusted, reviewed main version.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Annotated release tag to build and sign (e.g. v0.1.0). Must already exist and point to a commit contained in main.'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Emit release-signing-request repository_dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_TAG: ${{ inputs.tag }}
+          DISPATCH_REPO: ${{ github.repository }}
+        run: |
+          jq -n --arg tag "$DISPATCH_TAG" \
+            '{event_type: "release-signing-request", client_payload: {tag: $tag}}' | \
+            gh api -X POST "repos/${DISPATCH_REPO}/dispatches" --input -
