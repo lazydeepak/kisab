@@ -15,8 +15,9 @@ Adopted in preparation for the first Kisab release. Applies to the `com.susankhy
 ## Tags
 
 - Annotated release tags follow the format `v<versionName>`, for example `v0.1.0`.
-- Tags are created only from an explicit, reviewed, release-preparation commit, and only after the signing inputs are verified and CI passes on the tag.
+- Tags are created only from an explicit, reviewed, release-preparation commit, and only after the signing inputs are verified and CI passes on the commit.
 - Release tags must point at the exact commit whose contents are being published. No tag is created for a candidate build.
+- The release workflow is never triggered directly by a tag push. A `push` event sources the workflow file from the pushed ref itself, so an unmerged tag could carry its own modified workflow and defeat the release gates. The first release uses manual `workflow_dispatch` only, whose workflow definition is read from `main` (the trusted, reviewed version). Automatic tag-push signing may be reconsidered only with a trusted default-branch dispatcher or a strict `v*` tag ruleset.
 
 ## Release notes
 
@@ -33,7 +34,7 @@ Adopted in preparation for the first Kisab release. Applies to the `com.susankhy
   - `KISAB_KEY_ALIAS` — key alias inside the keystore.
   - `KISAB_KEY_PASSWORD` — private-key password for the alias.
 - A release build fails clearly when any of the four inputs is missing or blank. Debug builds never require signing inputs.
-- CI reads the signing secrets from the protected `release-signing` GitHub Environment, which must be configured with required approval before the production keystore is uploaded. The workflow refuses to sign when the tagged commit is not contained in `origin/main`, the tag is not annotated, or the tag does not equal `v<versionName>`.
+- CI runs a two-job dispatch flow: a secret-free `validate` job first resolves the supplied tag, requires an annotated tag, peels it to a commit, and verifies that commit is contained in `origin/main`; only then does the `build-sign` job (which references the protected `release-signing` GitHub Environment with required approval) check out the validated immutable commit SHA, run tests and version validation, and sign. The validated commit SHA is passed between jobs; the tag is never re-resolved after validation. Because `build-sign` depends on `validate`, no environment approval is ever requested for an invalid or unmerged tag.
 - CI decodes the keystore from the `KISAB_KEYSTORE_B64` secret (base64 of the keystore) into a temporary, runner-local path and deletes it at the end of the job.
 - The production keystore and its passwords are guarded by the repository owner. They are never committed to the repository, never echoed or logged, and never persisted on CI runners beyond the temporary runner-local keystore path. The base64 keystore form is stored only as a GitHub Actions environment secret.
 
