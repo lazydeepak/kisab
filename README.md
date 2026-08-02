@@ -9,6 +9,8 @@ Prerequisites:
 - Android SDK with API 35 installed
 - a GitHub token with `read:packages` access for `https://maven.pkg.github.com/lazydeepak/susankhya-app-foundation`
 
+Create a machine-local `local.properties` from `local.properties.example` and point `sdk.dir` at your Android SDK. The file is gitignored and never committed; CI generates its own copy from `ANDROID_SDK_ROOT`.
+
 Set the token locally before building:
 
 ```bash
@@ -43,6 +45,7 @@ Run the validation suite:
 - Support stable transaction identifiers and explicit income/expense types.
 - Constrain categories by transaction type and store money in minor units with an ISO currency code.
 - Store explicit transaction timestamps, validate the complete transaction model, and support edit/delete flows with destructive-action confirmation.
+- Present transaction history newest-first by timestamp with a deterministic tie-breaker for equal timestamps.
 - Preserve local farm data through versioned persistence migration and cover the model with unit, persistence, migration, and Android integration tests.
 
 ## Kisab M3 acceptance criteria

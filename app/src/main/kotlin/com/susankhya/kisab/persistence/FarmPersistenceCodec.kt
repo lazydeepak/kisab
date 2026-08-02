@@ -88,7 +88,7 @@ object FarmPersistenceCodec {
 
                 FarmState(id = fields[1], name = fields[2], entries = entries, transactions = transactions, schemaVersion = CURRENT_SCHEMA_VERSION)
             }
-        } catch (exception: IllegalArgumentException) {
+        } catch (exception: RuntimeException) {
             null
         }
     }
