@@ -3,6 +3,18 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val releaseKeystorePath = providers.environmentVariable("KISAB_KEYSTORE_PATH")
+val releaseKeystorePassword = providers.environmentVariable("KISAB_KEYSTORE_PASSWORD")
+val releaseKeyAlias = providers.environmentVariable("KISAB_KEY_ALIAS")
+val releaseKeyPassword = providers.environmentVariable("KISAB_KEY_PASSWORD")
+
+val hasReleaseSigning = listOf(
+    releaseKeystorePath,
+    releaseKeystorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+).all { it.isPresent && it.get().isNotBlank() }
+
 android {
     namespace = "com.susankhya.kisab"
     compileSdk = 36
@@ -16,6 +28,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            if (hasReleaseSigning) {
+                storeFile = file(releaseKeystorePath.get())
+                storePassword = releaseKeystorePassword.get()
+                keyAlias = releaseKeyAlias.get()
+                keyPassword = releaseKeyPassword.get()
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -24,6 +56,25 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+}
+
+tasks.register("verifyReleaseSigningInputs") {
+    group = "verification"
+    description = "Fails clearly when release signing inputs are missing or incomplete."
+    doFirst {
+        if (!hasReleaseSigning) {
+            throw GradleException(
+                "Release signing inputs are missing. Set all of KISAB_KEYSTORE_PATH, " +
+                    "KISAB_KEYSTORE_PASSWORD, KISAB_KEY_ALIAS, and KISAB_KEY_PASSWORD " +
+                    "(environment variables locally, repository secrets in CI) to build a " +
+                    "signed release. Debug builds do not require these inputs."
+            )
+        }
+    }
+}
+
+tasks.matching { it.name == "packageRelease" || it.name == "bundleRelease" }.configureEach {
+    dependsOn("verifyReleaseSigningInputs")
 }
 
 dependencies {

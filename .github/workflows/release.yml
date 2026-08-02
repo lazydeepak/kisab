@@ -1,0 +1,155 @@
+name: Release
+
+# Builds and signs a Kisab release APK for a `v<versionName>` tag.
+#
+# Triggers:
+#   - `push` of a tag matching `v*` (normal release path)
+#   - manual `workflow_dispatch`, which requires an existing release tag
+#
+# The workflow never creates a tag. It checks out the exact release commit,
+# verifies tests and lint, signs the release APK with the repository-secret
+# keystore, verifies the signature, records a SHA-256, and uploads the signed
+# artifact as a workflow artifact. On tag push it additionally creates a DRAFT
+# GitHub release (nothing is published until an owner edits and publishes it).
+#
+# Required repository secrets:
+#   - KISAB_GITHUB_PACKAGES_TOKEN (or fallback to GITHUB_TOKEN) for GitHub Packages
+#   - KISAB_KEYSTORE_B64        base64 of the release keystore
+#   - KISAB_KEYSTORE_PASSWORD   keystore password
+#   - KISAB_KEY_ALIAS           key alias inside the keystore
+#   - KISAB_KEY_PASSWORD        private-key password for the alias
+#
+# Secret values are never echoed. The decoded keystore lives only under
+# $RUNNER_TEMP and is deleted automatically when the job ends.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and sign (e.g. v0.1.0). Must already exist.'
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout exact release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && github.ref || format('refs/tags/{0}', github.event.inputs.tag) }}
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build tools
+        run: |
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Create local.properties
+        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+      - name: Run unit tests and lint
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.KISAB_GITHUB_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew :app:testDebugUnitTest
+          ./gradlew :app:lintDebug
+
+      - name: Set up release keystore
+        env:
+          KISAB_KEYSTORE_B64: ${{ secrets.KISAB_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KISAB_KEYSTORE_B64" ]; then
+            echo "::error::KISAB_KEYSTORE_B64 secret is not set; cannot sign a release."
+            exit 1
+          fi
+          echo "$KISAB_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/kisab-release.keystore"
+
+      - name: Assemble signed release APK
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.KISAB_GITHUB_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+          KISAB_KEYSTORE_PATH: ${{ runner.temp }}/kisab-release.keystore
+          KISAB_KEYSTORE_PASSWORD: ${{ secrets.KISAB_KEYSTORE_PASSWORD }}
+          KISAB_KEY_ALIAS: ${{ secrets.KISAB_KEY_ALIAS }}
+          KISAB_KEY_PASSWORD: ${{ secrets.KISAB_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
+
+      - name: Verify APK signing and record SHA-256
+        id: verify
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*-release.apk | head -n 1)
+          if [ -z "$APK" ]; then
+            echo "::error::No release APK produced."
+            exit 1
+          fi
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          SHA256=$(sha256sum "$APK" | awk '{print $1}')
+          printf '%s  %s\n' "$SHA256" "$(basename "$APK")" > "$APK.sha256"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "apk=$APK" >> "$GITHUB_OUTPUT"
+          echo "Release $RELEASE_TAG APK SHA-256: $SHA256"
+
+      - name: Upload signed APK and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: kisab-${{ steps.tag.outputs.tag }}-signed-apk
+          path: |
+            app/build/outputs/apk/release/*-release.apk
+            app/build/outputs/apk/release/*.sha256
+
+  create-draft-release:
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release commit (for release notes)
+        uses: actions/checkout@v4
+
+      - name: Download signed APK and checksum
+        uses: actions/download-artifact@v4
+        with:
+          name: kisab-${{ github.ref_name }}-signed-apk
+          path: dist/
+
+      # Draft only: an owner must review and explicitly publish the release.
+      # `body_path` points at the drafted v0.1.0 notes; update it for future releases.
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Kisab ${{ github.ref_name }}
+          body_path: docs/release/RELEASE_NOTES_v0.1.0.md
+          draft: true
+          files: dist/*
