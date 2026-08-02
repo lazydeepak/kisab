@@ -41,7 +41,7 @@ Kisab `v0.1.0` is the first release of the standalone offline farm-management An
 - JVM unit tests: 33 tests passing (domain, persistence, migration, and backup regression coverage).
 - Android instrumentation tests: 13 tests passing (API 36) covering the full journey, persistence recreation, backup restore survival, and rejected-backup preservation.
 - Android Lint: 0 errors (known warning classes: Autofill, GradleDependency, ButtonStyle, ApplySharedPref, MissingApplicationIcon, SetTextI18n).
-- Release signing pipeline verified with a disposable test keystore; production keystore is created and guarded by the repository owner and is not part of this release.
+- Release signing pipeline verified with a disposable test keystore; the permanent production keystore must be created and guarded by the repository owner and is not part of this release.
 
 ## Known limitations
 

@@ -69,6 +69,6 @@ export KISAB_KEY_PASSWORD=...
 ./gradlew :app:assembleRelease
 ```
 
-CI signs releases from the `KISAB_KEYSTORE_B64` and password/alias secrets; see `.github/workflows/release.yml`. The production keystore is owned and guarded by the repository owner and is never stored in the repository or CI.
+CI signs releases from the `KISAB_KEYSTORE_B64` and password/alias secrets stored on the protected `release-signing` GitHub Environment; see `.github/workflows/release.yml`. The keystore is never committed to the repository, never echoed or logged, and is reconstructed only into a temporary runner-local path that is deleted when the job ends. Its base64 form is stored as a GitHub Actions environment secret, which is guarded by the repository owner.
 
 See the documentation in `docs/charter/`, `docs/architecture/`, `docs/decisions/`, and `docs/release/` for the charter, v1 boundary, architecture decision record, and release policy.

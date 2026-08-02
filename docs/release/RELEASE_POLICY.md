@@ -33,7 +33,8 @@ Adopted in preparation for the first Kisab release. Applies to the `com.susankhy
   - `KISAB_KEY_ALIAS` — key alias inside the keystore.
   - `KISAB_KEY_PASSWORD` — private-key password for the alias.
 - A release build fails clearly when any of the four inputs is missing or blank. Debug builds never require signing inputs.
+- CI reads the signing secrets from the protected `release-signing` GitHub Environment, which must be configured with required approval before the production keystore is uploaded. The workflow refuses to sign when the tagged commit is not contained in `origin/main`, the tag is not annotated, or the tag does not equal `v<versionName>`.
 - CI decodes the keystore from the `KISAB_KEYSTORE_B64` secret (base64 of the keystore) into a temporary, runner-local path and deletes it at the end of the job.
-- The production keystore and its passwords are guarded by the repository owner and are never added to the repository, GitHub Actions secrets export, or any log.
+- The production keystore and its passwords are guarded by the repository owner. They are never committed to the repository, never echoed or logged, and never persisted on CI runners beyond the temporary runner-local keystore path. The base64 keystore form is stored only as a GitHub Actions environment secret.
 
 See `docs/release/RELEASE_NOTES_v0.1.0.md` for the drafted notes and `README.md` for the local signing workflow.
