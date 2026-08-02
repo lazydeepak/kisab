@@ -2,6 +2,8 @@ package com.susankhya.kisab.domain
 
 import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.FarmPersistenceCodec
+import com.susankhya.kisab.persistence.readTextWithLimit
+import java.io.ByteArrayInputStream
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -338,6 +340,49 @@ class FarmSliceServiceTest {
     fun oversizedBackupEnvelopeFailsSafely() {
         val oversized = "1\u001F2024-01-01T00:00:00Z\u001F" + "x".repeat(FarmBackupCodec.MAX_BACKUP_BYTES + 1)
         assertNull(FarmBackupCodec.decodeOrNull(oversized))
+    }
+
+    @Test
+    fun boundedTextReaderRejectsOversizedInputBeforeExhaustiveRead() {
+        val input = ByteArrayInputStream("x".repeat(16).toByteArray())
+        try {
+            readTextWithLimit(input, 8)
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Backup file is too large", exception.message)
+        }
+    }
+
+    @Test
+    fun duplicateTransactionIdsAreRejected() {
+        val farm = FarmState(
+            id = "farm-duplicate",
+            name = "Demo Farm",
+            entries = mutableListOf(),
+            transactions = mutableListOf(
+                FarmTransaction(
+                    id = "tx-dup",
+                    type = TransactionType.INCOME,
+                    category = TransactionCategory.SALES,
+                    amountMinor = 1500,
+                    currency = "USD",
+                    description = "Sale",
+                    occurredAt = java.time.OffsetDateTime.parse("2024-01-01T12:00:00Z")
+                ),
+                FarmTransaction(
+                    id = "tx-dup",
+                    type = TransactionType.INCOME,
+                    category = TransactionCategory.SALES,
+                    amountMinor = 2500,
+                    currency = "USD",
+                    description = "Another sale",
+                    occurredAt = java.time.OffsetDateTime.parse("2024-01-02T12:00:00Z")
+                )
+            )
+        )
+
+        val encoded = FarmBackupCodec.encode(farm)
+        assertNull(FarmBackupCodec.decodeOrNull(encoded))
     }
 
     @Test

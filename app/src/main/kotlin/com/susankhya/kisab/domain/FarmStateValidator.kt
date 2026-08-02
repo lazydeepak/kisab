@@ -1,6 +1,5 @@
 package com.susankhya.kisab.domain
 
-import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 object FarmStateValidator {
@@ -23,6 +22,8 @@ object FarmStateValidator {
             require(entry.quantity > 0) { "Entry quantity must be positive" }
         }
         farm.transactions.forEach(::validateTransaction)
+        val transactionIds = farm.transactions.map { it.id }
+        require(transactionIds.size == transactionIds.toSet().size) { "Transaction IDs must be unique" }
         val currencies = farm.transactions.map { it.currency }.toSet()
         require(currencies.size <= 1) { "Transactions use multiple currencies" }
     }

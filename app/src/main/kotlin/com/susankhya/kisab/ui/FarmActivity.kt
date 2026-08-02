@@ -85,7 +85,7 @@ class FarmActivity : AppCompatActivity() {
                     Toast.makeText(this, "Export cancelled", Toast.LENGTH_SHORT).show()
                     return@registerForActivityResult
                 }
-                backupFileAdapter.writeText(uri.toString(), content)
+                backupFileAdapter.writeText(uri.toString(), content, FarmBackupCodec.MAX_BACKUP_BYTES)
                 pendingExportContent = null
                 Toast.makeText(this, "Backup exported", Toast.LENGTH_SHORT).show()
             } else {
@@ -100,7 +100,7 @@ class FarmActivity : AppCompatActivity() {
                 return@registerForActivityResult
             }
             try {
-                val content = backupFileAdapter.readText(uri.toString())
+                val content = backupFileAdapter.readText(uri.toString(), FarmBackupCodec.MAX_BACKUP_BYTES)
                 handleImportedBackupContent(content)
             } catch (exception: IllegalArgumentException) {
                 showValidationMessage(exception.message.orEmpty())
