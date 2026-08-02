@@ -77,6 +77,15 @@ tasks.matching { it.name == "packageRelease" || it.name == "bundleRelease" }.con
     dependsOn("verifyReleaseSigningInputs")
 }
 
+tasks.register("printVersionInfo") {
+    group = "help"
+    description = "Prints the application versionName and versionCode."
+    doLast {
+        println("versionName=${android.defaultConfig.versionName}")
+        println("versionCode=${android.defaultConfig.versionCode}")
+    }
+}
+
 dependencies {
     implementation("com.susankhya.foundation:foundation-session-android:0.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

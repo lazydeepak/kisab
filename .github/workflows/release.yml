@@ -3,24 +3,21 @@ name: Release
 # Builds and signs a Kisab release APK for a `v<versionName>` tag.
 #
 # Triggers:
-#   - `push` of a tag matching `v*` (normal release path)
-#   - manual `workflow_dispatch`, which requires an existing release tag
+#   - push of a tag matching `v*` (normal release path)
+#   - manual workflow_dispatch with an existing release tag name
 #
-# The workflow never creates a tag. It checks out the exact release commit,
-# verifies tests and lint, signs the release APK with the repository-secret
-# keystore, verifies the signature, records a SHA-256, and uploads the signed
-# artifact as a workflow artifact. On tag push it additionally creates a DRAFT
-# GitHub release (nothing is published until an owner edits and publishes it).
+# Safety gates (all run before any signing step):
+#   - tag-push builds are pinned to the immutable event commit (github.sha)
+#   - the tagged commit must be an ancestor of origin/main (no signing oracle
+#     for unreviewed branch commits)
+#   - the tag must equal v<versionName> read from the Android build config
+#   - the tag must be annotated (enforced release-tag convention)
 #
-# Required repository secrets:
-#   - KISAB_GITHUB_PACKAGES_TOKEN (or fallback to GITHUB_TOKEN) for GitHub Packages
-#   - KISAB_KEYSTORE_B64        base64 of the release keystore
-#   - KISAB_KEYSTORE_PASSWORD   keystore password
-#   - KISAB_KEY_ALIAS           key alias inside the keystore
-#   - KISAB_KEY_PASSWORD        private-key password for the alias
-#
-# Secret values are never echoed. The decoded keystore lives only under
-# $RUNNER_TEMP and is deleted automatically when the job ends.
+# Signing secrets (KISAB_KEYSTORE_B64, KISAB_KEYSTORE_PASSWORD, KISAB_KEY_ALIAS,
+# KISAB_KEY_PASSWORD) are environment-scoped and must live in the protected
+# `release-signing` GitHub Environment, gated by required approval. Values are
+# never echoed; the decoded keystore exists only under $RUNNER_TEMP and is
+# deleted automatically when the job ends.
 
 on:
   workflow_dispatch:
@@ -39,37 +36,44 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    environment: release-signing
+    outputs:
+      release_tag: ${{ steps.tag.outputs.tag }}
+      version_name: ${{ steps.version.outputs.version_name }}
     permissions:
       contents: read
       packages: read
     steps:
       - name: Resolve release tag
         id: tag
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
         run: |
           if [ "${{ github.event_name }}" = "push" ]; then
             echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "tag=${DISPATCH_TAG}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout exact release commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event_name == 'push' && github.ref || format('refs/tags/{0}', github.event.inputs.tag) }}
+          ref: ${{ github.event_name == 'push' && github.sha || format('refs/tags/{0}', inputs.tag) }}
+          fetch-depth: 0
 
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07
         with:
           distribution: temurin
           java-version: '21'
           cache: gradle
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
 
       - name: Install Android build tools
         run: |
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          sdkmanager --install "platforms;android-36" "build-tools;35.0.0" "platform-tools"
 
       - name: Create local.properties
         run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
@@ -82,12 +86,54 @@ jobs:
           ./gradlew :app:testDebugUnitTest
           ./gradlew :app:lintDebug
 
+      - name: Read version from Android build config
+        id: version
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.KISAB_GITHUB_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION_NAME=$(./gradlew -q :app:printVersionInfo | sed -n 's/^versionName=//p')
+          if [ -z "$VERSION_NAME" ]; then
+            echo "::error::Could not read versionName from the Android build config."
+            exit 1
+          fi
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches packaged versionName
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+        run: |
+          if [ "$RELEASE_TAG" != "v${VERSION_NAME}" ]; then
+            echo "::error::Tag '$RELEASE_TAG' does not match packaged versionName 'v${VERSION_NAME}'; refusing to sign."
+            exit 1
+          fi
+
+      - name: Verify release tag is annotated
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          git fetch origin tag "$RELEASE_TAG"
+          if [ "$(git cat-file -t "$RELEASE_TAG")" != "tag" ]; then
+            echo "::error::Tag '$RELEASE_TAG' is not annotated; refusing to sign."
+            exit 1
+          fi
+
+      - name: Verify tagged commit is contained in origin/main
+        run: |
+          git fetch --no-tags origin main
+          HEAD_SHA=$(git rev-parse HEAD)
+          if ! git merge-base --is-ancestor "$HEAD_SHA" "refs/remotes/origin/main"; then
+            echo "::error::Commit $HEAD_SHA is not contained in origin/main; refusing to sign an unreviewed commit."
+            exit 1
+          fi
+
       - name: Set up release keystore
         env:
           KISAB_KEYSTORE_B64: ${{ secrets.KISAB_KEYSTORE_B64 }}
         run: |
           if [ -z "$KISAB_KEYSTORE_B64" ]; then
-            echo "::error::KISAB_KEYSTORE_B64 secret is not set; cannot sign a release."
+            echo "::error::KISAB_KEYSTORE_B64 secret is not set on the 'release-signing' environment; cannot sign a release."
             exit 1
           fi
           echo "$KISAB_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/kisab-release.keystore"
@@ -107,7 +153,7 @@ jobs:
         env:
           RELEASE_TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          APK=$(ls app/build/outputs/apk/release/*-release.apk | head -n 1)
+          APK=$(find app/build/outputs/apk/release -maxdepth 1 -name '*-release.apk' -print -quit)
           if [ -z "$APK" ]; then
             echo "::error::No release APK produced."
             exit 1
@@ -117,10 +163,10 @@ jobs:
           printf '%s  %s\n' "$SHA256" "$(basename "$APK")" > "$APK.sha256"
           echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
           echo "apk=$APK" >> "$GITHUB_OUTPUT"
-          echo "Release $RELEASE_TAG APK SHA-256: $SHA256"
+          echo "Release ${RELEASE_TAG} APK SHA-256: ${SHA256}"
 
       - name: Upload signed APK and checksum
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kisab-${{ steps.tag.outputs.tag }}-signed-apk
           path: |
@@ -135,21 +181,34 @@ jobs:
       contents: write
     steps:
       - name: Checkout release commit (for release notes)
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Download signed APK and checksum
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: kisab-${{ github.ref_name }}-signed-apk
+          name: kisab-${{ needs.build.outputs.release_tag }}-signed-apk
           path: dist/
 
+      - name: Prepare version-aware release body
+        id: body
+        env:
+          VERSION_NAME: ${{ needs.build.outputs.version_name }}
+        run: |
+          NOTES="docs/release/RELEASE_NOTES_${VERSION_NAME}.md"
+          if [ -f "$NOTES" ]; then
+            cp "$NOTES" release-body.md
+            echo "Using release notes: $NOTES"
+          else
+            echo "::warning::No release notes found at $NOTES; the draft release body will be empty."
+            : > release-body.md
+          fi
+
       # Draft only: an owner must review and explicitly publish the release.
-      # `body_path` points at the drafted v0.1.0 notes; update it for future releases.
       - name: Create draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           tag_name: ${{ github.ref_name }}
           name: Kisab ${{ github.ref_name }}
-          body_path: docs/release/RELEASE_NOTES_v0.1.0.md
+          body_path: release-body.md
           draft: true
           files: dist/*
