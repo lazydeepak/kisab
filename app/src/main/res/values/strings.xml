@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Kisab</string>
+    <string name="create_farm_prompt">Create the farm that will be persisted locally on this device.</string>
+    <string name="farm_name_hint">Farm name</string>
+    <string name="create_farm_action">Create farm</string>
+    <string name="entries_section">Entries</string>
+    <string name="transactions_section">Transactions</string>
+    <string name="add_entry_section">Add entry</string>
+    <string name="entry_label_hint">Entry label</string>
+    <string name="entry_quantity_hint">Quantity</string>
+    <string name="add_entry_action">Add entry</string>
+    <string name="add_transaction_section">Transactions</string>
+    <string name="transaction_description_hint">Description</string>
+    <string name="transaction_amount_hint">Amount minor units</string>
+    <string name="transaction_currency_hint">Currency (ISO code)</string>
+    <string name="transaction_occurred_at_hint">Date/time (ISO-8601)</string>
+    <string name="save_transaction_action">Save transaction</string>
+    <string name="delete_transaction_action">Delete</string>
+</resources>
