@@ -19,17 +19,17 @@ class SharedPreferencesFarmStore(context: Context) : FarmStore {
         prefs.edit()
             .putString(PREF_CURRENT_FARM_ID, farm.id)
             .putString(PREF_FARM_STATE, FarmPersistenceCodec.encode(farm))
-            .apply()
+            .commit()
     }
 
     override fun setCurrentFarmId(farmId: String) {
-        prefs.edit().putString(PREF_CURRENT_FARM_ID, farmId).apply()
+        prefs.edit().putString(PREF_CURRENT_FARM_ID, farmId).commit()
     }
 
     override fun currentFarmId(): String? = prefs.getString(PREF_CURRENT_FARM_ID, null)
 
     override fun clear() {
-        prefs.edit().remove(PREF_CURRENT_FARM_ID).remove(PREF_FARM_STATE).apply()
+        prefs.edit().remove(PREF_CURRENT_FARM_ID).remove(PREF_FARM_STATE).commit()
     }
 
     companion object {

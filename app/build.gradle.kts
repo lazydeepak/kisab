@@ -27,7 +27,7 @@ android {
 }
 
 dependencies {
-    implementation("com.susankhya.foundation:foundation-session-android:0.1.0")
+    implementation("com.susankhya.foundation:foundation-session-android:0.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
 

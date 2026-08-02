@@ -4,9 +4,25 @@ plugins {
 }
 
 subprojects {
+    val githubActor = providers.gradleProperty("gpr.user")
+        .orElse(providers.environmentVariable("GITHUB_ACTOR"))
+        .orElse("x-access-token")
+        .get()
+    val githubToken = providers.gradleProperty("gpr.token")
+        .orElse(providers.environmentVariable("GITHUB_TOKEN"))
+        .orElse("")
+        .get()
+
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("/Users/genz/dev/copilot-worktrees/faminity/lazydeepak-fantastic-chainsaw/susankhya-app-foundation/modules/foundation-session-android/build/repo") }
+        maven {
+            name = "githubPackagesFoundation"
+            url = uri("https://maven.pkg.github.com/lazydeepak/susankhya-app-foundation")
+            credentials {
+                username = githubActor
+                password = githubToken
+            }
+        }
     }
 }

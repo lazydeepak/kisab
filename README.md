@@ -1,6 +1,29 @@
 # Kisab
 
-A standalone Android application repository that consumes `com.susankhya.foundation:foundation-session-android:0.1.0`.
+A standalone Android application repository that consumes `com.susankhya.foundation:foundation-session-android:0.1.1` from GitHub Packages.
+
+## Build and test
+
+Prerequisites:
+- JDK 21
+- Android SDK with API 35 installed
+- a GitHub token with `read:packages` access for `https://maven.pkg.github.com/lazydeepak/susankhya-app-foundation`
+
+Set the token locally before building:
+
+```bash
+export GITHUB_ACTOR=lazydeepak
+export GITHUB_TOKEN=<read:packages-token>
+```
+
+Run the validation suite:
+
+```bash
+./gradlew :app:testDebugUnitTest
+./gradlew :app:lintDebug
+./gradlew :app:assembleDebug
+./gradlew :app:dependencies --configuration debugRuntimeClasspath
+```
 
 ## Milestone status
 - Kisab M0 is complete. The repository now contains the documented product scope, architecture, and a farm-domain vertical slice grounded in the product boundary.
