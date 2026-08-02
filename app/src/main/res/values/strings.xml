@@ -16,4 +16,6 @@
     <string name="transaction_occurred_at_hint">Date/time (ISO-8601)</string>
     <string name="save_transaction_action">Save transaction</string>
     <string name="delete_transaction_action">Delete</string>
+    <string name="export_backup_action">Export backup</string>
+    <string name="import_backup_action">Import backup</string>
 </resources>

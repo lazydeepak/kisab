@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.closeSoftKeyboard
+import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -90,14 +91,15 @@ class FarmPersistenceIntegrationTest {
         onView(withId(R.id.entryQuantityInput)).perform(typeText("3"), closeSoftKeyboard())
         onView(withId(R.id.addEntryButton)).perform(click())
 
-        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), typeText("Egg sale"), closeSoftKeyboard())
-        onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), typeText("8000"), closeSoftKeyboard())
-        onView(withId(R.id.transactionCurrencyInput)).perform(scrollTo(), typeText("USD"), closeSoftKeyboard())
-        onView(withId(R.id.transactionOccurredAtInput)).perform(scrollTo(), typeText("2024-01-02T12:00:00Z"), closeSoftKeyboard())
+        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText("Egg sale"), closeSoftKeyboard())
+        onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText("8000"), closeSoftKeyboard())
+        onView(withId(R.id.transactionCurrencyInput)).perform(scrollTo(), replaceText("USD"), closeSoftKeyboard())
+        onView(withId(R.id.transactionOccurredAtInput)).perform(scrollTo(), replaceText("2024-01-02T12:00:00Z"), closeSoftKeyboard())
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         scenario.onActivity { activity ->
             activity.findViewById<Button>(R.id.saveTransactionButton).performClick()
         }
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
 
         scenario.recreate()
 

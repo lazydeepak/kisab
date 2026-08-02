@@ -1,5 +1,6 @@
 package com.susankhya.kisab.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -10,6 +11,8 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.susankhya.kisab.R
@@ -22,11 +25,15 @@ import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.FarmTransactionDraft
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
+import com.susankhya.kisab.persistence.AndroidStorageAccessFrameworkBackupFileAdapter
+import com.susankhya.kisab.persistence.FarmBackupCodec
+import com.susankhya.kisab.persistence.FarmBackupFileAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 
 class FarmActivity : AppCompatActivity() {
     private lateinit var store: SharedPreferencesFarmStore
     private lateinit var service: FarmSliceService
+    internal lateinit var backupFileAdapter: FarmBackupFileAdapter
 
     private lateinit var createFarmContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmDetailsContainer: androidx.appcompat.widget.LinearLayoutCompat
@@ -49,17 +56,58 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var addEntryButton: Button
     private lateinit var saveTransactionButton: Button
     private lateinit var deleteTransactionButton: Button
+    private lateinit var exportBackupButton: Button
+    private lateinit var importBackupButton: Button
+
+    private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
+    private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
 
     private var currentTransactionId: String? = null
     private var currentFarmId: String? = null
     private var transactionIdsForSelection: List<String?> = emptyList()
+    private var pendingExportContent: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_farm)
 
         store = SharedPreferencesFarmStore(applicationContext)
         service = FarmSliceService(store)
+        backupFileAdapter = AndroidStorageAccessFrameworkBackupFileAdapter(applicationContext)
+
+        createBackupDocumentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val uri = result.data?.data ?: run {
+                    pendingExportContent = null
+                    Toast.makeText(this, "Export cancelled", Toast.LENGTH_SHORT).show()
+                    return@registerForActivityResult
+                }
+                val content = pendingExportContent ?: run {
+                    Toast.makeText(this, "Export cancelled", Toast.LENGTH_SHORT).show()
+                    return@registerForActivityResult
+                }
+                backupFileAdapter.writeText(uri.toString(), content, FarmBackupCodec.MAX_BACKUP_BYTES)
+                pendingExportContent = null
+                Toast.makeText(this, "Backup exported", Toast.LENGTH_SHORT).show()
+            } else {
+                pendingExportContent = null
+                Toast.makeText(this, "Export cancelled", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        openBackupDocumentLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) {
+                Toast.makeText(this, "Import cancelled", Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+            try {
+                val content = backupFileAdapter.readText(uri.toString(), FarmBackupCodec.MAX_BACKUP_BYTES)
+                handleImportedBackupContent(content)
+            } catch (exception: IllegalArgumentException) {
+                showValidationMessage(exception.message.orEmpty())
+            }
+        }
+
+        setContentView(R.layout.activity_farm)
 
         createFarmContainer = findViewById(R.id.createFarmContainer)
         farmDetailsContainer = findViewById(R.id.farmDetailsContainer)
@@ -82,6 +130,8 @@ class FarmActivity : AppCompatActivity() {
         addEntryButton = findViewById(R.id.addEntryButton)
         saveTransactionButton = findViewById(R.id.saveTransactionButton)
         deleteTransactionButton = findViewById(R.id.deleteTransactionButton)
+        exportBackupButton = findViewById(R.id.exportBackupButton)
+        importBackupButton = findViewById(R.id.importBackupButton)
 
         entryKindSpinner.adapter = ArrayAdapter(
             this,
@@ -128,6 +178,8 @@ class FarmActivity : AppCompatActivity() {
         addEntryButton.setOnClickListener { addEntry() }
         saveTransactionButton.setOnClickListener { saveTransaction() }
         deleteTransactionButton.setOnClickListener { deleteTransaction() }
+        exportBackupButton.setOnClickListener { exportBackup() }
+        importBackupButton.setOnClickListener { importBackup() }
 
         render()
     }
@@ -213,6 +265,64 @@ class FarmActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun exportBackup() {
+        val backupContent = createBackupContentForCurrentFarm() ?: return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        pendingExportContent = backupContent
+        val safeName = farm.name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').takeIf { it.isNotBlank() } ?: "farm"
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/octet-stream"
+            putExtra(Intent.EXTRA_TITLE, "kisab-$safeName.backup")
+        }
+        createBackupDocumentLauncher.launch(intent)
+    }
+
+    internal fun createBackupContentForCurrentFarm(): String? {
+        val farmId = currentFarmId ?: return null
+        val farm = service.loadFarm(farmId) ?: return null
+        return FarmBackupCodec.encode(farm)
+    }
+
+    private fun importBackup() {
+        openBackupDocumentLauncher.launch(arrayOf("application/octet-stream"))
+    }
+
+    internal fun handleImportedBackupContent(content: String) {
+        try {
+            val envelope = FarmBackupCodec.decode(content)
+            showImportConfirmation(envelope.farm)
+        } catch (exception: IllegalArgumentException) {
+            showValidationMessage(exception.message.orEmpty())
+        }
+    }
+
+    private fun showImportConfirmation(farm: FarmState) {
+        val summary = buildImportedFarmSummary(farm)
+        AlertDialog.Builder(this)
+            .setTitle("Replace current farm?")
+            .setMessage("Import backup for ${farm.name}?\n\n$summary\n\nThis will replace the current farm permanently.")
+            .setPositiveButton("Replace farm") { _, _ ->
+                store.saveFarm(farm)
+                currentFarmId = farm.id
+                render()
+                Toast.makeText(this, "Farm restored", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel") { _, _ ->
+                Toast.makeText(this, "Import cancelled", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    private fun buildImportedFarmSummary(farm: FarmState): String {
+        val balanceMinor = farm.transactions.fold(0L) { total, transaction ->
+            total + if (transaction.type == TransactionType.INCOME) transaction.amountMinor else -transaction.amountMinor
+        }
+        val currencyCode = farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "USD"
+        return "Entries: ${farm.entries.size}\nTransactions: ${farm.transactions.size}\nBalance: ${balanceMinor} $currencyCode"
     }
 
     private fun render() {
