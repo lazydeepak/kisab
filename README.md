@@ -54,4 +54,21 @@ Run the validation suite:
 - Validate the complete backup before replacing current state and confirm overwrites explicitly.
 - Preserve the current farm on cancelled or invalid imports and cover the flow with unit and Android integration tests.
 
-See the documentation in `docs/charter/`, `docs/architecture/`, and `docs/decisions/` for the charter, v1 boundary, and architecture decision record.
+## Release
+
+- Versioning and release policy: `docs/release/RELEASE_POLICY.md`.
+- Draft release notes for the first release: `docs/release/RELEASE_NOTES_v0.1.0.md`.
+
+Building a signed release locally requires four environment variables — `KISAB_KEYSTORE_PATH`, `KISAB_KEYSTORE_PASSWORD`, `KISAB_KEY_ALIAS`, and `KISAB_KEY_PASSWORD` — pointing at your release keystore. These are never committed or logged; `assembleRelease` fails clearly if any is missing. Debug builds do not require them.
+
+```bash
+export KISAB_KEYSTORE_PATH=/absolute/path/to/release.keystore
+export KISAB_KEYSTORE_PASSWORD=...
+export KISAB_KEY_ALIAS=...
+export KISAB_KEY_PASSWORD=...
+./gradlew :app:assembleRelease
+```
+
+CI signs releases through the `Release` workflow, which runs on `repository_dispatch` (never on tag push, and never on manual `workflow_dispatch` — a manual run could be started from a selected branch). GitHub sources `repository_dispatch` runs from the default branch `main` and sets `GITHUB_REF` to `main`, so the workflow that reaches signing secrets is always the trusted, reviewed `main` version. Start a release from the secret-free `Release launcher` workflow ("Run workflow"), which emits the event. A secret-free `validate` job verifies the supplied tag is annotated and points at a commit contained in `origin/main`; the `build-sign` job then checks out that validated commit SHA and signs using the `KISAB_KEYSTORE_B64` and password/alias secrets stored on the protected `release-signing` GitHub Environment (configured to permit only the `main` branch, with required reviewers). The keystore is never committed to the repository, never echoed or logged, and is reconstructed only into a temporary runner-local path that is deleted when the job ends. Its base64 form is stored as a GitHub Actions environment secret, which is guarded by the repository owner.
+
+See the documentation in `docs/charter/`, `docs/architecture/`, `docs/decisions/`, and `docs/release/` for the charter, v1 boundary, architecture decision record, and release policy.
