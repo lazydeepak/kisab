@@ -57,7 +57,7 @@ Run the validation suite:
 ## Release
 
 - Versioning and release policy: `docs/release/RELEASE_POLICY.md`.
-- Draft release notes for the first release: `docs/release/RELEASE_NOTES_v0.1.0.md`.
+- Draft release notes for the first release: `docs/release/RELEASE_NOTES_0.1.0.md`.
 
 Building a signed release locally requires four environment variables — `KISAB_KEYSTORE_PATH`, `KISAB_KEYSTORE_PASSWORD`, `KISAB_KEY_ALIAS`, and `KISAB_KEY_PASSWORD` — pointing at your release keystore. These are never committed or logged; `assembleRelease` fails clearly if any is missing. Debug builds do not require them.
 
