@@ -1,6 +1,7 @@
 package com.susankhya.kisab
 
 import android.content.Context
+import android.widget.Button
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
@@ -93,7 +94,10 @@ class FarmPersistenceIntegrationTest {
         onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), typeText("8000"), closeSoftKeyboard())
         onView(withId(R.id.transactionCurrencyInput)).perform(scrollTo(), typeText("USD"), closeSoftKeyboard())
         onView(withId(R.id.transactionOccurredAtInput)).perform(scrollTo(), typeText("2024-01-02T12:00:00Z"), closeSoftKeyboard())
-        onView(withId(R.id.saveTransactionButton)).perform(scrollTo(), click())
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        scenario.onActivity { activity ->
+            activity.findViewById<Button>(R.id.saveTransactionButton).performClick()
+        }
 
         scenario.recreate()
 

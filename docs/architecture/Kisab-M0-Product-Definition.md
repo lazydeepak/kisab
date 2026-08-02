@@ -1,5 +1,8 @@
 # Kisab M0 Product Definition
 
+## Status
+Kisab M0 is complete. It established the product-owned farm-domain boundary and the initial vertical slice that M1 builds on.
+
 ## Scope
 Kisab M0 defines the first product-owned slice that can be built and validated without expanding the foundation.
 
