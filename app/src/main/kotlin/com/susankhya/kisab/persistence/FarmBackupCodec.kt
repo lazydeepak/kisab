@@ -26,15 +26,15 @@ object FarmBackupCodec {
     fun decode(encoded: String): FarmBackupEnvelope {
         return try {
             decodeInternal(encoded)
-        } catch (exception: IllegalArgumentException) {
-            throw exception
+        } catch (exception: RuntimeException) {
+            throw IllegalArgumentException(exception.message ?: "Invalid backup envelope", exception)
         }
     }
 
     fun decodeOrNull(encoded: String): FarmBackupEnvelope? {
         return try {
             decodeInternal(encoded)
-        } catch (_: IllegalArgumentException) {
+        } catch (_: RuntimeException) {
             null
         }
     }
