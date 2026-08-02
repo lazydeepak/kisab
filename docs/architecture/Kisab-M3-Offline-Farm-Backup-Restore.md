@@ -1,7 +1,7 @@
 # Kisab M3 Offline Farm Backup & Restore
 
 ## Status
-Kisab M3 is implemented. It adds a fully offline backup/restore flow for a single farm using Android's Storage Access Framework and a versioned backup envelope that carries only farm-domain state.
+Kisab M3 is complete and merged. It adds a fully offline backup/restore flow for a single farm using Android's Storage Access Framework and a versioned backup envelope that carries only farm-domain state. The implementation was audited, hardened, and merged to `main` at commit `f6e42af` after the full JVM unit-test suite passed.
 
 ## Scope
 Kisab M3 covers:
