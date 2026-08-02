@@ -29,6 +29,7 @@ Run the validation suite:
 - Kisab M0 is complete. The repository now contains the documented product scope, architecture, and a farm-domain vertical slice grounded in the product boundary.
 - Kisab M1 is complete. It implements an offline farm-management flow with a launchable Android UI, local persistence, deterministic domain operations, and automated coverage for the complete journey.
 - Kisab M2 is complete. It hardens the transaction model with stable IDs, explicit transaction types and categories, minor-unit money with currency codes, explicit timestamps, validation, and create/edit/delete flows.
+- Kisab M3 is complete. It adds fully offline single-farm backup/restore using a versioned backup envelope, Android document picker integration, full pre-restore validation, and destructive overwrite confirmation.
 
 ## Kisab M1 acceptance criteria
 - Launch a usable Android app from a launcher activity.
@@ -43,5 +44,11 @@ Run the validation suite:
 - Constrain categories by transaction type and store money in minor units with an ISO currency code.
 - Store explicit transaction timestamps, validate the complete transaction model, and support edit/delete flows with destructive-action confirmation.
 - Preserve local farm data through versioned persistence migration and cover the model with unit, persistence, migration, and Android integration tests.
+
+## Kisab M3 acceptance criteria
+- Export and restore a single farm entirely offline with a versioned backup envelope.
+- Use Android's Storage Access Framework/document picker for backup files without broad filesystem permissions.
+- Validate the complete backup before replacing current state and confirm overwrites explicitly.
+- Preserve the current farm on cancelled or invalid imports and cover the flow with unit and Android integration tests.
 
 See the documentation in `docs/charter/`, `docs/architecture/`, and `docs/decisions/` for the charter, v1 boundary, and architecture decision record.
