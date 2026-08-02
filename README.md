@@ -54,4 +54,21 @@ Run the validation suite:
 - Validate the complete backup before replacing current state and confirm overwrites explicitly.
 - Preserve the current farm on cancelled or invalid imports and cover the flow with unit and Android integration tests.
 
-See the documentation in `docs/charter/`, `docs/architecture/`, and `docs/decisions/` for the charter, v1 boundary, and architecture decision record.
+## Release
+
+- Versioning and release policy: `docs/release/RELEASE_POLICY.md`.
+- Draft release notes for the first release: `docs/release/RELEASE_NOTES_v0.1.0.md`.
+
+Building a signed release locally requires four environment variables — `KISAB_KEYSTORE_PATH`, `KISAB_KEYSTORE_PASSWORD`, `KISAB_KEY_ALIAS`, and `KISAB_KEY_PASSWORD` — pointing at your release keystore. These are never committed or logged; `assembleRelease` fails clearly if any is missing. Debug builds do not require them.
+
+```bash
+export KISAB_KEYSTORE_PATH=/absolute/path/to/release.keystore
+export KISAB_KEYSTORE_PASSWORD=...
+export KISAB_KEY_ALIAS=...
+export KISAB_KEY_PASSWORD=...
+./gradlew :app:assembleRelease
+```
+
+CI signs releases from the `KISAB_KEYSTORE_B64` and password/alias secrets; see `.github/workflows/release.yml`. The production keystore is owned and guarded by the repository owner and is never stored in the repository or CI.
+
+See the documentation in `docs/charter/`, `docs/architecture/`, `docs/decisions/`, and `docs/release/` for the charter, v1 boundary, architecture decision record, and release policy.
