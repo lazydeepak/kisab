@@ -1,14 +1,23 @@
-# Kisab v0.1.0 — Release Record
+# Kisab v0.1.0 — Release-Candidate Record
 
 ## Status
 
-Released. The annotated tag `v0.1.0` exists and points at commit `b1d4fde`, which is contained in `origin/main`. The release workflow run `30750947492` completed successfully: its `validate`, `build-sign`, and `create-draft-release` jobs all passed. The `build-sign` job produced a production-signed release APK, ran the full JVM test suite and lint, verified that the tag matches the packaged `versionName`, and verified the APK signature with `apksigner`. The signed APK and its `.sha256` checksum were attached to the GitHub draft release `Kisab v0.1.0` at the tag.
+> **Status: VERIFIED RELEASE CANDIDATE — GITHUB RELEASE DRAFT, NOT YET PUBLISHED**
 
-Per release policy, the GitHub release record is created as a draft and publication is an explicit owner action. No publication date, download count, or user count is recorded here.
+The annotated `v0.1.0` tag exists and points at commit `b1d4fde`, which is contained in `origin/main`. Release workflow run `30750947492` completed successfully: its `validate`, `build-sign`, and `create-draft-release` jobs all passed. The `build-sign` job produced a production-signed release APK, ran the full JVM test suite and lint, verified that the tag matches the packaged `versionName`, and verified the APK signature with `apksigner`. The signed APK and its `.sha256` checksum were attached to the GitHub draft release `Kisab v0.1.0` at the tag.
+
+This record deliberately distinguishes four facts:
+
+- the annotated `v0.1.0` tag is created and pushed;
+- the production-signed APK artifact was built successfully;
+- the artifact was verified (tests, lint, tag/version validation, v2 signature, independent checksum);
+- the GitHub release record exists as a **draft** and has not yet been explicitly published by the owner.
+
+Because the GitHub release has not been publicly published, no publication date, download count, or user count is recorded here.
 
 ## Summary
 
-Kisab `v0.1.0` is the first release of the standalone offline farm-management Android application. It records a single farm, its livestock/crop entries, and a transaction history, entirely offline, and supports versioned backup/restore through Android's document picker.
+Kisab `v0.1.0` is the first release candidate of the standalone offline farm-management Android application. It records a single farm, its livestock/crop entries, and a transaction history, entirely offline, and supports versioned backup/restore through Android's document picker.
 
 ## Milestone features
 
@@ -47,7 +56,7 @@ Kisab `v0.1.0` is the first release of the standalone offline farm-management An
 - Android Lint: 0 errors (known warning classes: Autofill, GradleDependency, ButtonStyle, ApplySharedPref, MissingApplicationIcon, SetTextI18n).
 - Release signing: the production release APK passed Android APK signature verification with `apksigner verify --print-certs` — `Verified using v2 scheme (APK Signature Scheme v2): true`, signer certificate SHA-256 `92a578e8cedad6ea86d2dc27663a3279f07a70794627a280f877ab30b1f89cff` (RSA). The APK is signed with the production certificate, not the debug key.
 - Release workflow run: `30750947492` (jobs `validate`, `build-sign`, and `create-draft-release` all succeeded).
-- APK SHA-256: `990c100980c469c9411fb7dc66747d0286a3c8020f7d0c8acca949b7e43bd7bc`. This matches the value recorded by the workflow and independently re-verified against the shipped artifact.
+- APK SHA-256: `990c100980c469c9411fb7dc66747d0286a3c8020f7d0c8acca949b7e43bd7bc`. This matches the value recorded by the workflow and independently re-verified against the release artifact.
 
 ## Known limitations
 

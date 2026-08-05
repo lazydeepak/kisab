@@ -32,7 +32,7 @@ Run the validation suite:
 - Kisab M1 is complete. It implements an offline farm-management flow with a launchable Android UI, local persistence, deterministic domain operations, and automated coverage for the complete journey.
 - Kisab M2 is complete. It hardens the transaction model with stable IDs, explicit transaction types and categories, minor-unit money with currency codes, explicit timestamps, validation, and create/edit/delete flows.
 - Kisab M3 is complete. It adds fully offline single-farm backup/restore using a versioned backup envelope, Android document picker integration, full pre-restore validation, and destructive overwrite confirmation.
-- Kisab `v0.1.0` has been released and verified. The annotated tag exists at a commit contained in `origin/main`, and the release workflow run `30750947492` produced a production-signed APK that passed tests, lint, version/tag validation, and Android APK signature verification (v2). See `docs/release/RELEASE_NOTES_0.1.0.md` for the full record.
+- Kisab `v0.1.0` has a verified production release candidate. The annotated tag exists on `main`, and release workflow run `30750947492` produced a production-signed APK that passed tests, lint, tag/version validation, Android APK signature verification (v2), and independent checksum verification. The associated GitHub release remains a draft awaiting explicit owner publication. See `docs/release/RELEASE_NOTES_0.1.0.md` for the full record.
 - Kisab M4 is the active milestone: **DEFINED, NOT STARTED**. M4 turns the technically correct offline `v0.1.0` application into a product that Nepali farmers can understand and use with minimal developer assistance — Android string-resource and Nepali localization, Nepal-oriented currency/number/date/time presentation, first-run and daily-entry usability, and physical-device field validation. M4 does not add cloud, accounts, multi-farm, or payments. See `docs/milestones/M4_FIELD_VALIDATION_AND_NEPAL_USABILITY.md` for the full definition.
 
 ## Kisab M1 acceptance criteria
@@ -59,7 +59,7 @@ Run the validation suite:
 ## Release
 
 - Versioning and release policy: `docs/release/RELEASE_POLICY.md`.
-- Release record for the shipped first release: `docs/release/RELEASE_NOTES_0.1.0.md`.
+- Verified release-candidate record for `v0.1.0`: `docs/release/RELEASE_NOTES_0.1.0.md`.
 
 Building a signed release locally requires four environment variables — `KISAB_KEYSTORE_PATH`, `KISAB_KEYSTORE_PASSWORD`, `KISAB_KEY_ALIAS`, and `KISAB_KEY_PASSWORD` — pointing at your release keystore. These are never committed or logged; `assembleRelease` fails clearly if any is missing. Debug builds do not require them.
 

@@ -12,7 +12,7 @@ Convert the technically correct offline `v0.1.0` application into a product that
 
 M4 is organized into the following workstreams:
 
-- **M4-00 — Post-release documentation and backlog reconciliation.** Align repository documentation with the released `v0.1.0` state, reconcile the roadmap, and establish the M4 working backlog.
+- **M4-00 — Post-release documentation and backlog reconciliation.** Align repository documentation with the verified `v0.1.0` release-candidate state, reconcile the roadmap, and establish the M4 working backlog.
 - **M4-01 — Android string-resource and Nepali localization foundation.** Move all user-facing text into Android string resources and add the initial Nepali (`values-ne/`) resource set governed by the terminology glossary.
 - **M4-02 — Nepal-oriented currency, number, date and time presentation.** Deterministic NPR currency, number, date and time formatting and display rules, without breaking existing persistence or backup compatibility.
 - **M4-03 — First-run and daily transaction-entry usability.** Improve the first-run experience and the daily transaction-entry flow so the core tasks (record income/expense, review balance) are fast and unambiguous for a farmer.
@@ -108,4 +108,4 @@ The following remain outside M4:
 - Product scope and roadmap: `docs/charter/Kisab-Product-Charter.md`, `docs/architecture/`.
 - Terminology glossary: `docs/localization/NEPALI_TERMINOLOGY.md`.
 - Pilot checklist: `docs/validation/V0.1.0_PILOT_CHECKLIST.md`.
-- Release record: `docs/release/RELEASE_NOTES_0.1.0.md`.
+- Release-candidate record: `docs/release/RELEASE_NOTES_0.1.0.md`.

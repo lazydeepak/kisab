@@ -1,6 +1,6 @@
 # Kisab Production Release Setup
 
-> **Status note:** This guide documented the one-time setup for the first production release (`v0.1.0`). That release is complete; the annotated `v0.1.0` tag exists and the signed APK was verified via release workflow run `30750947492`. The steps below are retained as the historical record and remain the reference procedure for subsequent release setup and any keystore rotation.
+> **Status note:** This guide documented the one-time setup for the first production release (`v0.1.0`). The `v0.1.0` release workflow execution and artifact verification are complete: the annotated tag exists and the signed APK was verified via release workflow run `30750947492`. The GitHub release at `v0.1.0` remains a draft; publication is still an explicit owner action and has not occurred. The steps below are retained as the historical record and remain the reference procedure for subsequent release setup and any keystore rotation.
 
 ## Purpose
 
@@ -183,4 +183,4 @@ Abort the release (do not approve `build-sign`, do not publish) if any of these 
 - The reported SHA-256 does not match the attached `.sha256` file.
 - The workflow runs from a non-`main` trust context (e.g. a manual dispatch from another branch, which the design forbids).
 
-See `docs/release/RELEASE_POLICY.md` for the versioning, tag, and signing policy, and `docs/release/V0.1.0_RELEASE_CHECKLIST.md` for the pre-release checklist. Draft notes live at `docs/release/RELEASE_NOTES_0.1.0.md`.
+See `docs/release/RELEASE_POLICY.md` for the versioning, tag, and signing policy, and `docs/release/V0.1.0_RELEASE_CHECKLIST.md` for the pre-release checklist. The `v0.1.0` release-candidate record lives at `docs/release/RELEASE_NOTES_0.1.0.md`.
