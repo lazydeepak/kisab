@@ -2,7 +2,7 @@
 
 ## Status
 
-**IN PROGRESS.** This document defines the M4 milestone. M4-00 is complete; M4-01 (Android string-resource and Nepali localization foundation) is implemented and pending review on `feature/m4-01-localization-foundation`; the remaining workstreams (M4-02 … M4-05) are not started. See `docs/validation/M4_01_LOCALIZATION_VALIDATION.md` for the M4-01 validation record.
+**IN PROGRESS.** This document defines the M4 milestone. M4-00 is complete; M4-01 (Android string-resource and Nepali localization foundation) is complete and merged into `main` via pull request #8; the remaining workstreams (M4-02 … M4-05) are not started. See `docs/validation/M4_01_LOCALIZATION_VALIDATION.md` for the M4-01 validation record.
 
 ## Purpose
 
