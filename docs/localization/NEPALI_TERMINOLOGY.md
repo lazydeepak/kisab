@@ -37,6 +37,28 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Invalid file | Invalid file | अमान्य फाइल (amanaya phaila) | मान्य नभएको फाइल | Rejected backup file | Provisional |  | Pending |
 | Currency | Currency | मुद्रा (mudra) | — | Money unit of account | Provisional |  | Pending |
 | Nepali rupee | Nepali rupee | नेपाली रुपैयाँ (Nepali rupaiya) | रु. | NPR currency display | Provisional |  | Pending |
+| Entry | Entry | प्रविष्टि (pravisti) | — | An item (livestock/crop) recorded on a farm | Provisional |  | Pending |
+| Name | Name | नाम (nam) | — | The label of a farm, entry, or field | Provisional |  | Pending |
+| Quantity | Quantity | परिमाण (parimana) | सङ्ख्या | Count/number of an entry | Provisional |  | Pending |
+| Description | Description | विवरण (bibaran) | टिप्पणी | Free-text note on a transaction | Provisional |  | Pending |
+| Create | Create | सिर्जना गर्नुहोस् (sirjana garnuhos) | बनाउनुहोस् | Create a new farm or transaction | Provisional |  | Pending |
+| Save | Save | बचत गर्नुहोस् (bachat garnuhos) | सुरक्षित गर्नुहोस् | Persist a new or edited transaction | Provisional |  | Pending |
+| Update | Update | अद्यावधिक गर्नुहोस् (adyabadhik garnuhos) | — | Save changes to an existing transaction | Provisional |  | Pending |
+| Replace | Replace | प्रतिस्थापन गर्नुहोस् (pratisthapan garnuhos) | ओभरराइट | Replace current farm from a backup (destructive) | Provisional |  | Pending |
+| Select | Select | चयन गर्नुहोस् (chayan garnuhos) | छान्नुहोस् | Choose an item from a list | Provisional |  | Pending |
+| Sales | Sales | बिक्री (bikri) | — | Income transaction category | Provisional |  | Pending |
+| Services | Services | सेवा (sewa) | — | Income transaction category | Provisional |  | Pending |
+| Other income | Other income | अन्य आम्दानी (anya aamdani) | — | Catch-all income category | Provisional |  | Pending |
+| Feed | Feed | दाना (dana) | चारा | Expense transaction category (animal fodder) | Provisional |  | Pending |
+| Supplies | Supplies | सामग्री (samagri) | — | Expense transaction category | Provisional |  | Pending |
+| Labor | Labor | श्रम (shram) | ज्याला | Expense transaction category | Provisional |  | Pending |
+| Other expense | Other expense | अन्य खर्च (anya kharcha) | — | Catch-all expense category | Provisional |  | Pending |
+| Count | Count | सङ्ख्या (sankhya) | गणना | Number of entries or transactions | Provisional |  | Pending |
+| None yet | None yet | कुनै ... छैन (kunai ... chaina) | खाली | No entries/transactions recorded yet | Provisional |  | Pending |
+| Required | Required | आवश्यक छ (awashyak cha) | चाहिन्छ | A field must be provided | Provisional |  | Pending |
+| Valid | Valid | मान्य (manye) | सही | A value conforms to its format | Provisional |  | Pending |
+| Error | Error | त्रुटि (truti) | गल्ती | Problem message | Provisional |  | Pending |
+| Unexpected error | Unexpected error | अप्रत्याशित त्रुटि (apratyashit truti) | — | Unknown/internal failure message | Provisional |  | Pending |
 
 ## Rules
 
