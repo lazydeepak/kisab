@@ -75,21 +75,23 @@ Nepali translations follow the provisional glossary at `docs/localization/NEPALI
 
 `LocalizationParityTest` enforces: repository-relative resource parsing, no duplicate names, no `values-np`, every Nepali key exists in English, every translatable English key exists in Nepali, no empty values, matching placeholder signatures, matching plural quantities, and correct non-translatable exclusions.
 
-### Instrumentation (`:app:connectedDebugAndroidTest`, emulator `kisab_api36_x86_64`, API 36, x86_64)
+### Instrumentation (`:app:connectedDebugAndroidTest`)
 
-| Suite | Tests | Result |
-| --- | --- | --- |
-| `FarmActivityLocalizationSmokeTest` | 4 | pass (clean first-run EN + NE, populated EN + NE) |
-| `LocalizedResourceResolutionTest` | 9 | pass |
-| `FarmPersistenceIntegrationTest` | 3 | pass |
-| `KisabSessionAppTest` | 2 | pass |
-| `KisabSessionStorageAdapterTest` | 3 | pass |
-| `FarmBackupIntegrationTest` | 5 | pass (after re-runs) |
-| **Total** | **26** | **pass** |
+Final gate runs on Android 17 (API 37, Pixel 7a physical device) with a regression pass on Android 16 (API 36, emulator `kisab_api36_x86_64`):
+
+| Device | Suite | Tests | Result |
+| --- | --- | --- | --- |
+| Pixel 7a (API 37, arm64-v8a) | Full connected suite | 26 | pass (2 consecutive runs) |
+| Pixel 7a (API 37, arm64-v8a) | `FarmBackupIntegrationTest` | 5 | pass (10 consecutive runs) |
+| Emulator (API 36, x86_64) | Full connected suite | 26 | pass (1 regression run) |
+
+Per-class (both devices): `FarmActivityLocalizationSmokeTest` 4, `LocalizedResourceResolutionTest` 9, `FarmPersistenceIntegrationTest` 3, `KisabSessionAppTest` 2, `KisabSessionStorageAdapterTest` 3, `FarmBackupIntegrationTest` 5 — all pass, zero failures, zero skipped, no Kisab crashes or ANRs.
 
 Smoke tests apply the app-level locale with the system `android.app.LocaleManager` API (API 33+; the emulator is API 36) and restore it afterward; the app-level locale is active process-wide, so the English baseline is resolved via a locale-forced configuration context (`createConfigurationContext`), not the default app context.
 
-**Environment note:** the freshly wiped emulator intermittently displayed a `System UI isn't responding` ANR dialog that steals window focus, causing occasional `RootViewWithoutFocusException` failures across pre-existing instrumentation tests. This was mitigated with `settings put global hide_error_dialogs 1` and animation-disabling settings; the affected pre-existing tests each passed when re-run in isolation. No test in the M4-01 suites failed on assertion logic in the final runs.
+**Android 17 dialog-root race corrected:** a pre-existing `FarmBackupIntegrationTest` dialog-root race was exposed deterministically on Android 17. The tests now scope dialog interactions with `inRoot(isDialog())`, use localized resource identifiers, and close every `ActivityScenario`. No production behavior, persistence, or backup format changed.
+
+**Environment note:** the freshly wiped emulator intermittently displayed a `System UI isn't responding` ANR dialog that steals window focus, causing occasional `RootViewWithoutFocusException` failures across pre-existing instrumentation tests. This was mitigated with `settings put global hide_error_dialogs 1` and animation-disabling settings (emulator-only; nothing in the repository references these settings).
 
 ## Static analysis
 
