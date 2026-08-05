@@ -1,5 +1,7 @@
 # Kisab Production Release Setup
 
+> **Status note:** This guide documented the one-time setup for the first production release (`v0.1.0`). That release is complete; the annotated `v0.1.0` tag exists and the signed APK was verified via release workflow run `30750947492`. The steps below are retained as the historical record and remain the reference procedure for subsequent release setup and any keystore rotation.
+
 ## Purpose
 
 This guide walks the repository owner through the one-time setup required before the first production release (`v0.1.0`). It covers the protected GitHub Environment, the permanent production keystore, the environment secrets, and the exact steps to run a signed release.

@@ -4,6 +4,8 @@
 
 Adopted in preparation for the first Kisab release. Applies to the `com.susankhya.kisab` application and governs every future Kisab release.
 
+> **Update:** The first Kisab release is complete. The annotated `v0.1.0` tag exists at a commit contained in `origin/main`, and release workflow run `30750947492` produced a production-signed APK that passed tests, lint, version/tag validation, and v2 signature verification. The statements below that describe the pre-release state ("in preparation", "no production tags exist yet") record the policy's adoption context and remain in force as history; versioning, tag, signing, and draft-release rules apply to all subsequent releases unchanged.
+
 ## Versioning
 
 - Kisab uses [Semantic Versioning](https://semver.org/) for `versionName`.
