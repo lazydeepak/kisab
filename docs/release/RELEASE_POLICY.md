@@ -42,4 +42,4 @@ Adopted in preparation for the first Kisab release. Applies to the `com.susankhy
 - CI decodes the keystore from the `KISAB_KEYSTORE_B64` secret (base64 of the keystore) into a temporary, runner-local path and deletes it at the end of the job.
 - The production keystore and its passwords are guarded by the repository owner. They are never committed to the repository, never echoed or logged, and never persisted on CI runners beyond the temporary runner-local keystore path. The base64 keystore form is stored only as a GitHub Actions environment secret.
 
-See `docs/release/RELEASE_NOTES_0.1.0.md` for the `v0.1.0` release-candidate record and `README.md` for the local signing workflow.
+See `docs/release/RELEASE_NOTES_0.1.0.md` for the `v0.1.0` published release record and `README.md` for the local signing workflow.

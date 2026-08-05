@@ -183,4 +183,4 @@ Abort the release (do not approve `build-sign`, do not publish) if any of these 
 - The reported SHA-256 does not match the attached `.sha256` file.
 - The workflow runs from a non-`main` trust context (e.g. a manual dispatch from another branch, which the design forbids).
 
-See `docs/release/RELEASE_POLICY.md` for the versioning, tag, and signing policy, and `docs/release/V0.1.0_RELEASE_CHECKLIST.md` for the pre-release checklist. The `v0.1.0` release-candidate record lives at `docs/release/RELEASE_NOTES_0.1.0.md`.
+See `docs/release/RELEASE_POLICY.md` for the versioning, tag, and signing policy, and `docs/release/V0.1.0_RELEASE_CHECKLIST.md` for the pre-release checklist. The `v0.1.0` published release record lives at `docs/release/RELEASE_NOTES_0.1.0.md`.
