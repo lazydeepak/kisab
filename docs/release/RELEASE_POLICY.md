@@ -4,6 +4,8 @@
 
 Adopted in preparation for the first Kisab release. Applies to the `com.susankhya.kisab` application and governs every future Kisab release.
 
+> **Update:** The `v0.1.0` signing workflow execution and artifact verification completed, and the GitHub release was explicitly published. The annotated `v0.1.0` tag exists at a commit contained in `origin/main`, and release workflow run `30750947492` produced a production-signed APK that passed tests, lint, version/tag validation, and v2 signature verification. The GitHub release at `v0.1.0` is published (not a prerelease). The statements below that describe the pre-release state ("in preparation", "no production tags exist yet") record the policy's adoption context and remain in force as history; versioning, tag, signing, and draft-release rules apply to all subsequent releases unchanged.
+
 ## Versioning
 
 - Kisab uses [Semantic Versioning](https://semver.org/) for `versionName`.
@@ -40,4 +42,4 @@ Adopted in preparation for the first Kisab release. Applies to the `com.susankhy
 - CI decodes the keystore from the `KISAB_KEYSTORE_B64` secret (base64 of the keystore) into a temporary, runner-local path and deletes it at the end of the job.
 - The production keystore and its passwords are guarded by the repository owner. They are never committed to the repository, never echoed or logged, and never persisted on CI runners beyond the temporary runner-local keystore path. The base64 keystore form is stored only as a GitHub Actions environment secret.
 
-See `docs/release/RELEASE_NOTES_0.1.0.md` for the drafted notes and `README.md` for the local signing workflow.
+See `docs/release/RELEASE_NOTES_0.1.0.md` for the `v0.1.0` published release record and `README.md` for the local signing workflow.

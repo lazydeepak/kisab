@@ -1,5 +1,7 @@
 # Kisab Production Release Setup
 
+> **Status note:** This guide documented the one-time setup for the first production release (`v0.1.0`). The `v0.1.0` signing workflow execution and artifact verification completed, and the GitHub release was explicitly published. The annotated tag exists, the signed APK was verified via release workflow run `30750947492`, and the GitHub release at `v0.1.0` is published (not a prerelease). The steps below are retained as the historical process record and remain the reference procedure for subsequent release setup and any keystore rotation.
+
 ## Purpose
 
 This guide walks the repository owner through the one-time setup required before the first production release (`v0.1.0`). It covers the protected GitHub Environment, the permanent production keystore, the environment secrets, and the exact steps to run a signed release.
@@ -181,4 +183,4 @@ Abort the release (do not approve `build-sign`, do not publish) if any of these 
 - The reported SHA-256 does not match the attached `.sha256` file.
 - The workflow runs from a non-`main` trust context (e.g. a manual dispatch from another branch, which the design forbids).
 
-See `docs/release/RELEASE_POLICY.md` for the versioning, tag, and signing policy, and `docs/release/V0.1.0_RELEASE_CHECKLIST.md` for the pre-release checklist. Draft notes live at `docs/release/RELEASE_NOTES_0.1.0.md`.
+See `docs/release/RELEASE_POLICY.md` for the versioning, tag, and signing policy, and `docs/release/V0.1.0_RELEASE_CHECKLIST.md` for the pre-release checklist. The `v0.1.0` published release record lives at `docs/release/RELEASE_NOTES_0.1.0.md`.
