@@ -13,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.susankhya.kisab.R
@@ -27,8 +28,12 @@ import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.persistence.AndroidStorageAccessFrameworkBackupFileAdapter
 import com.susankhya.kisab.persistence.FarmBackupCodec
+import com.susankhya.kisab.persistence.FarmBackupException
 import com.susankhya.kisab.persistence.FarmBackupFileAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class FarmActivity : AppCompatActivity() {
     private lateinit var store: SharedPreferencesFarmStore
@@ -76,34 +81,41 @@ class FarmActivity : AppCompatActivity() {
 
         createBackupDocumentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
-                val uri = result.data?.data ?: run {
-                    pendingExportContent = null
-                    Toast.makeText(this, "Export cancelled", Toast.LENGTH_SHORT).show()
-                    return@registerForActivityResult
-                }
-                val content = pendingExportContent ?: run {
-                    Toast.makeText(this, "Export cancelled", Toast.LENGTH_SHORT).show()
-                    return@registerForActivityResult
-                }
-                backupFileAdapter.writeText(uri.toString(), content, FarmBackupCodec.MAX_BACKUP_BYTES)
+                val uri = result.data?.data
+                val content = pendingExportContent
                 pendingExportContent = null
-                Toast.makeText(this, "Backup exported", Toast.LENGTH_SHORT).show()
+                if (uri == null || content == null) {
+                    showToast(R.string.toast_export_cancelled)
+                    return@registerForActivityResult
+                }
+                try {
+                    backupFileAdapter.writeText(uri.toString(), content, FarmBackupCodec.MAX_BACKUP_BYTES)
+                    showToast(R.string.toast_backup_exported)
+                } catch (exception: FarmBackupException) {
+                    showValidationMessage(FarmUiError.fromBackupFailure(exception).resourceId)
+                } catch (exception: Exception) {
+                    Log.e(LOG_TAG, "export backup failed", exception)
+                    showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
+                }
             } else {
                 pendingExportContent = null
-                Toast.makeText(this, "Export cancelled", Toast.LENGTH_SHORT).show()
+                showToast(R.string.toast_export_cancelled)
             }
         }
 
         openBackupDocumentLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) {
-                Toast.makeText(this, "Import cancelled", Toast.LENGTH_SHORT).show()
+                showToast(R.string.toast_import_cancelled)
                 return@registerForActivityResult
             }
             try {
                 val content = backupFileAdapter.readText(uri.toString(), FarmBackupCodec.MAX_BACKUP_BYTES)
                 handleImportedBackupContent(content)
-            } catch (exception: IllegalArgumentException) {
-                showValidationMessage(exception.message.orEmpty())
+            } catch (exception: FarmBackupException) {
+                showValidationMessage(FarmUiError.fromBackupFailure(exception).resourceId)
+            } catch (exception: Exception) {
+                Log.e(LOG_TAG, "import backup failed", exception)
+                showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
             }
         }
 
@@ -136,7 +148,7 @@ class FarmActivity : AppCompatActivity() {
         entryKindSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
-            listOf("Livestock", "Crop")
+            FarmOrdering.entryKinds.map { FarmLabels.entryKind(this, it) }
         ).also { adapter ->
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
@@ -144,7 +156,7 @@ class FarmActivity : AppCompatActivity() {
         transactionTypeSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
-            TransactionType.values().map { it.name.lowercase().replaceFirstChar { char -> char.titlecase() } }
+            FarmOrdering.transactionTypes.map { FarmLabels.transactionType(this, it) }
         ).also { adapter ->
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
@@ -186,84 +198,117 @@ class FarmActivity : AppCompatActivity() {
 
     private fun createFarm() {
         val name = farmNameInput.text?.toString()?.trim().orEmpty()
+        if (name.isBlank()) {
+            showValidationMessage(FarmUiError.FARM_NAME_REQUIRED.resourceId)
+            return
+        }
         try {
             service.createFarm(name)
             render()
-            Toast.makeText(this, "Farm created", Toast.LENGTH_SHORT).show()
-        } catch (exception: IllegalArgumentException) {
-            showValidationMessage(exception.message.orEmpty())
+            showToast(R.string.toast_farm_created)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "create farm failed")
         }
     }
 
     private fun addEntry() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val label = entryLabelInput.text?.toString()?.trim().orEmpty()
+        if (label.isBlank()) {
+            showValidationMessage(FarmUiError.ENTRY_LABEL_REQUIRED.resourceId)
+            return
+        }
+        val quantity = entryQuantityInput.text?.toString()?.trim()?.toIntOrNull()
+        if (quantity == null || quantity <= 0) {
+            showValidationMessage(FarmUiError.ENTRY_QUANTITY_POSITIVE_WHOLE.resourceId)
+            return
+        }
         try {
             val entry = FarmEntry(
                 kind = selectedEntryKind(),
-                label = entryLabelInput.text?.toString()?.trim().orEmpty(),
-                quantity = entryQuantityInput.text?.toString()?.toIntOrNull() ?: throw IllegalArgumentException("Quantity must be a whole number")
+                label = label,
+                quantity = quantity
             )
             service.addEntry(farmId, entry)
             entryLabelInput.setText("")
             entryQuantityInput.setText("")
             render()
-            Toast.makeText(this, "Entry added", Toast.LENGTH_SHORT).show()
-        } catch (exception: IllegalArgumentException) {
-            showValidationMessage(exception.message.orEmpty())
+            showToast(R.string.toast_entry_added)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "add entry failed")
         }
     }
 
     private fun saveTransaction() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val currency = transactionCurrencyInput.text?.toString()?.trim()?.uppercase().orEmpty()
+        if (!currency.matches(Regex("^[A-Z]{3}$"))) {
+            showValidationMessage(FarmUiError.CURRENCY_ISO_THREE_LETTERS.resourceId)
+            return
+        }
+        val occurredAt = transactionOccurredAtInput.text?.toString()?.trim().orEmpty()
+        if (occurredAt.isBlank()) {
+            showValidationMessage(FarmUiError.TRANSACTION_DATE_TIME_REQUIRED.resourceId)
+            return
+        }
+        if (!isValidIsoOffsetDateTime(occurredAt)) {
+            showValidationMessage(FarmUiError.TRANSACTION_DATE_TIME_INVALID.resourceId)
+            return
+        }
+        val amount = transactionAmountInput.text?.toString()?.trim()?.toLongOrNull()
+        if (amount == null || amount <= 0) {
+            showValidationMessage(FarmUiError.AMOUNT_POSITIVE_WHOLE.resourceId)
+            return
+        }
+        val description = transactionDescriptionInput.text?.toString()?.trim().orEmpty()
+        if (description.isBlank()) {
+            showValidationMessage(FarmUiError.TRANSACTION_DESCRIPTION_REQUIRED.resourceId)
+            return
+        }
+        Log.d(LOG_TAG, "draftCurrency=$currency description=$description occurredAt=$occurredAt")
+        val draft = FarmTransactionDraft(
+            type = selectedTransactionType(),
+            category = selectedTransactionCategory(),
+            amountMinor = amount,
+            currency = currency,
+            description = description,
+            occurredAt = occurredAt
+        )
         try {
-            val currency = transactionCurrencyInput.text?.toString()?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
-                ?: throw IllegalArgumentException("Currency must be a 3-letter ISO code")
-            val occurredAt = transactionOccurredAtInput.text?.toString()?.trim()?.takeIf { it.isNotBlank() }
-                ?: throw IllegalArgumentException("Transaction date/time is required")
-            val description = transactionDescriptionInput.text?.toString()?.trim().orEmpty()
-            Log.d("FarmActivity", "draftCurrency=$currency description=$description occurredAt=$occurredAt")
-            val draft = FarmTransactionDraft(
-                type = selectedTransactionType(),
-                category = selectedTransactionCategory(),
-                amountMinor = transactionAmountInput.text?.toString()?.trim()?.toLongOrNull() ?: throw IllegalArgumentException("Amount must be a whole number"),
-                currency = currency,
-                description = description,
-                occurredAt = occurredAt
-            )
             if (currentTransactionId == null) {
                 val created = service.createTransaction(farmId, draft)
-                Log.d("FarmActivity", "created transaction id=${created.id} with farmId=$farmId")
-                Toast.makeText(this, "Transaction created", Toast.LENGTH_SHORT).show()
+                Log.d(LOG_TAG, "created transaction id=${created.id} with farmId=$farmId")
+                showToast(R.string.toast_transaction_created)
             } else {
                 val updated = service.updateTransaction(farmId, currentTransactionId!!, draft)
-                Log.d("FarmActivity", "updated transaction id=${updated.id} with farmId=$farmId")
-                Toast.makeText(this, "Transaction updated", Toast.LENGTH_SHORT).show()
+                Log.d(LOG_TAG, "updated transaction id=${updated.id} with farmId=$farmId")
+                showToast(R.string.toast_transaction_updated)
             }
             clearTransactionForm()
             render()
-        } catch (exception: IllegalArgumentException) {
-            Log.e("FarmActivity", "saveTransaction failed: ${exception.message}", exception)
-            showValidationMessage(exception.message.orEmpty())
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "save transaction failed")
         }
     }
 
     private fun deleteTransaction() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
-        val selectedTransactionId = currentTransactionId ?: return showValidationMessage("Select a transaction to delete")
+        val selectedTransactionId = currentTransactionId
+            ?: return showValidationMessage(FarmUiError.TRANSACTION_SELECTION_REQUIRED.resourceId)
         AlertDialog.Builder(this)
-            .setTitle("Delete transaction")
-            .setMessage("Delete this transaction permanently?")
-            .setPositiveButton("Delete") { _, _ ->
+            .setTitle(string(R.string.dialog_delete_transaction_title))
+            .setMessage(string(R.string.dialog_delete_transaction_message))
+            .setPositiveButton(string(R.string.action_delete)) { _, _ ->
                 try {
                     service.deleteTransaction(farmId, selectedTransactionId)
                     currentTransactionId = null
                     render()
-                    Toast.makeText(this, "Transaction deleted", Toast.LENGTH_SHORT).show()
-                } catch (exception: IllegalArgumentException) {
-                    showValidationMessage(exception.message.orEmpty())
+                    showToast(R.string.toast_transaction_deleted)
+                } catch (exception: Exception) {
+                    showUnexpectedFailure(exception, "delete transaction failed")
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(string(R.string.action_cancel), null)
             .show()
     }
 
@@ -272,11 +317,12 @@ class FarmActivity : AppCompatActivity() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         pendingExportContent = backupContent
-        val safeName = farm.name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').takeIf { it.isNotBlank() } ?: "farm"
+        val safeName = farm.name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
+            .takeIf { it.isNotBlank() } ?: string(R.string.backup_filename_fallback)
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "application/octet-stream"
-            putExtra(Intent.EXTRA_TITLE, "kisab-$safeName.backup")
+            putExtra(Intent.EXTRA_TITLE, string(R.string.backup_filename_format, safeName))
         }
         createBackupDocumentLauncher.launch(intent)
     }
@@ -295,24 +341,26 @@ class FarmActivity : AppCompatActivity() {
         try {
             val envelope = FarmBackupCodec.decode(content)
             showImportConfirmation(envelope.farm)
-        } catch (exception: IllegalArgumentException) {
-            showValidationMessage(exception.message.orEmpty())
+        } catch (exception: FarmBackupException) {
+            showValidationMessage(FarmUiError.fromBackupFailure(exception).resourceId)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "import backup content failed")
         }
     }
 
     private fun showImportConfirmation(farm: FarmState) {
         val summary = buildImportedFarmSummary(farm)
         AlertDialog.Builder(this)
-            .setTitle("Replace current farm?")
-            .setMessage("Import backup for ${farm.name}?\n\n$summary\n\nThis will replace the current farm permanently.")
-            .setPositiveButton("Replace farm") { _, _ ->
+            .setTitle(string(R.string.dialog_replace_farm_title))
+            .setMessage(string(R.string.dialog_import_backup_message_format, farm.name, summary))
+            .setPositiveButton(string(R.string.action_replace_farm)) { _, _ ->
                 store.saveFarm(farm)
                 currentFarmId = farm.id
                 render()
-                Toast.makeText(this, "Farm restored", Toast.LENGTH_SHORT).show()
+                showToast(R.string.toast_farm_restored)
             }
-            .setNegativeButton("Cancel") { _, _ ->
-                Toast.makeText(this, "Import cancelled", Toast.LENGTH_SHORT).show()
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
+                showToast(R.string.toast_import_cancelled)
             }
             .show()
     }
@@ -322,7 +370,13 @@ class FarmActivity : AppCompatActivity() {
             total + if (transaction.type == TransactionType.INCOME) transaction.amountMinor else -transaction.amountMinor
         }
         val currencyCode = farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "USD"
-        return "Entries: ${farm.entries.size}\nTransactions: ${farm.transactions.size}\nBalance: ${balanceMinor} $currencyCode"
+        return string(
+            R.string.imported_farm_summary_format,
+            farm.entries.size,
+            farm.transactions.size,
+            balanceMinor,
+            currencyCode
+        )
     }
 
     private fun render() {
@@ -343,19 +397,29 @@ class FarmActivity : AppCompatActivity() {
     private fun renderFarm(farm: FarmState) {
         val summary = service.summary(farm.id)
         val summaryTextValue = buildSummaryText(farm, summary)
-        Log.d("FarmActivity", "summary=$summaryTextValue")
+        Log.d(LOG_TAG, "summary=$summaryTextValue")
         summaryText.text = summaryTextValue
         entriesText.text = if (farm.entries.isEmpty()) {
-            "No entries yet"
+            string(R.string.empty_entries)
         } else {
-            farm.entries.joinToString("\n") { entry -> "- ${entry.kind.name.lowercase()}: ${entry.label} x${entry.quantity}" }
+            farm.entries.joinToString("\n") { entry ->
+                string(R.string.entry_row_format, FarmLabels.entryKind(this, entry.kind), entry.label, entry.quantity)
+            }
         }
         val newestFirstTransactions = service.transactionsNewestFirst(farm.id)
         transactionsText.text = if (newestFirstTransactions.isEmpty()) {
-            "No transactions yet"
+            string(R.string.empty_transactions)
         } else {
             newestFirstTransactions.joinToString("\n") { transaction ->
-                "- ${transaction.displayDateTime()} | ${transaction.type.name.lowercase()} | ${transaction.category.name.lowercase()} | ${transaction.description} | ${transaction.currency} ${transaction.amountMinor}"
+                string(
+                    R.string.transaction_row_format,
+                    transaction.displayDateTime(),
+                    FarmLabels.transactionType(this, transaction.type),
+                    FarmLabels.transactionCategory(this, transaction.category),
+                    transaction.description,
+                    transaction.currency,
+                    transaction.amountMinor
+                )
             }
         }
 
@@ -364,59 +428,43 @@ class FarmActivity : AppCompatActivity() {
         validationMessageText.visibility = View.GONE
     }
 
-    private fun buildSummaryText(farm: FarmState, summary: FarmSummary): String = "Farm: ${farm.name}\n" +
-        "Entry count: ${summary.entryCount}\n" +
-        "Transaction count: ${summary.transactionCount}\n" +
-        "Balance: ${summary.balanceMinor}${summary.currencyCode?.let { " ${it}" } ?: ""}"
-
-    private fun selectedEntryKind(): FarmEntryKind = when (entryKindSpinner.selectedItemPosition) {
-        1 -> FarmEntryKind.CROP
-        else -> FarmEntryKind.LIVESTOCK
+    private fun buildSummaryText(farm: FarmState, summary: FarmSummary): String {
+        val currencySuffix = summary.currencyCode?.let { " $it" } ?: ""
+        return string(
+            R.string.farm_summary_format,
+            farm.name,
+            summary.entryCount,
+            summary.transactionCount,
+            summary.balanceMinor,
+            currencySuffix
+        )
     }
 
-    private fun selectedTransactionType(): TransactionType = when (transactionTypeSpinner.selectedItemPosition) {
-        1 -> TransactionType.EXPENSE
-        else -> TransactionType.INCOME
-    }
+    private fun selectedEntryKind(): FarmEntryKind = FarmOrdering.entryKinds[entryKindSpinner.selectedItemPosition]
 
-    private fun selectedTransactionCategory(): TransactionCategory = when (selectedTransactionType()) {
-        TransactionType.EXPENSE -> when (transactionCategorySpinner.selectedItemPosition) {
-            1 -> TransactionCategory.SUPPLIES
-            2 -> TransactionCategory.LABOR
-            3 -> TransactionCategory.OTHER_EXPENSE
-            else -> TransactionCategory.FEED
-        }
-        TransactionType.INCOME -> when (transactionCategorySpinner.selectedItemPosition) {
-            1 -> TransactionCategory.SERVICES
-            2 -> TransactionCategory.OTHER_INCOME
-            else -> TransactionCategory.SALES
-        }
-    }
+    private fun selectedTransactionType(): TransactionType =
+        FarmOrdering.transactionTypes[transactionTypeSpinner.selectedItemPosition]
+
+    private fun selectedTransactionCategory(): TransactionCategory =
+        FarmOrdering.categoriesFor(selectedTransactionType())[transactionCategorySpinner.selectedItemPosition]
 
     private fun refreshCategoryChoices() {
-        val categories = when (selectedTransactionType()) {
-            TransactionType.EXPENSE -> listOf("Feed", "Supplies", "Labor", "Other expense")
-            TransactionType.INCOME -> listOf("Sales", "Services", "Other income")
-        }
-        transactionCategorySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, categories).also { adapter ->
+        val categories = FarmOrdering.categoriesFor(selectedTransactionType())
+        transactionCategorySpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            categories.map { FarmLabels.transactionCategory(this, it) }
+        ).also { adapter ->
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
     }
 
     private fun fillTransactionForm(transaction: FarmTransaction) {
-        transactionTypeSpinner.setSelection(if (transaction.type == TransactionType.EXPENSE) 1 else 0)
+        transactionTypeSpinner.setSelection(FarmOrdering.transactionTypes.indexOf(transaction.type))
         refreshCategoryChoices()
-        val categoryIndex = when (transaction.category) {
-            TransactionCategory.SALES -> 0
-            TransactionCategory.SERVICES -> 1
-            TransactionCategory.OTHER_INCOME -> 2
-            TransactionCategory.FEED -> 0
-            TransactionCategory.SUPPLIES -> 1
-            TransactionCategory.LABOR -> 2
-            TransactionCategory.OTHER_EXPENSE -> 3
-        }
+        val categoryIndex = FarmOrdering.categoriesFor(transaction.type).indexOf(transaction.category)
         transactionCategorySpinner.setSelection(categoryIndex)
-        transactionAmountInput.setText(transaction.amountMinor.toString())
+        transactionAmountInput.setText(String.format(Locale.US, "%d", transaction.amountMinor))
         transactionCurrencyInput.setText(transaction.currency)
         transactionDescriptionInput.setText(transaction.description)
         transactionOccurredAtInput.setText(transaction.occurredAt.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
@@ -435,10 +483,18 @@ class FarmActivity : AppCompatActivity() {
     private fun populateTransactionSelection(transactions: List<FarmTransaction>) {
         val displayValues = mutableListOf<String>()
         val ids = mutableListOf<String?>()
-        displayValues.add("Create new transaction")
+        displayValues.add(string(R.string.transaction_selection_create))
         ids.add(null)
         transactions.forEach { transaction ->
-            displayValues.add("${transaction.id.take(12)} • ${transaction.description} • ${transaction.currency} ${transaction.amountMinor}")
+            displayValues.add(
+                string(
+                    R.string.transaction_selection_row_format,
+                    transaction.id.take(12),
+                    transaction.description,
+                    transaction.currency,
+                    transaction.amountMinor
+                )
+            )
             ids.add(transaction.id)
         }
         transactionIdsForSelection = ids
@@ -453,13 +509,37 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
-    private fun showValidationMessage(message: String) {
+    private fun showValidationMessage(@StringRes resId: Int, vararg formatArgs: Any) {
+        val message = string(resId, *formatArgs)
         validationMessageText.text = message
         validationMessageText.visibility = View.VISIBLE
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
+    private fun showToast(@StringRes resId: Int) {
+        Toast.makeText(this, resId, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showUnexpectedFailure(exception: Exception, contextLog: String) {
+        Log.e(LOG_TAG, "$contextLog: ${exception.message}", exception)
+        showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
+    }
+
     private fun showMissingFarmMessage() {
-        Toast.makeText(this, "Create a farm first", Toast.LENGTH_SHORT).show()
+        showToast(FarmUiError.CURRENT_FARM_MISSING.resourceId)
+    }
+
+    private fun string(@StringRes resId: Int, vararg formatArgs: Any): String =
+        if (formatArgs.isEmpty()) getString(resId) else getString(resId, *formatArgs)
+
+    private fun isValidIsoOffsetDateTime(value: String): Boolean = try {
+        OffsetDateTime.parse(value, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        true
+    } catch (exception: RuntimeException) {
+        false
+    }
+
+    private companion object {
+        const val LOG_TAG = "FarmActivity"
     }
 }

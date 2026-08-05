@@ -19,15 +19,19 @@ object FarmBackupCodec {
         val farmPayload = Base64.getEncoder().encodeToString(FarmPersistenceCodec.encode(farm).toByteArray(StandardCharsets.UTF_8))
         val exportedAtText = exportedAt.withOffsetSameInstant(ZoneOffset.UTC).format(UTC_FORMATTER)
         val encoded = listOf(CURRENT_SCHEMA_VERSION.toString(), exportedAtText, farmPayload).joinToString(FIELD_SEPARATOR)
-        require(encoded.toByteArray(StandardCharsets.UTF_8).size <= MAX_BACKUP_BYTES) { "Backup file is too large" }
+        if (encoded.toByteArray(StandardCharsets.UTF_8).size > MAX_BACKUP_BYTES) {
+            throw FarmBackupException(BackupRejectionReason.TOO_LARGE, "Backup file is too large")
+        }
         return encoded
     }
 
     fun decode(encoded: String): FarmBackupEnvelope {
         return try {
             decodeInternal(encoded)
+        } catch (exception: FarmBackupException) {
+            throw exception
         } catch (exception: RuntimeException) {
-            throw IllegalArgumentException(exception.message ?: "Invalid backup envelope", exception)
+            throw FarmBackupException(BackupRejectionReason.INVALID_ENVELOPE, exception.message ?: "Invalid backup envelope", exception)
         }
     }
 
@@ -40,12 +44,20 @@ object FarmBackupCodec {
     }
 
     private fun decodeInternal(encoded: String): FarmBackupEnvelope {
-        require(encoded.isNotBlank()) { "Invalid backup envelope" }
-        require(encoded.toByteArray(StandardCharsets.UTF_8).size <= MAX_BACKUP_BYTES) { "Backup file is too large" }
+        if (encoded.isBlank()) {
+            throw FarmBackupException(BackupRejectionReason.INVALID_ENVELOPE, "Invalid backup envelope")
+        }
+        if (encoded.toByteArray(StandardCharsets.UTF_8).size > MAX_BACKUP_BYTES) {
+            throw FarmBackupException(BackupRejectionReason.TOO_LARGE, "Backup file is too large")
+        }
         val parts = encoded.split(FIELD_SEPARATOR)
-        require(parts.size == 3) { "Invalid backup envelope" }
-        val version = parts[0].toIntOrNull() ?: throw IllegalArgumentException("Invalid backup envelope")
-        require(version == CURRENT_SCHEMA_VERSION) { "Unsupported backup version: $version" }
+        if (parts.size != 3) {
+            throw FarmBackupException(BackupRejectionReason.INVALID_ENVELOPE, "Invalid backup envelope")
+        }
+        val version = parts[0].toIntOrNull() ?: throw FarmBackupException(BackupRejectionReason.INVALID_ENVELOPE, "Invalid backup envelope")
+        if (version != CURRENT_SCHEMA_VERSION) {
+            throw FarmBackupException(BackupRejectionReason.UNSUPPORTED_VERSION, "Unsupported backup version: $version")
+        }
         val exportedAt = OffsetDateTime.parse(parts[1], UTC_FORMATTER)
         val farmPayload = String(Base64.getDecoder().decode(parts[2]), StandardCharsets.UTF_8)
         val farm = FarmPersistenceCodec.decode(farmPayload)

@@ -58,15 +58,17 @@
 
                 <Button
                     android:id="@+id/exportBackupButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="@string/export_backup_action" />
 
                 <Button
                     android:id="@+id/importBackupButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
+                    android:layout_weight="1"
                     android:text="@string/import_backup_action" />
             </LinearLayout>
 
@@ -205,15 +207,17 @@
 
                 <Button
                     android:id="@+id/saveTransactionButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="@string/save_transaction_action" />
 
                 <Button
                     android:id="@+id/deleteTransactionButton"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
+                    android:layout_weight="1"
                     android:text="@string/delete_transaction_action" />
             </LinearLayout>
         </androidx.appcompat.widget.LinearLayoutCompat>

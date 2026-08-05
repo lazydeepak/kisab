@@ -1,0 +1,78 @@
+<resources>
+    <string name="create_farm_prompt">यस उपकरणमा स्थानीय रूपमा भण्डारण हुने फार्म सिर्जना गर्नुहोस्।</string>
+    <string name="farm_name_hint">फार्मको नाम</string>
+    <string name="create_farm_action">फार्म सिर्जना गर्नुहोस्</string>
+    <string name="entries_section">प्रविष्टिहरू</string>
+    <string name="transactions_section">लेनदेनहरू</string>
+    <string name="add_entry_section">प्रविष्टि थप्नुहोस्</string>
+    <string name="entry_label_hint">प्रविष्टिको नाम</string>
+    <string name="entry_quantity_hint">परिमाण</string>
+    <string name="add_entry_action">प्रविष्टि थप्नुहोस्</string>
+    <string name="add_transaction_section">लेनदेन थप्नुहोस्</string>
+    <string name="transaction_description_hint">विवरण</string>
+    <string name="transaction_amount_hint">रकम (सानो एकाइ)</string>
+    <string name="transaction_currency_hint">मुद्रा (ISO कोड)</string>
+    <string name="transaction_occurred_at_hint">मिति/समय (ISO-8601)</string>
+    <string name="save_transaction_action">लेनदेन बचत गर्नुहोस्</string>
+    <string name="delete_transaction_action">मेटाउनुहोस्</string>
+    <string name="export_backup_action">ब्याकअप निर्यात गर्नुहोस्</string>
+    <string name="import_backup_action">ब्याकअप आयात गर्नुहोस्</string>
+
+    <string name="entry_kind_livestock">पशुधन</string>
+    <string name="entry_kind_crop">बाली</string>
+
+    <string name="transaction_type_income">आम्दानी</string>
+    <string name="transaction_type_expense">खर्च</string>
+
+    <string name="transaction_category_sales">बिक्री</string>
+    <string name="transaction_category_services">सेवा</string>
+    <string name="transaction_category_other_income">अन्य आम्दानी</string>
+    <string name="transaction_category_feed">दाना</string>
+    <string name="transaction_category_supplies">सामग्री</string>
+    <string name="transaction_category_labor">श्रम</string>
+    <string name="transaction_category_other_expense">अन्य खर्च</string>
+
+    <string name="empty_entries">अहिलेसम्म कुनै प्रविष्टि छैन</string>
+    <string name="empty_transactions">अहिलेसम्म कुनै लेनदेन छैन</string>
+
+    <string name="farm_summary_format">फार्म: %1$s\nप्रविष्टि सङ्ख्या: %2$d\nलेनदेन सङ्ख्या: %3$d\nबाँकी रकम: %4$d%5$s</string>
+    <string name="entry_row_format">- %1$s: %2$s x%3$d</string>
+    <string name="transaction_row_format">- %1$s | %2$s | %3$s | %4$s | %5$s %6$d</string>
+
+    <string name="transaction_selection_create">नयाँ लेनदेन सिर्जना गर्नुहोस्</string>
+    <string name="transaction_selection_row_format">%1$s • %2$s • %3$s %4$d</string>
+
+    <string name="toast_export_cancelled">निर्यात रद्द भयो</string>
+    <string name="toast_backup_exported">ब्याकअप निर्यात भयो</string>
+    <string name="toast_import_cancelled">आयात रद्द भयो</string>
+    <string name="toast_farm_created">फार्म सिर्जना भयो</string>
+    <string name="toast_entry_added">प्रविष्टि थपियो</string>
+    <string name="toast_transaction_created">लेनदेन सिर्जना भयो</string>
+    <string name="toast_transaction_updated">लेनदेन अद्यावधिक भयो</string>
+    <string name="toast_transaction_deleted">लेनदेन मेटियो</string>
+    <string name="toast_farm_restored">फार्म पुनर्स्थापित भयो</string>
+
+    <string name="dialog_delete_transaction_title">लेनदेन मेटाउनुहोस्</string>
+    <string name="dialog_delete_transaction_message">के यो लेनदेन स्थायी रूपमा मेटाउने?</string>
+    <string name="dialog_replace_farm_title">हालको फार्म प्रतिस्थापन गर्ने?</string>
+    <string name="dialog_import_backup_message_format">%1$s को ब्याकअप आयात गर्ने?\n\n%2$s\n\nयसले हालको फार्म स्थायी रूपमा प्रतिस्थापन गर्नेछ।</string>
+    <string name="action_delete">मेटाउनुहोस्</string>
+    <string name="action_cancel">रद्द गर्नुहोस्</string>
+    <string name="action_replace_farm">फार्म प्रतिस्थापन गर्नुहोस्</string>
+
+    <string name="imported_farm_summary_format">प्रविष्टिहरू: %1$d\nलेनदेनहरू: %2$d\nबाँकी रकम: %3$d %4$s</string>
+
+    <string name="error_farm_name_required">फार्मको नाम आवश्यक छ</string>
+    <string name="error_entry_label_required">प्रविष्टिको नाम आवश्यक छ</string>
+    <string name="error_entry_quantity_positive_whole">परिमाण मान्य धनात्मक पूर्ण सङ्ख्या हुनुपर्छ</string>
+    <string name="error_transaction_description_required">लेनदेन विवरण आवश्यक छ</string>
+    <string name="error_transaction_amount_positive_whole">रकम मान्य धनात्मक पूर्ण सङ्ख्या हुनुपर्छ</string>
+    <string name="error_currency_iso_three_letters">मुद्रा तीन अक्षरको ISO कोड हुनुपर्छ</string>
+    <string name="error_transaction_date_time_required">लेनदेन मिति/समय आवश्यक छ</string>
+    <string name="error_transaction_date_time_invalid">लेनदेन मिति/समय मान्य ISO-8601 हुनुपर्छ</string>
+    <string name="error_transaction_selection_required">मेटाउन लेनदेन चयन गर्नुहोस्</string>
+    <string name="error_backup_invalid_or_unsupported">अमान्य वा समर्थन नगरिएको ब्याकअप</string>
+    <string name="error_backup_too_large_or_unreadable">ब्याकअप धेरै ठूलो छ वा पढ्न सकिएन</string>
+    <string name="error_current_farm_missing">पहिले फार्म सिर्जना गर्नुहोस्</string>
+    <string name="error_unexpected">केही अप्रत्याशित त्रुटि भयो। फेरि प्रयास गर्नुहोस्।</string>
+</resources>
