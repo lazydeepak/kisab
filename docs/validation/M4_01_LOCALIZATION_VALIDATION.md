@@ -114,6 +114,6 @@ Smoke tests apply the app-level locale with the system `android.app.LocaleManage
 - Physical-device matrix and guided pilot (including Pixel 7a) — **M4-04**.
 - Defect correction and release-candidate validation — **M4-05**.
 
-## M4-01 not complete until merged
+## M4-01 complete
 
-This record describes work on `feature/m4-01-localization-foundation`. M4-01 is implemented and pending review; it does not become canonical, and the milestone status does not change, until the branch is reviewed and merged into `main` and the milestone document is updated.
+M4-01 was reviewed (approved for merge after the Android 17 dialog test race was corrected), merged into `main` via pull request #8 (merge commit `b052668`), and is now canonical. The milestone status in `docs/milestones/M4_FIELD_VALIDATION_AND_NEPAL_USABILITY.md` reflects this.
