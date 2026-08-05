@@ -1,6 +1,6 @@
 # Kisab Production Release Setup
 
-> **Status note:** This guide documented the one-time setup for the first production release (`v0.1.0`). The `v0.1.0` release workflow execution and artifact verification are complete: the annotated tag exists and the signed APK was verified via release workflow run `30750947492`. The GitHub release at `v0.1.0` remains a draft; publication is still an explicit owner action and has not occurred. The steps below are retained as the historical record and remain the reference procedure for subsequent release setup and any keystore rotation.
+> **Status note:** This guide documented the one-time setup for the first production release (`v0.1.0`). The `v0.1.0` signing workflow execution and artifact verification completed, and the GitHub release was explicitly published. The annotated tag exists, the signed APK was verified via release workflow run `30750947492`, and the GitHub release at `v0.1.0` is published (not a prerelease). The steps below are retained as the historical process record and remain the reference procedure for subsequent release setup and any keystore rotation.
 
 ## Purpose
 

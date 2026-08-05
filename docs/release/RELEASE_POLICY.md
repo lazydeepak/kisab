@@ -4,7 +4,7 @@
 
 Adopted in preparation for the first Kisab release. Applies to the `com.susankhya.kisab` application and governs every future Kisab release.
 
-> **Update:** The `v0.1.0` release workflow execution and artifact verification are complete. The annotated `v0.1.0` tag exists at a commit contained in `origin/main`, and release workflow run `30750947492` produced a production-signed APK that passed tests, lint, version/tag validation, and v2 signature verification. The GitHub release at `v0.1.0` remains a draft; publication is still an explicit owner action and has not occurred. The statements below that describe the pre-release state ("in preparation", "no production tags exist yet") record the policy's adoption context and remain in force as history; versioning, tag, signing, and draft-release rules apply to all subsequent releases unchanged.
+> **Update:** The `v0.1.0` signing workflow execution and artifact verification completed, and the GitHub release was explicitly published. The annotated `v0.1.0` tag exists at a commit contained in `origin/main`, and release workflow run `30750947492` produced a production-signed APK that passed tests, lint, version/tag validation, and v2 signature verification. The GitHub release at `v0.1.0` is published (not a prerelease). The statements below that describe the pre-release state ("in preparation", "no production tags exist yet") record the policy's adoption context and remain in force as history; versioning, tag, signing, and draft-release rules apply to all subsequent releases unchanged.
 
 ## Versioning
 
