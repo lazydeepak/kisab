@@ -2,7 +2,7 @@
 
 Validation record for the **Nepal-oriented currency, number, date and time presentation** workstream (M4-02). This workstream makes money, numbers, and timestamps deterministic and locale-aware — NPR by default for new farms, major-unit money entry with exact parsing, device-local time presentation with UTC storage — without changing the `v0.1.0` persistence schema, backup envelope, domain model, or published release.
 
-> **Status:** IMPLEMENTED, REVIEW PENDING. M4-02 is not canonical until this branch merges and is reviewed. Terminology added by this record remains **Provisional/Pending**.
+> **Status:** COMPLETE. M4-02 is canonically complete on `main` (merged via pull request #10). Terminology added by this record remains **Provisional/Pending**.
 
 ## Base state
 
@@ -112,6 +112,8 @@ Additional extreme-value coverage asserts exact `Long.MIN_VALUE`/`Long.MAX_VALUE
 New JVM tests always inject explicit `Locale`/`ZoneId` and never depend on the host default locale/timezone. Representative deterministic outputs asserted on JDK 21 (the CI JVM): `123.45 NPR`, `१,२३४.५६ NPR`, `1,500 JPY`, `1.500 KWD`, `Jan 1, 2024, 5:45:00 PM` (en, Kathmandu), `2024 जनवरी 1, 17:45:00` (ne, Kathmandu), edit `2024-01-01T17:45:00+05:45`.
 
 ### Instrumentation (`:app:connectedDebugAndroidTest`) — 32 tests per device, 0 failures
+
+The matrix below was executed on the final reviewed head (including the review corrections). 32 tests, zero failures, zero unexpected skips, and no crash or ANR on every device.
 
 | Device | ABI | API | Full suite | Result |
 | --- | --- | --- | --- | --- |

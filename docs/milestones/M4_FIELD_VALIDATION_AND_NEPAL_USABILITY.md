@@ -2,7 +2,7 @@
 
 ## Status
 
-**IN PROGRESS.** This document defines the M4 milestone. M4-00 is complete; M4-01 (Android string-resource and Nepali localization foundation) is complete and merged into `main` via pull request #8. M4-02 (Nepal-oriented currency, number, date and time presentation) is implemented on `feature/m4-02-nepal-presentation-rules` and pending review; the remaining workstreams (M4-03 … M4-05) are not started. See `docs/validation/M4_01_LOCALIZATION_VALIDATION.md` and `docs/validation/M4_02_PRESENTATION_VALIDATION.md` for the validation records.
+**IN PROGRESS.** This document defines the M4 milestone. M4-00 is complete; M4-01 (Android string-resource and Nepali localization foundation) is complete and merged into `main` via pull request #8; M4-02 (Nepal-oriented currency, number, date and time presentation) is complete and merged into `main` via pull request #10. The remaining workstreams (M4-03 … M4-05) are not started. See `docs/validation/M4_01_LOCALIZATION_VALIDATION.md` and `docs/validation/M4_02_PRESENTATION_VALIDATION.md` for the validation records.
 
 ## Purpose
 
