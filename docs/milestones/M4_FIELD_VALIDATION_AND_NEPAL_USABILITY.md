@@ -2,7 +2,7 @@
 
 ## Status
 
-**IN PROGRESS.** This document defines the M4 milestone. M4-00 is complete; M4-01 (Android string-resource and Nepali localization foundation) is complete and merged into `main` via pull request #8; M4-02 (Nepal-oriented currency, number, date and time presentation) is complete and merged into `main` via pull request #10. The remaining workstreams (M4-03 … M4-05) are not started. See `docs/validation/M4_01_LOCALIZATION_VALIDATION.md` and `docs/validation/M4_02_PRESENTATION_VALIDATION.md` for the validation records.
+**IN PROGRESS.** This document defines the M4 milestone. M4-00 is complete; M4-01 (Android string-resource and Nepali localization foundation) is complete and merged into `main` via pull request #8; M4-02 (Nepal-oriented currency, number, date and time presentation) is complete and merged into `main` via pull request #10; M4-03 (first-run and daily transaction-entry usability) is implemented on `feature/m4-03-daily-entry-usability` and under review as a draft pull request. The remaining workstreams (M4-04 … M4-05) are not started. See `docs/validation/M4_01_LOCALIZATION_VALIDATION.md`, `docs/validation/M4_02_PRESENTATION_VALIDATION.md`, and `docs/validation/M4_03_DAILY_ENTRY_USABILITY_VALIDATION.md` for the validation records.
 
 ## Purpose
 
@@ -15,7 +15,7 @@ M4 is organized into the following workstreams:
 - **M4-00 — Post-release documentation and backlog reconciliation.** Align repository documentation with the published `v0.1.0` release state, reconcile the roadmap, and establish the M4 working backlog.
 - **M4-01 — Android string-resource and Nepali localization foundation.** Move all user-facing text into Android string resources and add the initial Nepali (`values-ne/`) resource set governed by the terminology glossary.
 - **M4-02 — Nepal-oriented currency, number, date and time presentation.** Deterministic NPR currency, number, date and time formatting and display rules, without breaking existing persistence or backup compatibility.
-- **M4-03 — First-run and daily transaction-entry usability.** Improve the first-run experience and the daily transaction-entry flow so the core tasks (record income/expense, review balance) are fast and unambiguous for a farmer.
+- **M4-03 — First-run and daily transaction-entry usability.** Improve the first-run experience and the daily transaction-entry flow so the core tasks (record income/expense, review balance) are fast and unambiguous for a farmer. Status: IMPLEMENTED, REVIEW PENDING (draft pull request open on `feature/m4-03-daily-entry-usability`).
 - **M4-04 — Physical-device and guided farmer-pilot validation.** Execute the physical-device validation matrix and a small guided pilot on representative devices and farmer scenarios, capturing evidence for the M4 exit gate.
 - **M4-05 — Defect correction, release-candidate validation and closeout.** Correct defects found in M4-04, validate a signed `v0.2.0` release candidate, and close out the milestone.
 
