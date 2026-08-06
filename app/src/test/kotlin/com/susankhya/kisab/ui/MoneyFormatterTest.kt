@@ -23,6 +23,18 @@ class MoneyFormatterTest {
     }
 
     @Test
+    fun pseudoCurrencyNegativeFractionDigitsFallBackToTwo() {
+        assertEquals(2, formatter.fractionDigits("XXX"))
+    }
+
+    @Test
+    fun pseudoCurrencyFormatsAndParsesSafely() {
+        assertEquals("15.00 XXX", formatter.format(Locale.US, "XXX", 1500))
+        assertEquals("15.00", formatter.toEditFieldValue(Locale.US, "XXX", 1500))
+        assertEquals(MoneyInputResult.Valid(1500), MoneyInputParser(formatter).parse(Locale.US, "XXX", "15.00"))
+    }
+
+    @Test
     fun formatsNprWithTwoFractionDigits() {
         assertEquals("123.45 NPR", formatter.format(Locale.US, "NPR", 12345))
     }
@@ -46,6 +58,15 @@ class MoneyFormatterTest {
     fun formatsNegativeAndZeroBalances() {
         assertEquals("-1,234.56 USD", formatter.format(Locale.US, "USD", -123456))
         assertEquals("0.00 USD", formatter.format(Locale.US, "USD", 0))
+    }
+
+    @Test
+    fun formatsExtremeValuesWithoutOverflow() {
+        assertEquals("0.01 USD", formatter.format(Locale.US, "USD", 1))
+        assertEquals("-0.01 USD", formatter.format(Locale.US, "USD", -1))
+        assertEquals("92,233,720,368,547,758.07 USD", formatter.format(Locale.US, "USD", Long.MAX_VALUE))
+        assertEquals("-92,233,720,368,547,758.08 USD", formatter.format(Locale.US, "USD", Long.MIN_VALUE))
+        assertEquals("-92233720368547758.08", formatter.toEditFieldValue(Locale.US, "USD", Long.MIN_VALUE))
     }
 
     @Test

@@ -35,7 +35,7 @@ All presentation was hand-rolled and locale-naive in the UI/domain:
 
 ### Locale normalization — `ui/PresentationLocale.kt`
 
-- Nepali UI resolves to `ne-NP`; English UI to `en`; any other language keeps its own `Locale` so number/date formatting follows that language's conventions.
+- Nepali UI resolves to `ne-NP`; English UI to `en-NP`; any other language keeps its own `Locale` so number/date formatting follows that language's conventions.
 - Time presentation always uses the **device timezone** regardless of the presentation locale.
 
 ### Money display — `ui/MoneyFormatter.kt`
@@ -84,20 +84,30 @@ The M4-02 validation matrix runs the full suite on API 26. Those runs exposed a 
 
 Fix (no format change): the exported-at field is now parsed as a `LocalDateTime` and the UTC offset attached explicitly (`LocalDateTime.parse(text, "yyyy-MM-dd'T'HH:mm:ss'Z'").atOffset(ZoneOffset.UTC)`). The encoded envelope string is byte-identical to before — pinned by the new `backupEnvelopeFormatIsByteStable` JVM test — and decodes correctly on all supported API levels.
 
+## Review corrections (post-`e25243d`)
+
+Review of the open PR found and corrected three edge-case defects before merge:
+
+- **Grouping validation.** `MoneyInputParser.isValidGrouping` accepted malformed patterns such as `1,2`, `1,23`, and `12,34` because it inferred the group width from the final group. The rightmost group must now be exactly 3 digits whenever grouping is present; standard grouping requires 1–3 leftmost and 3-digit intermediates, Indian grouping requires 1–2 leftmost and 2-digit intermediates. Regression coverage added for all accepted and rejected patterns under `en`, `en-NP`, and `ne-NP`.
+- **Negative fraction digits.** `MoneyFormatter.fractionDigits` passed `Currency.getDefaultFractionDigits()` straight through; pseudo-currencies such as `XXX` report `-1`, which would have silently scaled values ×10 and thrown in `NumberFormat` on device. Negative values are now normalized to the two-digit fallback, and `XXX` formatting/parsing is regression-tested.
+- **English presentation locale.** `PresentationLocale` now resolves English UI to `en-NP` (byte-identical formatting to `en` on the JDK and Android ICU) to match the documented contract.
+
+Additional extreme-value coverage asserts exact `Long.MIN_VALUE`/`Long.MAX_VALUE` formatting with no negation overflow.
+
 ## Tests
 
-### JVM (`:app:testDebugUnitTest`) — 86 tests, 0 failures
+### JVM (`:app:testDebugUnitTest`) — 91 tests, 0 failures
 
 | Suite | Tests | Result |
 | --- | --- | --- |
 | `FarmSliceServiceTest` (incl. backup byte-stable golden) | 33 | pass |
 | `LocalizationParityTest` | 9 | pass |
 | `FarmLabelsMappingTest` / `FarmOrderingTest` / `FarmUiErrorMappingTest` / `KisabSessionAppJvmTest` | 15 | pass |
-| `MoneyFormatterTest` (new) | 10 | pass |
-| `MoneyInputParserTest` (new) | 11 | pass |
+| `MoneyFormatterTest` (new) | 13 | pass |
+| `MoneyInputParserTest` (new) | 14 | pass |
 | `NumberFormatterTest` (new) | 3 | pass |
 | `TimePresentationTest` (new) | 4 | pass |
-| **Total** | **86** | **0 failures** |
+| **Total** | **91** | **0 failures** |
 
 New JVM tests always inject explicit `Locale`/`ZoneId` and never depend on the host default locale/timezone. Representative deterministic outputs asserted on JDK 21 (the CI JVM): `123.45 NPR`, `१,२३४.५६ NPR`, `1,500 JPY`, `1.500 KWD`, `Jan 1, 2024, 5:45:00 PM` (en, Kathmandu), `2024 जनवरी 1, 17:45:00` (ne, Kathmandu), edit `2024-01-01T17:45:00+05:45`.
 

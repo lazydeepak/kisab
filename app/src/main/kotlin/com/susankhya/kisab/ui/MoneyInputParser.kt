@@ -78,10 +78,10 @@ class MoneyInputParser(private val moneyFormatter: MoneyFormatter = MoneyFormatt
         if (groupSizes.size <= 1) return true
         if (groupSizes.any { it <= 0 }) return false
         val last = groupSizes.last()
-        if (last !in 1..3) return false
+        if (last != 3) return false
         val leftmost = groupSizes.first()
         val middle = groupSizes.drop(1).dropLast(1)
-        val standard = middle.all { it == last } && leftmost in 1..last
+        val standard = middle.all { it == 3 } && leftmost in 1..3
         val indian = middle.all { it == 2 } && leftmost in 1..2
         return standard || indian
     }

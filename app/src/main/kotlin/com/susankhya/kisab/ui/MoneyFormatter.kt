@@ -16,8 +16,10 @@ import java.util.Locale
  */
 class MoneyFormatter {
 
-    fun fractionDigits(currencyCode: String): Int =
-        runCatching { Currency.getInstance(currencyCode).defaultFractionDigits }.getOrDefault(2)
+    fun fractionDigits(currencyCode: String): Int {
+        val digits = runCatching { Currency.getInstance(currencyCode).defaultFractionDigits }.getOrDefault(2)
+        return if (digits < 0) 2 else digits
+    }
 
     fun format(locale: Locale, currencyCode: String, amountMinor: Long): String =
         numberFormat(locale, currencyCode, grouping = true)
