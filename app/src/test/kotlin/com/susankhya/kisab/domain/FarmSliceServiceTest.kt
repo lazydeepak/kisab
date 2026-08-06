@@ -716,6 +716,34 @@ class FarmSliceServiceTest {
     }
 
     @Test
+    fun backupEnvelopeFormatIsByteStable() {
+        val farm = service.createFarm("Demo Farm")
+        service.addEntry(farm.id, FarmEntry(FarmEntryKind.LIVESTOCK, "Goat", 2))
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 1500,
+                currency = "USD",
+                description = "Feed",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        val persisted = service.loadFarm(farm.id)!!
+        val exportedAt = OffsetDateTime.of(2024, 6, 1, 12, 0, 0, 0, ZoneOffset.UTC)
+        val encoded = FarmBackupCodec.encode(persisted, exportedAt)
+
+        val payload = Base64.getEncoder().encodeToString(
+            ("2\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001F" +
+                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DUSD\u001DFeed\u001D2024-01-01T12:00:00Z")
+                .toByteArray(StandardCharsets.UTF_8)
+        )
+        assertEquals("1\u001F2024-06-01T12:00:00Z\u001F$payload", encoded)
+        assertEquals(ZoneOffset.UTC, FarmBackupCodec.decode(encoded).exportedAt.offset)
+    }
+
+    @Test
     fun backupExportNormalizesToUtc() {
         val farm = service.createFarm("Demo Farm")
         val exportedAt = OffsetDateTime.of(2024, 6, 1, 12, 0, 0, 0, ZoneOffset.ofHours(5))
