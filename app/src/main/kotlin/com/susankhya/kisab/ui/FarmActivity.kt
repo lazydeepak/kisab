@@ -32,13 +32,24 @@ import com.susankhya.kisab.persistence.FarmBackupException
 import com.susankhya.kisab.persistence.FarmBackupFileAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 class FarmActivity : AppCompatActivity() {
     private lateinit var store: SharedPreferencesFarmStore
     private lateinit var service: FarmSliceService
     internal lateinit var backupFileAdapter: FarmBackupFileAdapter
+
+    private val moneyFormatter = MoneyFormatter()
+    private val moneyInputParser = MoneyInputParser(moneyFormatter)
+    private val numberFormatter = NumberFormatter()
+    private val timePresentation = TimePresentation()
+
+    private val presentationLocale: java.util.Locale
+        get() = PresentationLocale.presentationLocale(resources.configuration.locales.get(0))
+
+    private val deviceZone: ZoneId
+        get() = ZoneId.systemDefault()
 
     private lateinit var createFarmContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmDetailsContainer: androidx.appcompat.widget.LinearLayoutCompat
@@ -246,6 +257,16 @@ class FarmActivity : AppCompatActivity() {
             showValidationMessage(FarmUiError.CURRENCY_ISO_THREE_LETTERS.resourceId)
             return
         }
+        val farm = service.loadFarm(farmId)
+        val farmCurrency = farm?.transactions
+            ?.filterNot { it.id == currentTransactionId }
+            ?.map { it.currency }
+            ?.toSet()
+            .orEmpty()
+        if (farmCurrency.isNotEmpty() && currency !in farmCurrency) {
+            showValidationMessage(FarmUiError.CURRENCY_MISMATCH.resourceId, farmCurrency.first())
+            return
+        }
         val occurredAt = transactionOccurredAtInput.text?.toString()?.trim().orEmpty()
         if (occurredAt.isBlank()) {
             showValidationMessage(FarmUiError.TRANSACTION_DATE_TIME_REQUIRED.resourceId)
@@ -255,10 +276,29 @@ class FarmActivity : AppCompatActivity() {
             showValidationMessage(FarmUiError.TRANSACTION_DATE_TIME_INVALID.resourceId)
             return
         }
-        val amount = transactionAmountInput.text?.toString()?.trim()?.toLongOrNull()
-        if (amount == null || amount <= 0) {
-            showValidationMessage(FarmUiError.AMOUNT_POSITIVE_WHOLE.resourceId)
-            return
+        val amountInput = transactionAmountInput.text?.toString().orEmpty()
+        val amount = when (val result = moneyInputParser.parse(presentationLocale, currency, amountInput)) {
+            is MoneyInputResult.Valid -> result.amountMinor
+            MoneyInputResult.Missing -> {
+                showValidationMessage(FarmUiError.AMOUNT_REQUIRED.resourceId)
+                return
+            }
+            MoneyInputResult.NotPositive -> {
+                showValidationMessage(FarmUiError.AMOUNT_NOT_POSITIVE.resourceId)
+                return
+            }
+            MoneyInputResult.Invalid -> {
+                showValidationMessage(FarmUiError.AMOUNT_INVALID.resourceId)
+                return
+            }
+            MoneyInputResult.TooPrecise -> {
+                showValidationMessage(FarmUiError.AMOUNT_TOO_PRECISE.resourceId)
+                return
+            }
+            MoneyInputResult.TooLarge -> {
+                showValidationMessage(FarmUiError.AMOUNT_TOO_LARGE.resourceId)
+                return
+            }
         }
         val description = transactionDescriptionInput.text?.toString()?.trim().orEmpty()
         if (description.isBlank()) {
@@ -369,13 +409,12 @@ class FarmActivity : AppCompatActivity() {
         val balanceMinor = farm.transactions.fold(0L) { total, transaction ->
             total + if (transaction.type == TransactionType.INCOME) transaction.amountMinor else -transaction.amountMinor
         }
-        val currencyCode = farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "USD"
+        val currencyCode = farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "NPR"
         return string(
             R.string.imported_farm_summary_format,
-            farm.entries.size,
-            farm.transactions.size,
-            balanceMinor,
-            currencyCode
+            numberFormatter.format(presentationLocale, farm.entries.size),
+            numberFormatter.format(presentationLocale, farm.transactions.size),
+            formatMoney(currencyCode, balanceMinor)
         )
     }
 
@@ -403,7 +442,12 @@ class FarmActivity : AppCompatActivity() {
             string(R.string.empty_entries)
         } else {
             farm.entries.joinToString("\n") { entry ->
-                string(R.string.entry_row_format, FarmLabels.entryKind(this, entry.kind), entry.label, entry.quantity)
+                string(
+                    R.string.entry_row_format,
+                    FarmLabels.entryKind(this, entry.kind),
+                    entry.label,
+                    numberFormatter.format(presentationLocale, entry.quantity)
+                )
             }
         }
         val newestFirstTransactions = service.transactionsNewestFirst(farm.id)
@@ -413,12 +457,11 @@ class FarmActivity : AppCompatActivity() {
             newestFirstTransactions.joinToString("\n") { transaction ->
                 string(
                     R.string.transaction_row_format,
-                    transaction.displayDateTime(),
+                    timePresentation.displayDateTime(presentationLocale, deviceZone, transaction.occurredAt),
                     FarmLabels.transactionType(this, transaction.type),
                     FarmLabels.transactionCategory(this, transaction.category),
                     transaction.description,
-                    transaction.currency,
-                    transaction.amountMinor
+                    formatMoney(transaction.currency, transaction.amountMinor)
                 )
             }
         }
@@ -429,16 +472,31 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun buildSummaryText(farm: FarmState, summary: FarmSummary): String {
-        val currencySuffix = summary.currencyCode?.let { " $it" } ?: ""
         return string(
             R.string.farm_summary_format,
             farm.name,
-            summary.entryCount,
-            summary.transactionCount,
-            summary.balanceMinor,
-            currencySuffix
+            numberFormatter.format(presentationLocale, summary.entryCount),
+            numberFormatter.format(presentationLocale, summary.transactionCount),
+            formattedBalance(summary.currencyCode, summary.balanceMinor)
         )
     }
+
+    internal fun formattedBalance(currencyCode: String?, balanceMinor: Long): String =
+        formatMoney(currencyCode ?: "NPR", balanceMinor)
+
+    internal fun formatMoney(currencyCode: String, amountMinor: Long): String =
+        moneyFormatter.format(presentationLocale, currencyCode, amountMinor)
+
+    internal fun formatCount(value: Int): String = numberFormatter.format(presentationLocale, value)
+
+    internal fun displayTransactionTime(transaction: FarmTransaction): String =
+        timePresentation.displayDateTime(presentationLocale, deviceZone, transaction.occurredAt)
+
+    internal fun editFieldValue(transaction: FarmTransaction): String =
+        timePresentation.toEditFieldValue(deviceZone, transaction.occurredAt)
+
+    internal fun editFieldAmount(currencyCode: String, amountMinor: Long): String =
+        moneyFormatter.toEditFieldValue(presentationLocale, currencyCode, amountMinor)
 
     private fun selectedEntryKind(): FarmEntryKind = FarmOrdering.entryKinds[entryKindSpinner.selectedItemPosition]
 
@@ -464,20 +522,29 @@ class FarmActivity : AppCompatActivity() {
         refreshCategoryChoices()
         val categoryIndex = FarmOrdering.categoriesFor(transaction.type).indexOf(transaction.category)
         transactionCategorySpinner.setSelection(categoryIndex)
-        transactionAmountInput.setText(String.format(Locale.US, "%d", transaction.amountMinor))
+        transactionAmountInput.setText(
+            moneyFormatter.toEditFieldValue(presentationLocale, transaction.currency, transaction.amountMinor)
+        )
         transactionCurrencyInput.setText(transaction.currency)
         transactionDescriptionInput.setText(transaction.description)
-        transactionOccurredAtInput.setText(transaction.occurredAt.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+        transactionOccurredAtInput.setText(
+            timePresentation.toEditFieldValue(deviceZone, transaction.occurredAt)
+        )
     }
 
     private fun clearTransactionForm() {
         currentTransactionId = null
         transactionAmountInput.setText("")
-        transactionCurrencyInput.setText("")
+        transactionCurrencyInput.setText(defaultCurrencyForForm())
         transactionDescriptionInput.setText("")
         transactionOccurredAtInput.setText("")
         transactionTypeSpinner.setSelection(0)
         refreshCategoryChoices()
+    }
+
+    private fun defaultCurrencyForForm(): String {
+        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return "NPR"
+        return farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "NPR"
     }
 
     private fun populateTransactionSelection(transactions: List<FarmTransaction>) {
@@ -491,8 +558,7 @@ class FarmActivity : AppCompatActivity() {
                     R.string.transaction_selection_row_format,
                     transaction.id.take(12),
                     transaction.description,
-                    transaction.currency,
-                    transaction.amountMinor
+                    formatMoney(transaction.currency, transaction.amountMinor)
                 )
             )
             ids.add(transaction.id)

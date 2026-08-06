@@ -3,6 +3,7 @@ package com.susankhya.kisab.persistence
 import com.susankhya.kisab.domain.FarmState
 import com.susankhya.kisab.domain.FarmStateValidator
 import java.nio.charset.StandardCharsets
+import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -14,6 +15,7 @@ object FarmBackupCodec {
 
     private const val FIELD_SEPARATOR = "\u001F"
     private val UTC_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZone(ZoneOffset.UTC)
+    private val UTC_PARSE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
     fun encode(farm: FarmState, exportedAt: OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC)): String {
         val farmPayload = Base64.getEncoder().encodeToString(FarmPersistenceCodec.encode(farm).toByteArray(StandardCharsets.UTF_8))
@@ -58,7 +60,12 @@ object FarmBackupCodec {
         if (version != CURRENT_SCHEMA_VERSION) {
             throw FarmBackupException(BackupRejectionReason.UNSUPPORTED_VERSION, "Unsupported backup version: $version")
         }
-        val exportedAt = OffsetDateTime.parse(parts[1], UTC_FORMATTER)
+        // The exported-at field is always encoded in UTC with a literal 'Z'
+        // (see UTC_FORMATTER). It is parsed as a local date-time and the UTC
+        // offset attached explicitly because relying on a formatter's zone to
+        // resolve the offset during OffsetDateTime parsing is inconsistent
+        // across Android API levels.
+        val exportedAt = LocalDateTime.parse(parts[1], UTC_PARSE_FORMATTER).atOffset(ZoneOffset.UTC)
         val farmPayload = String(Base64.getDecoder().decode(parts[2]), StandardCharsets.UTF_8)
         val farm = FarmPersistenceCodec.decode(farmPayload)
         FarmStateValidator.validateFarm(farm)

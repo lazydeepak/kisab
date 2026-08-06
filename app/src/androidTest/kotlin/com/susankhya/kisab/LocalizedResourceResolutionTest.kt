@@ -36,8 +36,8 @@ class LocalizedResourceResolutionTest {
 
     @Test
     fun formattedSummaryResolvesInEnglish() {
-        val summary = english.getString(R.string.farm_summary_format, "Demo Farm", 1, 2, 3000, " USD")
-        assertEquals("Farm: Demo Farm\nEntry count: 1\nTransaction count: 2\nBalance: 3000 USD", summary)
+        val summary = english.getString(R.string.farm_summary_format, "Demo Farm", "1", "2", "USD 30.00")
+        assertEquals("Farm: Demo Farm\nEntry count: 1\nTransaction count: 2\nBalance: USD 30.00", summary)
     }
 
     @Test
@@ -60,8 +60,8 @@ class LocalizedResourceResolutionTest {
 
     @Test
     fun formattedSummaryResolvesInNepaliWithoutEnglishFallback() {
-        val englishSummary = english.getString(R.string.farm_summary_format, "Demo Farm", 1, 2, 3000, " USD")
-        val nepaliSummary = nepali.getString(R.string.farm_summary_format, "Demo Farm", 1, 2, 3000, " USD")
+        val englishSummary = english.getString(R.string.farm_summary_format, "Demo Farm", "1", "2", "USD 30.00")
+        val nepaliSummary = nepali.getString(R.string.farm_summary_format, "Demo Farm", "1", "2", "USD 30.00")
         assertTrue(nepaliSummary.isNotBlank())
         assertNotEquals(englishSummary, nepaliSummary)
         assertTrue(nepaliSummary.contains("Demo Farm"))
