@@ -59,6 +59,9 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Valid | Valid | मान्य (manye) | सही | A value conforms to its format | Provisional |  | Pending |
 | Error | Error | त्रुटि (truti) | गल्ती | Problem message | Provisional |  | Pending |
 | Unexpected error | Unexpected error | अप्रत्याशित त्रुटि (apratyashit truti) | — | Unknown/internal failure message | Provisional |  | Pending |
+| Local time | Local time | स्थानीय समय (sthaaniya samay) | देशको समय | Device-timezone wall-clock time for timestamps | Provisional |  | Pending |
+| Decimal | Decimal | दशमलव (dashamalav) | दशांश | Fractional digits after the decimal separator | Provisional |  | Pending |
+| Positive | Positive | धनात्मक (dhanatmak) | धन | Greater than zero | Provisional |  | Pending |
 
 ## Rules
 
