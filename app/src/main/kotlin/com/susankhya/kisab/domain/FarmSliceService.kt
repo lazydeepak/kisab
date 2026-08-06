@@ -194,10 +194,7 @@ data class FarmTransaction(
     val currency: String,
     val description: String,
     val occurredAt: OffsetDateTime
-) {
-    fun displayDateTime(): String = occurredAt.withOffsetSameInstant(ZoneOffset.UTC)
-        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'"))
-}
+)
 
 data class FarmSummary(
     val farmId: String,

@@ -11,9 +11,9 @@
     <string name="add_entry_action">Add entry</string>
     <string name="add_transaction_section">Transactions</string>
     <string name="transaction_description_hint">Description</string>
-    <string name="transaction_amount_hint">Amount minor units</string>
+    <string name="transaction_amount_hint">Amount</string>
     <string name="transaction_currency_hint">Currency (ISO code)</string>
-    <string name="transaction_occurred_at_hint">Date/time (ISO-8601)</string>
+    <string name="transaction_occurred_at_hint">Date/time (ISO-8601, local time)</string>
     <string name="save_transaction_action">Save transaction</string>
     <string name="delete_transaction_action">Delete</string>
     <string name="export_backup_action">Export backup</string>
@@ -36,12 +36,12 @@
     <string name="empty_entries">No entries yet</string>
     <string name="empty_transactions">No transactions yet</string>
 
-    <string name="farm_summary_format">Farm: %1$s\nEntry count: %2$d\nTransaction count: %3$d\nBalance: %4$d%5$s</string>
-    <string name="entry_row_format">- %1$s: %2$s x%3$d</string>
-    <string name="transaction_row_format">- %1$s | %2$s | %3$s | %4$s | %5$s %6$d</string>
+    <string name="farm_summary_format">Farm: %1$s\nEntry count: %2$s\nTransaction count: %3$s\nBalance: %4$s</string>
+    <string name="entry_row_format">- %1$s: %2$s x%3$s</string>
+    <string name="transaction_row_format">- %1$s | %2$s | %3$s | %4$s | %5$s</string>
 
     <string name="transaction_selection_create">Create new transaction</string>
-    <string name="transaction_selection_row_format">%1$s • %2$s • %3$s %4$d</string>
+    <string name="transaction_selection_row_format">%1$s • %2$s • %3$s</string>
 
     <string name="toast_export_cancelled">Export cancelled</string>
     <string name="toast_backup_exported">Backup exported</string>
@@ -61,7 +61,7 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_replace_farm">Replace farm</string>
 
-    <string name="imported_farm_summary_format">Entries: %1$d\nTransactions: %2$d\nBalance: %3$d %4$s</string>
+    <string name="imported_farm_summary_format">Entries: %1$s\nTransactions: %2$s\nBalance: %3$s</string>
 
     <string name="backup_filename_format" translatable="false">kisab-%1$s.backup</string>
     <string name="backup_filename_fallback" translatable="false">farm</string>
@@ -70,8 +70,13 @@
     <string name="error_entry_label_required">Entry label is required</string>
     <string name="error_entry_quantity_positive_whole">Quantity must be a valid positive whole number</string>
     <string name="error_transaction_description_required">Transaction description is required</string>
-    <string name="error_transaction_amount_positive_whole">Amount must be a valid positive whole number</string>
+    <string name="error_transaction_amount_required">Amount is required</string>
+    <string name="error_transaction_amount_invalid">Amount must be a valid number</string>
+    <string name="error_transaction_amount_positive">Amount must be positive</string>
+    <string name="error_transaction_amount_too_precise">Amount has too many decimal places for this currency</string>
+    <string name="error_transaction_amount_too_large">Amount is too large</string>
     <string name="error_currency_iso_three_letters">Currency must be a three-letter ISO code</string>
+    <string name="error_transaction_currency_mismatch">Amounts must use the farm\'s currency: %1$s</string>
     <string name="error_transaction_date_time_required">Transaction date/time is required</string>
     <string name="error_transaction_date_time_invalid">Transaction date/time must be a valid ISO-8601 value</string>
     <string name="error_transaction_selection_required">Select a transaction to delete</string>

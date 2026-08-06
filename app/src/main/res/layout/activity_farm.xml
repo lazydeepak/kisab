@@ -173,7 +173,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/transaction_amount_hint"
-                android:inputType="number" />
+                android:inputType="numberDecimal" />
 
             <EditText
                 android:id="@+id/transactionCurrencyInput"
