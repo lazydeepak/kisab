@@ -1,31 +1,40 @@
 package com.susankhya.kisab.ui
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.LinearLayoutCompat
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntry
 import com.susankhya.kisab.domain.FarmEntryKind
 import com.susankhya.kisab.domain.FarmSliceService
 import com.susankhya.kisab.domain.FarmState
-import com.susankhya.kisab.domain.FarmSummary
+import com.susankhya.kisab.domain.FarmTotals
 import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.FarmTransactionDraft
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
+import com.susankhya.kisab.domain.transactionsNewestFirst
 import com.susankhya.kisab.persistence.AndroidStorageAccessFrameworkBackupFileAdapter
 import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.FarmBackupException
@@ -33,6 +42,7 @@ import com.susankhya.kisab.persistence.FarmBackupFileAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import java.time.OffsetDateTime
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 class FarmActivity : AppCompatActivity() {
@@ -51,37 +61,55 @@ class FarmActivity : AppCompatActivity() {
     private val deviceZone: ZoneId
         get() = ZoneId.systemDefault()
 
+    private lateinit var scrollView: ScrollView
     private lateinit var createFarmContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmDetailsContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmNameInput: EditText
+    private lateinit var createFarmButton: Button
+    private lateinit var farmNameText: TextView
+    private lateinit var balanceText: TextView
+    private lateinit var incomeText: TextView
+    private lateinit var expensesText: TextView
+    private lateinit var firstActionPrompt: TextView
+    private lateinit var recordIncomeButton: Button
+    private lateinit var recordExpenseButton: Button
+    private lateinit var transactionEditorContainer: LinearLayoutCompat
+    private lateinit var transactionEditorTitle: TextView
+    private lateinit var transactionTypeIncomeRadio: RadioButton
+    private lateinit var transactionTypeExpenseRadio: RadioButton
+    private lateinit var transactionCategorySpinner: Spinner
+    private lateinit var transactionAmountInput: EditText
+    private lateinit var transactionDescriptionInput: EditText
+    private lateinit var transactionDateTimeText: TextView
+    private lateinit var changeDateTimeButton: Button
+    private lateinit var transactionCurrencyText: TextView
+    private lateinit var changeCurrencyButton: Button
+    private lateinit var validationMessageText: TextView
+    private lateinit var saveTransactionButton: Button
+    private lateinit var cancelTransactionButton: Button
+    private lateinit var deleteTransactionButton: Button
+    private lateinit var recentTransactionsTitle: TextView
+    private lateinit var recentTransactionsContainer: LinearLayout
+    private lateinit var farmToolsToggleButton: Button
+    private lateinit var farmToolsContainer: LinearLayoutCompat
     private lateinit var summaryText: TextView
     private lateinit var entriesText: TextView
-    private lateinit var transactionsText: TextView
     private lateinit var entryKindSpinner: Spinner
     private lateinit var entryLabelInput: EditText
     private lateinit var entryQuantityInput: EditText
-    private lateinit var transactionTypeSpinner: Spinner
-    private lateinit var transactionCategorySpinner: Spinner
-    private lateinit var transactionAmountInput: EditText
-    private lateinit var transactionCurrencyInput: EditText
-    private lateinit var transactionDescriptionInput: EditText
-    private lateinit var transactionOccurredAtInput: EditText
-    private lateinit var transactionSelectionSpinner: Spinner
-    private lateinit var validationMessageText: TextView
-    private lateinit var createFarmButton: Button
     private lateinit var addEntryButton: Button
-    private lateinit var saveTransactionButton: Button
-    private lateinit var deleteTransactionButton: Button
     private lateinit var exportBackupButton: Button
     private lateinit var importBackupButton: Button
 
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
 
-    private var currentTransactionId: String? = null
     private var currentFarmId: String? = null
-    private var transactionIdsForSelection: List<String?> = emptyList()
     private var pendingExportContent: String? = null
+
+    private var editorState: TransactionEditorState? = null
+    private var editorBaseline: TransactionEditorState? = null
+    private var toolsExpanded: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -131,28 +159,80 @@ class FarmActivity : AppCompatActivity() {
         }
 
         setContentView(R.layout.activity_farm)
+        bindViews()
+        wireListeners()
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (editorState != null) {
+                    if (isEditorDirty()) {
+                        showDiscardDialog { closeEditor() }
+                    } else {
+                        closeEditor()
+                    }
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
 
+        render()
+        restoreEditorFrom(savedInstanceState)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_TOOLS_EXPANDED, toolsExpanded)
+        val state = currentEditorState() ?: return
+        outState.putBoolean(STATE_EDITOR_OPEN, true)
+        outState.putString(STATE_EDITOR_MODE, state.mode.name)
+        outState.putString(STATE_EDITOR_TRANSACTION_ID, state.transactionId)
+        outState.putString(STATE_EDITOR_TYPE, state.type.name)
+        outState.putString(STATE_EDITOR_CATEGORY, state.category.name)
+        outState.putString(STATE_EDITOR_AMOUNT, state.amountText)
+        outState.putString(STATE_EDITOR_DESCRIPTION, state.description)
+        outState.putString(STATE_EDITOR_OCCURRED_AT, state.occurredAt.toInstant().toString())
+        outState.putString(STATE_EDITOR_CURRENCY, state.currency)
+    }
+
+    private fun bindViews() {
+        scrollView = findViewById(R.id.scrollView)
         createFarmContainer = findViewById(R.id.createFarmContainer)
         farmDetailsContainer = findViewById(R.id.farmDetailsContainer)
         farmNameInput = findViewById(R.id.farmNameInput)
+        createFarmButton = findViewById(R.id.createFarmButton)
+        farmNameText = findViewById(R.id.farmNameText)
+        balanceText = findViewById(R.id.balanceText)
+        incomeText = findViewById(R.id.incomeText)
+        expensesText = findViewById(R.id.expensesText)
+        firstActionPrompt = findViewById(R.id.firstActionPrompt)
+        recordIncomeButton = findViewById(R.id.recordIncomeButton)
+        recordExpenseButton = findViewById(R.id.recordExpenseButton)
+        transactionEditorContainer = findViewById(R.id.transactionEditorContainer)
+        transactionEditorTitle = findViewById(R.id.transactionEditorTitle)
+        transactionTypeIncomeRadio = findViewById(R.id.transactionTypeIncomeRadio)
+        transactionTypeExpenseRadio = findViewById(R.id.transactionTypeExpenseRadio)
+        transactionCategorySpinner = findViewById(R.id.transactionCategorySpinner)
+        transactionAmountInput = findViewById(R.id.transactionAmountInput)
+        transactionDescriptionInput = findViewById(R.id.transactionDescriptionInput)
+        transactionDateTimeText = findViewById(R.id.transactionDateTimeText)
+        changeDateTimeButton = findViewById(R.id.changeDateTimeButton)
+        transactionCurrencyText = findViewById(R.id.transactionCurrencyText)
+        changeCurrencyButton = findViewById(R.id.changeCurrencyButton)
+        validationMessageText = findViewById(R.id.validationMessageText)
+        saveTransactionButton = findViewById(R.id.saveTransactionButton)
+        cancelTransactionButton = findViewById(R.id.cancelTransactionButton)
+        deleteTransactionButton = findViewById(R.id.deleteTransactionButton)
+        recentTransactionsTitle = findViewById(R.id.recentTransactionsTitle)
+        recentTransactionsContainer = findViewById(R.id.recentTransactionsContainer)
+        farmToolsToggleButton = findViewById(R.id.farmToolsToggleButton)
+        farmToolsContainer = findViewById(R.id.farmToolsContainer)
         summaryText = findViewById(R.id.summaryText)
         entriesText = findViewById(R.id.entriesText)
-        transactionsText = findViewById(R.id.transactionsText)
         entryKindSpinner = findViewById(R.id.entryKindSpinner)
         entryLabelInput = findViewById(R.id.entryLabelInput)
         entryQuantityInput = findViewById(R.id.entryQuantityInput)
-        transactionTypeSpinner = findViewById(R.id.transactionTypeSpinner)
-        transactionCategorySpinner = findViewById(R.id.transactionCategorySpinner)
-        transactionAmountInput = findViewById(R.id.transactionAmountInput)
-        transactionCurrencyInput = findViewById(R.id.transactionCurrencyInput)
-        transactionDescriptionInput = findViewById(R.id.transactionDescriptionInput)
-        transactionOccurredAtInput = findViewById(R.id.transactionOccurredAtInput)
-        transactionSelectionSpinner = findViewById(R.id.transactionSelectionSpinner)
-        validationMessageText = findViewById(R.id.validationMessageText)
-        createFarmButton = findViewById(R.id.createFarmButton)
         addEntryButton = findViewById(R.id.addEntryButton)
-        saveTransactionButton = findViewById(R.id.saveTransactionButton)
-        deleteTransactionButton = findViewById(R.id.deleteTransactionButton)
         exportBackupButton = findViewById(R.id.exportBackupButton)
         importBackupButton = findViewById(R.id.importBackupButton)
 
@@ -163,48 +243,32 @@ class FarmActivity : AppCompatActivity() {
         ).also { adapter ->
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
+    }
 
-        transactionTypeSpinner.adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            FarmOrdering.transactionTypes.map { FarmLabels.transactionType(this, it) }
-        ).also { adapter ->
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        transactionTypeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                refreshCategoryChoices()
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>) = Unit
-        }
-
-        transactionSelectionSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                val selectedTransactionId = transactionIdsForSelection.getOrNull(position)
-                currentTransactionId = selectedTransactionId
-                if (selectedTransactionId == null) {
-                    clearTransactionForm()
-                } else {
-                    currentFarmId?.let { farmId ->
-                        service.loadFarm(farmId)?.transactions?.find { it.id == selectedTransactionId }?.let { transaction ->
-                            fillTransactionForm(transaction)
-                        }
-                    }
-                }
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>) = Unit
-        }
-
+    private fun wireListeners() {
         createFarmButton.setOnClickListener { createFarm() }
         addEntryButton.setOnClickListener { addEntry() }
-        saveTransactionButton.setOnClickListener { saveTransaction() }
-        deleteTransactionButton.setOnClickListener { deleteTransaction() }
         exportBackupButton.setOnClickListener { exportBackup() }
         importBackupButton.setOnClickListener { importBackup() }
 
-        render()
+        recordIncomeButton.setOnClickListener {
+            confirmDiscardIfNeeded { openEditorForNew(TransactionType.INCOME) }
+        }
+        recordExpenseButton.setOnClickListener {
+            confirmDiscardIfNeeded { openEditorForNew(TransactionType.EXPENSE) }
+        }
+        transactionTypeIncomeRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) refreshCategoryChoices(TransactionType.INCOME)
+        }
+        transactionTypeExpenseRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) refreshCategoryChoices(TransactionType.EXPENSE)
+        }
+        saveTransactionButton.setOnClickListener { saveTransaction() }
+        cancelTransactionButton.setOnClickListener { cancelEditing() }
+        deleteTransactionButton.setOnClickListener { deleteTransaction() }
+        changeDateTimeButton.setOnClickListener { showDateTimePickers() }
+        changeCurrencyButton.setOnClickListener { showCurrencyChooser() }
+        farmToolsToggleButton.setOnClickListener { toggleFarmTools() }
     }
 
     private fun createFarm() {
@@ -250,81 +314,151 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
+    // --- Transaction editor -------------------------------------------------
+
+    private fun openEditorForNew(type: TransactionType) {
+        val state = TransactionEditorState.create(
+            type = type,
+            currency = currentFarmCurrency(),
+            occurredAt = OffsetDateTime.now(deviceZone)
+        )
+        applyEditorState(state, baseline = state)
+    }
+
+    private fun openEditorForTransaction(transaction: FarmTransaction) {
+        val state = TransactionEditorState(
+            mode = TransactionEditorMode.EDIT,
+            transactionId = transaction.id,
+            type = transaction.type,
+            category = transaction.category,
+            amountText = moneyFormatter.toEditFieldValue(presentationLocale, transaction.currency, transaction.amountMinor),
+            description = transaction.description,
+            occurredAt = transaction.occurredAt,
+            currency = transaction.currency
+        )
+        applyEditorState(state, baseline = state)
+    }
+
+    private fun applyEditorState(state: TransactionEditorState, baseline: TransactionEditorState) {
+        editorState = state
+        editorBaseline = baseline
+        transactionEditorTitle.text = string(
+            if (state.mode == TransactionEditorMode.CREATE) R.string.transaction_editor_new_section
+            else R.string.transaction_editor_edit_section
+        )
+        transactionTypeIncomeRadio.isChecked = state.type == TransactionType.INCOME
+        transactionTypeExpenseRadio.isChecked = state.type == TransactionType.EXPENSE
+        refreshCategoryChoices(state.type)
+        val categoryIndex = FarmOrdering.categoriesFor(state.type).indexOf(state.category).coerceAtLeast(0)
+        transactionCategorySpinner.setSelection(categoryIndex)
+        transactionAmountInput.setText(state.amountText)
+        transactionDescriptionInput.setText(state.description)
+        updateDateTimeDisplay()
+        updateCurrencyDisplay()
+        saveTransactionButton.text = string(saveActionRes(state))
+        deleteTransactionButton.visibility =
+            if (state.mode == TransactionEditorMode.EDIT) View.VISIBLE else View.GONE
+        validationMessageText.visibility = View.GONE
+        transactionEditorContainer.visibility = View.VISIBLE
+        if (state.mode == TransactionEditorMode.CREATE) {
+            transactionAmountInput.requestFocus()
+            scrollEditorIntoView()
+        }
+    }
+
+    private fun closeEditor() {
+        editorState = null
+        editorBaseline = null
+        transactionEditorContainer.visibility = View.GONE
+        validationMessageText.visibility = View.GONE
+        transactionAmountInput.setText("")
+        transactionDescriptionInput.setText("")
+    }
+
+    private fun cancelEditing() {
+        if (isEditorDirty()) {
+            showDiscardDialog { closeEditor() }
+        } else {
+            closeEditor()
+        }
+    }
+
+    private fun confirmDiscardIfNeeded(action: () -> Unit) {
+        if (editorState != null && isEditorDirty()) {
+            showDiscardDialog {
+                closeEditor()
+                action()
+            }
+        } else {
+            action()
+        }
+    }
+
+    private fun isEditorDirty(): Boolean {
+        val baseline = editorBaseline ?: return false
+        val current = currentEditorState() ?: return false
+        return current != baseline
+    }
+
+    private fun currentEditorState(): TransactionEditorState? {
+        val state = editorState ?: return null
+        return state.copy(
+            type = selectedTransactionType(),
+            category = selectedTransactionCategory(),
+            amountText = transactionAmountInput.text?.toString().orEmpty(),
+            description = transactionDescriptionInput.text?.toString().orEmpty()
+        )
+    }
+
     private fun saveTransaction() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
-        val currency = transactionCurrencyInput.text?.toString()?.trim()?.uppercase().orEmpty()
-        if (!currency.matches(Regex("^[A-Z]{3}$"))) {
-            showValidationMessage(FarmUiError.CURRENCY_ISO_THREE_LETTERS.resourceId)
+        val state = currentEditorState() ?: return
+        if (!state.currency.matches(Regex("^[A-Z]{3}$"))) {
+            showEditorError(FarmUiError.CURRENCY_ISO_THREE_LETTERS, null)
             return
         }
         val farm = service.loadFarm(farmId)
         val farmCurrency = farm?.transactions
-            ?.filterNot { it.id == currentTransactionId }
+            ?.filterNot { it.id == state.transactionId }
             ?.map { it.currency }
             ?.toSet()
             .orEmpty()
-        if (farmCurrency.isNotEmpty() && currency !in farmCurrency) {
-            showValidationMessage(FarmUiError.CURRENCY_MISMATCH.resourceId, farmCurrency.first())
+        if (farmCurrency.isNotEmpty() && state.currency !in farmCurrency) {
+            showEditorError(FarmUiError.CURRENCY_MISMATCH, null, farmCurrency.first())
             return
         }
-        val occurredAt = transactionOccurredAtInput.text?.toString()?.trim().orEmpty()
-        if (occurredAt.isBlank()) {
-            showValidationMessage(FarmUiError.TRANSACTION_DATE_TIME_REQUIRED.resourceId)
-            return
-        }
-        if (!isValidIsoOffsetDateTime(occurredAt)) {
-            showValidationMessage(FarmUiError.TRANSACTION_DATE_TIME_INVALID.resourceId)
-            return
-        }
-        val amountInput = transactionAmountInput.text?.toString().orEmpty()
-        val amount = when (val result = moneyInputParser.parse(presentationLocale, currency, amountInput)) {
+        val amount = when (val result = moneyInputParser.parse(presentationLocale, state.currency, state.amountText)) {
             is MoneyInputResult.Valid -> result.amountMinor
-            MoneyInputResult.Missing -> {
-                showValidationMessage(FarmUiError.AMOUNT_REQUIRED.resourceId)
-                return
-            }
-            MoneyInputResult.NotPositive -> {
-                showValidationMessage(FarmUiError.AMOUNT_NOT_POSITIVE.resourceId)
-                return
-            }
-            MoneyInputResult.Invalid -> {
-                showValidationMessage(FarmUiError.AMOUNT_INVALID.resourceId)
-                return
-            }
-            MoneyInputResult.TooPrecise -> {
-                showValidationMessage(FarmUiError.AMOUNT_TOO_PRECISE.resourceId)
-                return
-            }
-            MoneyInputResult.TooLarge -> {
-                showValidationMessage(FarmUiError.AMOUNT_TOO_LARGE.resourceId)
-                return
-            }
+            MoneyInputResult.Missing -> return showEditorError(FarmUiError.AMOUNT_REQUIRED, transactionAmountInput)
+            MoneyInputResult.NotPositive -> return showEditorError(FarmUiError.AMOUNT_NOT_POSITIVE, transactionAmountInput)
+            MoneyInputResult.Invalid -> return showEditorError(FarmUiError.AMOUNT_INVALID, transactionAmountInput)
+            MoneyInputResult.TooPrecise -> return showEditorError(FarmUiError.AMOUNT_TOO_PRECISE, transactionAmountInput)
+            MoneyInputResult.TooLarge -> return showEditorError(FarmUiError.AMOUNT_TOO_LARGE, transactionAmountInput)
         }
-        val description = transactionDescriptionInput.text?.toString()?.trim().orEmpty()
-        if (description.isBlank()) {
-            showValidationMessage(FarmUiError.TRANSACTION_DESCRIPTION_REQUIRED.resourceId)
+        if (state.description.isBlank()) {
+            showEditorError(FarmUiError.TRANSACTION_DESCRIPTION_REQUIRED, transactionDescriptionInput)
             return
         }
-        Log.d(LOG_TAG, "draftCurrency=$currency description=$description occurredAt=$occurredAt")
+        val occurredAt = state.occurredAt.atZoneSameInstant(deviceZone)
+            .toOffsetDateTime()
+            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
         val draft = FarmTransactionDraft(
-            type = selectedTransactionType(),
-            category = selectedTransactionCategory(),
+            type = state.type,
+            category = state.category,
             amountMinor = amount,
-            currency = currency,
-            description = description,
+            currency = state.currency,
+            description = state.description,
             occurredAt = occurredAt
         )
         try {
-            if (currentTransactionId == null) {
-                val created = service.createTransaction(farmId, draft)
-                Log.d(LOG_TAG, "created transaction id=${created.id} with farmId=$farmId")
+            if (state.mode == TransactionEditorMode.CREATE) {
+                service.createTransaction(farmId, draft)
                 showToast(R.string.toast_transaction_created)
             } else {
-                val updated = service.updateTransaction(farmId, currentTransactionId!!, draft)
-                Log.d(LOG_TAG, "updated transaction id=${updated.id} with farmId=$farmId")
+                service.updateTransaction(farmId, state.transactionId!!, draft)
                 showToast(R.string.toast_transaction_updated)
             }
-            clearTransactionForm()
+            closeEditor()
             render()
         } catch (exception: Exception) {
             showUnexpectedFailure(exception, "save transaction failed")
@@ -333,15 +467,16 @@ class FarmActivity : AppCompatActivity() {
 
     private fun deleteTransaction() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
-        val selectedTransactionId = currentTransactionId
-            ?: return showValidationMessage(FarmUiError.TRANSACTION_SELECTION_REQUIRED.resourceId)
+        val state = currentEditorState() ?: return
+        if (state.mode != TransactionEditorMode.EDIT) return
+        val transactionId = state.transactionId ?: return
         AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_delete_transaction_title))
             .setMessage(string(R.string.dialog_delete_transaction_message))
             .setPositiveButton(string(R.string.action_delete)) { _, _ ->
                 try {
-                    service.deleteTransaction(farmId, selectedTransactionId)
-                    currentTransactionId = null
+                    service.deleteTransaction(farmId, transactionId)
+                    closeEditor()
                     render()
                     showToast(R.string.toast_transaction_deleted)
                 } catch (exception: Exception) {
@@ -351,6 +486,235 @@ class FarmActivity : AppCompatActivity() {
             .setNegativeButton(string(R.string.action_cancel), null)
             .show()
     }
+
+    private fun showDateTimePickers() {
+        val zone = deviceZone
+        val current = editorState?.occurredAt?.atZoneSameInstant(zone) ?: ZonedDateTime.now(zone)
+        val datePicker = DatePickerDialog(
+            this,
+            { _, year, monthOfYear, dayOfMonth ->
+                val timePicker = TimePickerDialog(
+                    this,
+                    { _, hourOfDay, minute ->
+                        editorState = editorState?.copy(
+                            occurredAt = EditorDateTime.fromPickerValues(year, monthOfYear, dayOfMonth, hourOfDay, minute, zone)
+                        )
+                        updateDateTimeDisplay()
+                    },
+                    current.hour,
+                    current.minute,
+                    false
+                )
+                timePicker.show()
+            },
+            current.year,
+            current.monthValue - 1,
+            current.dayOfMonth
+        )
+        datePicker.show()
+    }
+
+    private fun showCurrencyChooser() {
+        val codes = arrayOf("NPR", "USD", "EUR", "INR")
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.currency_choice_dialog_title))
+            .setItems(codes) { _, which ->
+                editorState = editorState?.copy(currency = codes[which])
+                updateCurrencyDisplay()
+            }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .show()
+    }
+
+    private fun updateDateTimeDisplay() {
+        val occurredAt = editorState?.occurredAt ?: return
+        val now = OffsetDateTime.now()
+        transactionDateTimeText.text = if (timePresentation.isToday(deviceZone, occurredAt, now)) {
+            string(R.string.today_label) + ", " + timePresentation.shortTime(presentationLocale, deviceZone, occurredAt)
+        } else {
+            timePresentation.displayDateTime(presentationLocale, deviceZone, occurredAt)
+        }
+    }
+
+    private fun updateCurrencyDisplay() {
+        val state = editorState ?: return
+        transactionCurrencyText.text = state.currency
+        val showChange = when (state.mode) {
+            TransactionEditorMode.CREATE -> farmHasNoTransactions()
+            TransactionEditorMode.EDIT -> isSoleTransaction(state.transactionId)
+        }
+        changeCurrencyButton.visibility = if (showChange) View.VISIBLE else View.GONE
+    }
+
+    private fun currentFarmCurrency(): String {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        return farm?.transactions?.firstOrNull()?.currency ?: "NPR"
+    }
+
+    private fun farmHasNoTransactions(): Boolean {
+        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return true
+        return farm.transactions.isEmpty()
+    }
+
+    private fun isSoleTransaction(transactionId: String?): Boolean {
+        if (transactionId == null) return false
+        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return false
+        return farm.transactions.size == 1 && farm.transactions.single().id == transactionId
+    }
+
+    private fun showDiscardDialog(onDiscard: () -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.discard_changes_title))
+            .setMessage(string(R.string.discard_changes_message))
+            .setPositiveButton(string(R.string.action_discard)) { _, _ -> onDiscard() }
+            .setNegativeButton(string(R.string.action_keep_editing), null)
+            .show()
+    }
+
+    private fun saveActionRes(state: TransactionEditorState): Int = when (state.mode) {
+        TransactionEditorMode.CREATE -> {
+            if (state.type == TransactionType.INCOME) R.string.save_income_action else R.string.save_expense_action
+        }
+        TransactionEditorMode.EDIT -> R.string.update_transaction_action
+    }
+
+    private fun restoreEditorFrom(bundle: Bundle?) {
+        if (bundle == null || !bundle.getBoolean(STATE_EDITOR_OPEN, false)) return
+        val mode = bundle.getString(STATE_EDITOR_MODE)?.let {
+            runCatching { TransactionEditorMode.valueOf(it) }.getOrNull()
+        } ?: return
+        val type = bundle.getString(STATE_EDITOR_TYPE)?.let {
+            runCatching { TransactionType.valueOf(it) }.getOrNull()
+        } ?: return
+        val category = bundle.getString(STATE_EDITOR_CATEGORY)?.let {
+            runCatching { TransactionCategory.valueOf(it) }.getOrNull()
+        } ?: return
+        val occurredAt = bundle.getString(STATE_EDITOR_OCCURRED_AT)?.let {
+            runCatching { OffsetDateTime.parse(it) }.getOrNull()
+        } ?: return
+        val currency = bundle.getString(STATE_EDITOR_CURRENCY) ?: return
+        val state = TransactionEditorState(
+            mode = mode,
+            transactionId = bundle.getString(STATE_EDITOR_TRANSACTION_ID),
+            type = type,
+            category = category,
+            amountText = bundle.getString(STATE_EDITOR_AMOUNT).orEmpty(),
+            description = bundle.getString(STATE_EDITOR_DESCRIPTION).orEmpty(),
+            occurredAt = occurredAt,
+            currency = currency
+        )
+        toolsExpanded = bundle.getBoolean(STATE_TOOLS_EXPANDED, false)
+        updateToolsExpansion()
+        applyEditorState(state, baseline = state)
+    }
+
+    // --- Rendering ----------------------------------------------------------
+
+    private fun render() {
+        val farm = service.currentFarmId()?.let { service.loadFarm(it) }
+        if (farm == null) {
+            currentFarmId = null
+            createFarmContainer.visibility = View.VISIBLE
+            farmDetailsContainer.visibility = View.GONE
+            return
+        }
+        currentFarmId = farm.id
+        createFarmContainer.visibility = View.GONE
+        farmDetailsContainer.visibility = View.VISIBLE
+        renderFarm(farm)
+    }
+
+    private fun renderFarm(farm: FarmState) {
+        farmNameText.text = farm.name
+        val currency = farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "NPR"
+        val totals = try {
+            FarmTotals.of(farm.transactions)
+        } catch (exception: ArithmeticException) {
+            Log.e(LOG_TAG, "farm totals overflow", exception)
+            showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
+            return
+        }
+        balanceText.text = string(R.string.overview_balance_format, formatMoney(currency, totals.balanceMinor))
+        incomeText.text = string(R.string.overview_income_format, formatMoney(currency, totals.incomeMinor))
+        expensesText.text = string(R.string.overview_expenses_format, formatMoney(currency, totals.expensesMinor))
+        firstActionPrompt.visibility = if (farm.transactions.isEmpty()) View.VISIBLE else View.GONE
+        renderRecentTransactions(farm)
+        renderFarmTools(farm, currency, totals)
+    }
+
+    private fun renderRecentTransactions(farm: FarmState) {
+        val transactions = farm.transactionsNewestFirst()
+        recentTransactionsContainer.removeAllViews()
+        if (transactions.isEmpty()) {
+            val empty = TextView(this)
+            empty.text = string(R.string.empty_transactions)
+            empty.setPadding(0, dp(8), 0, dp(8))
+            recentTransactionsContainer.addView(empty)
+            return
+        }
+        val inflater = LayoutInflater.from(this)
+        transactions.forEach { transaction ->
+            val row = inflater.inflate(R.layout.item_recent_transaction, recentTransactionsContainer, false) as TextView
+            row.setTag(transaction.id)
+            row.text = string(
+                R.string.transaction_row_format,
+                displayTransactionTime(transaction),
+                FarmLabels.transactionType(this, transaction.type),
+                FarmLabels.transactionCategory(this, transaction.category),
+                transaction.description,
+                formatMoney(transaction.currency, transaction.amountMinor)
+            )
+            row.contentDescription = string(
+                R.string.recent_transaction_accessibility_format,
+                FarmLabels.transactionType(this, transaction.type),
+                transaction.description,
+                formatMoney(transaction.currency, transaction.amountMinor)
+            )
+            row.setOnClickListener {
+                confirmDiscardIfNeeded { openEditorForTransaction(transaction) }
+            }
+            recentTransactionsContainer.addView(row)
+        }
+    }
+
+    private fun renderFarmTools(farm: FarmState, currency: String, totals: FarmTotals) {
+        summaryText.text = string(
+            R.string.farm_tools_summary_format,
+            farm.name,
+            numberFormatter.format(presentationLocale, farm.entries.size),
+            formatMoney(currency, totals.balanceMinor)
+        )
+        entriesText.text = if (farm.entries.isEmpty()) {
+            string(R.string.empty_entries)
+        } else {
+            farm.entries.joinToString("\n") { entry ->
+                string(
+                    R.string.entry_row_format,
+                    FarmLabels.entryKind(this, entry.kind),
+                    entry.label,
+                    numberFormatter.format(presentationLocale, entry.quantity)
+                )
+            }
+        }
+    }
+
+    private fun toggleFarmTools() {
+        toolsExpanded = !toolsExpanded
+        updateToolsExpansion()
+    }
+
+    private fun updateToolsExpansion() {
+        farmToolsContainer.visibility = if (toolsExpanded) View.VISIBLE else View.GONE
+        farmToolsToggleButton.text = string(
+            if (toolsExpanded) R.string.hide_farm_tools_action else R.string.show_farm_tools_action
+        )
+    }
+
+    private fun scrollEditorIntoView() {
+        scrollView.post { scrollView.smoothScrollTo(0, transactionEditorContainer.top) }
+    }
+
+    // --- Backup -------------------------------------------------------------
 
     private fun exportBackup() {
         val backupContent = createBackupContentForCurrentFarm() ?: return
@@ -406,80 +770,23 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun buildImportedFarmSummary(farm: FarmState): String {
-        val balanceMinor = farm.transactions.fold(0L) { total, transaction ->
-            total + if (transaction.type == TransactionType.INCOME) transaction.amountMinor else -transaction.amountMinor
-        }
         val currencyCode = farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "NPR"
+        val totals = try {
+            FarmTotals.of(farm.transactions)
+        } catch (exception: ArithmeticException) {
+            Log.e(LOG_TAG, "imported farm totals overflow", exception)
+            showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
+            return ""
+        }
         return string(
             R.string.imported_farm_summary_format,
             numberFormatter.format(presentationLocale, farm.entries.size),
             numberFormatter.format(presentationLocale, farm.transactions.size),
-            formatMoney(currencyCode, balanceMinor)
+            formatMoney(currencyCode, totals.balanceMinor)
         )
     }
 
-    private fun render() {
-        val farm = service.currentFarmId()?.let { service.loadFarm(it) }
-        if (farm == null) {
-            currentFarmId = null
-            createFarmContainer.visibility = View.VISIBLE
-            farmDetailsContainer.visibility = View.GONE
-            return
-        }
-
-        currentFarmId = farm.id
-        createFarmContainer.visibility = View.GONE
-        farmDetailsContainer.visibility = View.VISIBLE
-        renderFarm(farm)
-    }
-
-    private fun renderFarm(farm: FarmState) {
-        val summary = service.summary(farm.id)
-        val summaryTextValue = buildSummaryText(farm, summary)
-        Log.d(LOG_TAG, "summary=$summaryTextValue")
-        summaryText.text = summaryTextValue
-        entriesText.text = if (farm.entries.isEmpty()) {
-            string(R.string.empty_entries)
-        } else {
-            farm.entries.joinToString("\n") { entry ->
-                string(
-                    R.string.entry_row_format,
-                    FarmLabels.entryKind(this, entry.kind),
-                    entry.label,
-                    numberFormatter.format(presentationLocale, entry.quantity)
-                )
-            }
-        }
-        val newestFirstTransactions = service.transactionsNewestFirst(farm.id)
-        transactionsText.text = if (newestFirstTransactions.isEmpty()) {
-            string(R.string.empty_transactions)
-        } else {
-            newestFirstTransactions.joinToString("\n") { transaction ->
-                string(
-                    R.string.transaction_row_format,
-                    timePresentation.displayDateTime(presentationLocale, deviceZone, transaction.occurredAt),
-                    FarmLabels.transactionType(this, transaction.type),
-                    FarmLabels.transactionCategory(this, transaction.category),
-                    transaction.description,
-                    formatMoney(transaction.currency, transaction.amountMinor)
-                )
-            }
-        }
-
-        clearTransactionForm()
-        populateTransactionSelection(newestFirstTransactions)
-        validationMessageText.visibility = View.GONE
-    }
-
-    private fun buildSummaryText(farm: FarmState, summary: FarmSummary): String {
-        return string(
-            R.string.farm_summary_format,
-            farm.name,
-            numberFormatter.format(presentationLocale, summary.entryCount),
-            numberFormatter.format(presentationLocale, summary.transactionCount),
-            formattedBalance(summary.currencyCode, summary.balanceMinor)
-        )
-    }
+    // --- Presentation helpers (also test seams) ------------------------------
 
     internal fun formattedBalance(currencyCode: String?, balanceMinor: Long): String =
         formatMoney(currencyCode ?: "NPR", balanceMinor)
@@ -498,80 +805,48 @@ class FarmActivity : AppCompatActivity() {
     internal fun editFieldAmount(currencyCode: String, amountMinor: Long): String =
         moneyFormatter.toEditFieldValue(presentationLocale, currencyCode, amountMinor)
 
+    internal fun editorOccurredAtIsoForTest(): String? =
+        editorState?.occurredAt?.atZoneSameInstant(deviceZone)
+            ?.toOffsetDateTime()
+            ?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+
+    internal fun overrideEditorOccurredAtForTest(iso: String) {
+        editorState = editorState?.copy(occurredAt = OffsetDateTime.parse(iso))
+        updateDateTimeDisplay()
+    }
+
+    internal fun setEditorCurrencyForTest(code: String) {
+        editorState = editorState?.copy(currency = code)
+        updateCurrencyDisplay()
+    }
+
+    // --- Validation and messages ---------------------------------------------
+
+    private fun showEditorError(error: FarmUiError, field: View?, vararg formatArgs: Any) {
+        showValidationMessage(error.resourceId, *formatArgs)
+        field?.requestFocus()
+    }
+
     private fun selectedEntryKind(): FarmEntryKind = FarmOrdering.entryKinds[entryKindSpinner.selectedItemPosition]
 
     private fun selectedTransactionType(): TransactionType =
-        FarmOrdering.transactionTypes[transactionTypeSpinner.selectedItemPosition]
+        if (transactionTypeExpenseRadio.isChecked) TransactionType.EXPENSE else TransactionType.INCOME
 
-    private fun selectedTransactionCategory(): TransactionCategory =
-        FarmOrdering.categoriesFor(selectedTransactionType())[transactionCategorySpinner.selectedItemPosition]
+    private fun selectedTransactionCategory(): TransactionCategory {
+        val type = selectedTransactionType()
+        val categories = FarmOrdering.categoriesFor(type)
+        val position = transactionCategorySpinner.selectedItemPosition.coerceIn(0, categories.size - 1)
+        return categories[position]
+    }
 
-    private fun refreshCategoryChoices() {
-        val categories = FarmOrdering.categoriesFor(selectedTransactionType())
+    private fun refreshCategoryChoices(type: TransactionType) {
+        val categories = FarmOrdering.categoriesFor(type)
         transactionCategorySpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
             categories.map { FarmLabels.transactionCategory(this, it) }
         ).also { adapter ->
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-    }
-
-    private fun fillTransactionForm(transaction: FarmTransaction) {
-        transactionTypeSpinner.setSelection(FarmOrdering.transactionTypes.indexOf(transaction.type))
-        refreshCategoryChoices()
-        val categoryIndex = FarmOrdering.categoriesFor(transaction.type).indexOf(transaction.category)
-        transactionCategorySpinner.setSelection(categoryIndex)
-        transactionAmountInput.setText(
-            moneyFormatter.toEditFieldValue(presentationLocale, transaction.currency, transaction.amountMinor)
-        )
-        transactionCurrencyInput.setText(transaction.currency)
-        transactionDescriptionInput.setText(transaction.description)
-        transactionOccurredAtInput.setText(
-            timePresentation.toEditFieldValue(deviceZone, transaction.occurredAt)
-        )
-    }
-
-    private fun clearTransactionForm() {
-        currentTransactionId = null
-        transactionAmountInput.setText("")
-        transactionCurrencyInput.setText(defaultCurrencyForForm())
-        transactionDescriptionInput.setText("")
-        transactionOccurredAtInput.setText("")
-        transactionTypeSpinner.setSelection(0)
-        refreshCategoryChoices()
-    }
-
-    private fun defaultCurrencyForForm(): String {
-        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return "NPR"
-        return farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "NPR"
-    }
-
-    private fun populateTransactionSelection(transactions: List<FarmTransaction>) {
-        val displayValues = mutableListOf<String>()
-        val ids = mutableListOf<String?>()
-        displayValues.add(string(R.string.transaction_selection_create))
-        ids.add(null)
-        transactions.forEach { transaction ->
-            displayValues.add(
-                string(
-                    R.string.transaction_selection_row_format,
-                    transaction.id.take(12),
-                    transaction.description,
-                    formatMoney(transaction.currency, transaction.amountMinor)
-                )
-            )
-            ids.add(transaction.id)
-        }
-        transactionIdsForSelection = ids
-        transactionSelectionSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, displayValues).also { adapter ->
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
-        val selectedPosition = ids.indexOfFirst { it == currentTransactionId }
-        if (selectedPosition >= 0) {
-            transactionSelectionSpinner.setSelection(selectedPosition)
-        } else {
-            transactionSelectionSpinner.setSelection(0)
         }
     }
 
@@ -598,14 +873,19 @@ class FarmActivity : AppCompatActivity() {
     private fun string(@StringRes resId: Int, vararg formatArgs: Any): String =
         if (formatArgs.isEmpty()) getString(resId) else getString(resId, *formatArgs)
 
-    private fun isValidIsoOffsetDateTime(value: String): Boolean = try {
-        OffsetDateTime.parse(value, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-        true
-    } catch (exception: RuntimeException) {
-        false
-    }
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private companion object {
         const val LOG_TAG = "FarmActivity"
+        const val STATE_EDITOR_OPEN = "editorOpen"
+        const val STATE_EDITOR_MODE = "editorMode"
+        const val STATE_EDITOR_TRANSACTION_ID = "editorTransactionId"
+        const val STATE_EDITOR_TYPE = "editorType"
+        const val STATE_EDITOR_CATEGORY = "editorCategory"
+        const val STATE_EDITOR_AMOUNT = "editorAmount"
+        const val STATE_EDITOR_DESCRIPTION = "editorDescription"
+        const val STATE_EDITOR_OCCURRED_AT = "editorOccurredAt"
+        const val STATE_EDITOR_CURRENCY = "editorCurrency"
+        const val STATE_TOOLS_EXPANDED = "toolsExpanded"
     }
 }
