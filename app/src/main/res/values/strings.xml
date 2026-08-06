@@ -4,20 +4,22 @@
     <string name="farm_name_hint">Farm name</string>
     <string name="create_farm_action">Create farm</string>
     <string name="entries_section">Entries</string>
-    <string name="transactions_section">Transactions</string>
     <string name="add_entry_section">Add entry</string>
     <string name="entry_label_hint">Entry label</string>
     <string name="entry_quantity_hint">Quantity</string>
     <string name="add_entry_action">Add entry</string>
-    <string name="add_transaction_section">Transactions</string>
     <string name="transaction_description_hint">Description</string>
     <string name="transaction_amount_hint">Amount</string>
-    <string name="transaction_currency_hint">Currency (ISO code)</string>
-    <string name="transaction_occurred_at_hint">Date/time (ISO-8601, local time)</string>
-    <string name="save_transaction_action">Save transaction</string>
     <string name="delete_transaction_action">Delete</string>
     <string name="export_backup_action">Export backup</string>
     <string name="import_backup_action">Import backup</string>
+
+    <string name="overview_balance_format">Balance: %1$s</string>
+    <string name="overview_income_format">Income: %1$s</string>
+    <string name="overview_expenses_format">Expenses: %1$s</string>
+    <string name="first_action_prompt">Record your first income or expense to start tracking your farm\'s balance.</string>
+    <string name="record_income_action">Record income</string>
+    <string name="record_expense_action">Record expense</string>
 
     <string name="entry_kind_livestock">Livestock</string>
     <string name="entry_kind_crop">Crop</string>
@@ -36,12 +38,31 @@
     <string name="empty_entries">No entries yet</string>
     <string name="empty_transactions">No transactions yet</string>
 
-    <string name="farm_summary_format">Farm: %1$s\nEntry count: %2$s\nTransaction count: %3$s\nBalance: %4$s</string>
     <string name="entry_row_format">- %1$s: %2$s x%3$s</string>
     <string name="transaction_row_format">- %1$s | %2$s | %3$s | %4$s | %5$s</string>
 
-    <string name="transaction_selection_create">Create new transaction</string>
-    <string name="transaction_selection_row_format">%1$s • %2$s • %3$s</string>
+    <string name="transaction_editor_new_section">New transaction</string>
+    <string name="transaction_editor_edit_section">Edit transaction</string>
+    <string name="transaction_date_time_label">Date/time</string>
+    <string name="transaction_currency_label">Currency</string>
+    <string name="change_date_time_action">Change date and time</string>
+    <string name="change_currency_action">Change currency</string>
+    <string name="save_income_action">Save income</string>
+    <string name="save_expense_action">Save expense</string>
+    <string name="update_transaction_action">Update transaction</string>
+    <string name="cancel_editing_action">Cancel</string>
+    <string name="today_label">Today</string>
+    <string name="currency_choice_dialog_title">Choose the farm\'s currency</string>
+
+    <string name="recent_transactions_section">Recent transactions</string>
+    <string name="recent_transaction_accessibility_format">%1$s, %2$s, %3$s</string>
+
+    <string name="farm_tools_section">Farm tools</string>
+    <string name="show_farm_tools_action">Show farm tools</string>
+    <string name="hide_farm_tools_action">Hide farm tools</string>
+    <string name="backup_section">Backup</string>
+
+    <string name="farm_tools_summary_format">Farm: %1$s\nEntry count: %2$s\nBalance: %3$s</string>
 
     <string name="toast_export_cancelled">Export cancelled</string>
     <string name="toast_backup_exported">Backup exported</string>
@@ -60,6 +81,10 @@
     <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_replace_farm">Replace farm</string>
+    <string name="action_discard">Discard</string>
+    <string name="action_keep_editing">Keep editing</string>
+    <string name="discard_changes_title">Discard changes?</string>
+    <string name="discard_changes_message">Discard the unsaved changes to this transaction?</string>
 
     <string name="imported_farm_summary_format">Entries: %1$s\nTransactions: %2$s\nBalance: %3$s</string>
 
@@ -77,9 +102,6 @@
     <string name="error_transaction_amount_too_large">Amount is too large</string>
     <string name="error_currency_iso_three_letters">Currency must be a three-letter ISO code</string>
     <string name="error_transaction_currency_mismatch">Amounts must use the farm\'s currency: %1$s</string>
-    <string name="error_transaction_date_time_required">Transaction date/time is required</string>
-    <string name="error_transaction_date_time_invalid">Transaction date/time must be a valid ISO-8601 value</string>
-    <string name="error_transaction_selection_required">Select a transaction to delete</string>
     <string name="error_backup_invalid_or_unsupported">Invalid or unsupported backup</string>
     <string name="error_backup_too_large_or_unreadable">Backup is too large or unreadable</string>
     <string name="error_current_farm_missing">Create a farm first</string>

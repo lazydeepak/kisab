@@ -3,20 +3,22 @@
     <string name="farm_name_hint">फार्मको नाम</string>
     <string name="create_farm_action">फार्म सिर्जना गर्नुहोस्</string>
     <string name="entries_section">प्रविष्टिहरू</string>
-    <string name="transactions_section">लेनदेनहरू</string>
     <string name="add_entry_section">प्रविष्टि थप्नुहोस्</string>
     <string name="entry_label_hint">प्रविष्टिको नाम</string>
     <string name="entry_quantity_hint">परिमाण</string>
     <string name="add_entry_action">प्रविष्टि थप्नुहोस्</string>
-    <string name="add_transaction_section">लेनदेन थप्नुहोस्</string>
     <string name="transaction_description_hint">विवरण</string>
     <string name="transaction_amount_hint">रकम</string>
-    <string name="transaction_currency_hint">मुद्रा (ISO कोड)</string>
-    <string name="transaction_occurred_at_hint">मिति/समय (ISO-8601, स्थानीय समय)</string>
-    <string name="save_transaction_action">लेनदेन बचत गर्नुहोस्</string>
     <string name="delete_transaction_action">मेटाउनुहोस्</string>
     <string name="export_backup_action">ब्याकअप निर्यात गर्नुहोस्</string>
     <string name="import_backup_action">ब्याकअप आयात गर्नुहोस्</string>
+
+    <string name="overview_balance_format">बाँकी रकम: %1$s</string>
+    <string name="overview_income_format">आम्दानी: %1$s</string>
+    <string name="overview_expenses_format">खर्च: %1$s</string>
+    <string name="first_action_prompt">आफ्नो फार्मको बाँकी रकम ट्र्याक गर्न पहिलो आम्दानी वा खर्च अभिलेख गर्नुहोस्।</string>
+    <string name="record_income_action">आम्दानी अभिलेख गर्नुहोस्</string>
+    <string name="record_expense_action">खर्च अभिलेख गर्नुहोस्</string>
 
     <string name="entry_kind_livestock">पशुधन</string>
     <string name="entry_kind_crop">बाली</string>
@@ -35,12 +37,31 @@
     <string name="empty_entries">अहिलेसम्म कुनै प्रविष्टि छैन</string>
     <string name="empty_transactions">अहिलेसम्म कुनै लेनदेन छैन</string>
 
-    <string name="farm_summary_format">फार्म: %1$s\nप्रविष्टि सङ्ख्या: %2$s\nलेनदेन सङ्ख्या: %3$s\nबाँकी रकम: %4$s</string>
     <string name="entry_row_format">- %1$s: %2$s x%3$s</string>
     <string name="transaction_row_format">- %1$s | %2$s | %3$s | %4$s | %5$s</string>
 
-    <string name="transaction_selection_create">नयाँ लेनदेन सिर्जना गर्नुहोस्</string>
-    <string name="transaction_selection_row_format">%1$s • %2$s • %3$s</string>
+    <string name="transaction_editor_new_section">नयाँ लेनदेन</string>
+    <string name="transaction_editor_edit_section">लेनदेन सम्पादन गर्नुहोस्</string>
+    <string name="transaction_date_time_label">मिति/समय</string>
+    <string name="transaction_currency_label">मुद्रा</string>
+    <string name="change_date_time_action">मिति र समय परिवर्तन गर्नुहोस्</string>
+    <string name="change_currency_action">मुद्रा परिवर्तन गर्नुहोस्</string>
+    <string name="save_income_action">आम्दानी बचत गर्नुहोस्</string>
+    <string name="save_expense_action">खर्च बचत गर्नुहोस्</string>
+    <string name="update_transaction_action">लेनदेन अद्यावधिक गर्नुहोस्</string>
+    <string name="cancel_editing_action">रद्द गर्नुहोस्</string>
+    <string name="today_label">आज</string>
+    <string name="currency_choice_dialog_title">फार्मको मुद्रा छान्नुहोस्</string>
+
+    <string name="recent_transactions_section">हालैका लेनदेनहरू</string>
+    <string name="recent_transaction_accessibility_format">%1$s, %2$s, %3$s</string>
+
+    <string name="farm_tools_section">फार्म उपकरणहरू</string>
+    <string name="show_farm_tools_action">फार्म उपकरणहरू देखाउनुहोस्</string>
+    <string name="hide_farm_tools_action">फार्म उपकरणहरू लुकाउनुहोस्</string>
+    <string name="backup_section">ब्याकअप</string>
+
+    <string name="farm_tools_summary_format">फार्म: %1$s\nप्रविष्टि सङ्ख्या: %2$s\nबाँकी रकम: %3$s</string>
 
     <string name="toast_export_cancelled">निर्यात रद्द भयो</string>
     <string name="toast_backup_exported">ब्याकअप निर्यात भयो</string>
@@ -59,6 +80,10 @@
     <string name="action_delete">मेटाउनुहोस्</string>
     <string name="action_cancel">रद्द गर्नुहोस्</string>
     <string name="action_replace_farm">फार्म प्रतिस्थापन गर्नुहोस्</string>
+    <string name="action_discard">त्याग्नुहोस्</string>
+    <string name="action_keep_editing">सम्पादन जारी राख्नुहोस्</string>
+    <string name="discard_changes_title">परिवर्तनहरू त्याग्ने?</string>
+    <string name="discard_changes_message">के यो लेनदेनका बचत नगरिएका परिवर्तनहरू त्याग्ने?</string>
 
     <string name="imported_farm_summary_format">प्रविष्टिहरू: %1$s\nलेनदेनहरू: %2$s\nबाँकी रकम: %3$s</string>
 
@@ -73,9 +98,6 @@
     <string name="error_transaction_amount_too_large">रकम धेरै ठूलो छ</string>
     <string name="error_currency_iso_three_letters">मुद्रा तीन अक्षरको ISO कोड हुनुपर्छ</string>
     <string name="error_transaction_currency_mismatch">रकम फार्मको मुद्रामा हुनुपर्छ: %1$s</string>
-    <string name="error_transaction_date_time_required">लेनदेन मिति/समय आवश्यक छ</string>
-    <string name="error_transaction_date_time_invalid">लेनदेन मिति/समय मान्य ISO-8601 हुनुपर्छ</string>
-    <string name="error_transaction_selection_required">मेटाउन लेनदेन चयन गर्नुहोस्</string>
     <string name="error_backup_invalid_or_unsupported">अमान्य वा समर्थन नगरिएको ब्याकअप</string>
     <string name="error_backup_too_large_or_unreadable">ब्याकअप धेरै ठूलो छ वा पढ्न सकिएन</string>
     <string name="error_current_farm_missing">पहिले फार्म सिर्जना गर्नुहोस्</string>
