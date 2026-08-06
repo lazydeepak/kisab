@@ -34,6 +34,8 @@ import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.FarmActivity
 import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.Locale
 import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.containsString
@@ -78,7 +80,7 @@ class FarmActivityPresentationTest {
             createFarm("NPR Farm")
 
             openExpenseEditor()
-            setOccurredAt(scenario, "2024-01-01T17:45:00+05:45")
+            setOccurredAt(2024, 1, 1, 17, 45)
             fillEditor(description = "Feed", amount = "123.45")
             clickSave(scenario)
 
@@ -99,7 +101,7 @@ class FarmActivityPresentationTest {
                 assertEquals(1, farm.transactions.size)
                 assertEquals(12345, farm.transactions.single().amountMinor)
                 assertEquals("NPR", farm.transactions.single().currency)
-                assertEquals("2024-01-01T12:00:00Z", farm.transactions.single().occurredAt.toInstant().toString())
+                assertEquals(expectedInstant(2024, 1, 1, 17, 45), farm.transactions.single().occurredAt.toInstant().toString())
             }
         } finally {
             scenario.close()
@@ -116,7 +118,7 @@ class FarmActivityPresentationTest {
             openExpenseEditor()
             onView(withId(R.id.transactionCurrencyText)).check(matches(withText("NPR")))
 
-            setOccurredAt(scenario, "2024-01-01T17:45:00+05:45")
+            setOccurredAt(2024, 1, 1, 17, 45)
             fillEditor(description = "Feed", amount = "१२३.४५")
             clickSave(scenario)
 
@@ -146,7 +148,7 @@ class FarmActivityPresentationTest {
             scenario.onActivity { activity -> money = activity.formatMoney("USD", 1500) }
             assertTrue("Expected USD amount in recent row", recentRowText(scenario).contains(money!!))
 
-            setOccurredAt(scenario, "2024-01-01T17:45:00+05:45")
+            setOccurredAt(2024, 1, 1, 17, 45)
             fillEditor(description = "More feed", amount = "10.00")
             clickSave(scenario)
 
@@ -168,7 +170,7 @@ class FarmActivityPresentationTest {
         try {
             createFarm("Demo Farm")
             openExpenseEditor()
-            setOccurredAt(scenario, "2024-01-01T17:45:00+05:45")
+            setOccurredAt(2024, 1, 1, 17, 45)
 
             fun fillAmountAndSave(amount: String) {
                 onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText("Feed"), closeSoftKeyboard())
@@ -258,9 +260,14 @@ class FarmActivityPresentationTest {
         onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
     }
 
-    private fun setOccurredAt(scenario: ActivityScenario<FarmActivity>, iso: String) {
-        scenario.onActivity { activity -> activity.overrideEditorOccurredAtForTest(iso) }
+    private fun setOccurredAt(year: Int, month: Int, day: Int, hour: Int, minute: Int) {
+        PickerTestHelpers.pickDateTime(year, month - 1, day, hour, minute)
     }
+
+    private fun expectedInstant(year: Int, month: Int, day: Int, hour: Int, minute: Int): String =
+        ZonedDateTime.of(year, month, day, hour, minute, 0, 0, ZoneId.systemDefault())
+            .toInstant()
+            .toString()
 
     private fun openEditorForTransaction(description: String) {
         onView(allOf(withId(R.id.recentTransactionRow), withText(containsString(description))))

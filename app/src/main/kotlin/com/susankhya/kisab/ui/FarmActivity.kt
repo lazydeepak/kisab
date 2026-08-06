@@ -4,6 +4,8 @@ import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
+import android.text.format.DateFormat
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -44,6 +46,7 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 class FarmActivity : AppCompatActivity() {
     private lateinit var store: SharedPreferencesFarmStore
@@ -110,6 +113,7 @@ class FarmActivity : AppCompatActivity() {
     private var editorState: TransactionEditorState? = null
     private var editorBaseline: TransactionEditorState? = null
     private var toolsExpanded: Boolean = false
+    private var syncTypeListenersSuppressed = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -184,15 +188,12 @@ class FarmActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
         outState.putBoolean(STATE_TOOLS_EXPANDED, toolsExpanded)
         val state = currentEditorState() ?: return
+        val baseline = editorBaseline
         outState.putBoolean(STATE_EDITOR_OPEN, true)
-        outState.putString(STATE_EDITOR_MODE, state.mode.name)
-        outState.putString(STATE_EDITOR_TRANSACTION_ID, state.transactionId)
-        outState.putString(STATE_EDITOR_TYPE, state.type.name)
-        outState.putString(STATE_EDITOR_CATEGORY, state.category.name)
-        outState.putString(STATE_EDITOR_AMOUNT, state.amountText)
-        outState.putString(STATE_EDITOR_DESCRIPTION, state.description)
-        outState.putString(STATE_EDITOR_OCCURRED_AT, state.occurredAt.toInstant().toString())
-        outState.putString(STATE_EDITOR_CURRENCY, state.currency)
+        writeEditorState(outState, STATE_EDITOR_PREFIX, state)
+        if (baseline != null) {
+            writeEditorState(outState, STATE_EDITOR_BASELINE_PREFIX, baseline)
+        }
     }
 
     private fun bindViews() {
@@ -258,10 +259,10 @@ class FarmActivity : AppCompatActivity() {
             confirmDiscardIfNeeded { openEditorForNew(TransactionType.EXPENSE) }
         }
         transactionTypeIncomeRadio.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) refreshCategoryChoices(TransactionType.INCOME)
+            if (isChecked) onTransactionTypeChanged(TransactionType.INCOME)
         }
         transactionTypeExpenseRadio.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) refreshCategoryChoices(TransactionType.EXPENSE)
+            if (isChecked) onTransactionTypeChanged(TransactionType.EXPENSE)
         }
         saveTransactionButton.setOnClickListener { saveTransaction() }
         cancelTransactionButton.setOnClickListener { cancelEditing() }
@@ -346,8 +347,10 @@ class FarmActivity : AppCompatActivity() {
             if (state.mode == TransactionEditorMode.CREATE) R.string.transaction_editor_new_section
             else R.string.transaction_editor_edit_section
         )
+        syncTypeListenersSuppressed = true
         transactionTypeIncomeRadio.isChecked = state.type == TransactionType.INCOME
         transactionTypeExpenseRadio.isChecked = state.type == TransactionType.EXPENSE
+        syncTypeListenersSuppressed = false
         refreshCategoryChoices(state.type)
         val categoryIndex = FarmOrdering.categoriesFor(state.type).indexOf(state.category).coerceAtLeast(0)
         transactionCategorySpinner.setSelection(categoryIndex)
@@ -408,6 +411,17 @@ class FarmActivity : AppCompatActivity() {
             amountText = transactionAmountInput.text?.toString().orEmpty(),
             description = transactionDescriptionInput.text?.toString().orEmpty()
         )
+    }
+
+    private fun onTransactionTypeChanged(type: TransactionType) {
+        if (syncTypeListenersSuppressed) return
+        val state = editorState ?: return
+        val categories = FarmOrdering.categoriesFor(type)
+        refreshCategoryChoices(type)
+        val updated = state.copy(type = type, category = categories.first())
+        editorState = updated
+        transactionCategorySpinner.setSelection(0)
+        saveTransactionButton.text = string(saveActionRes(updated))
     }
 
     private fun saveTransaction() {
@@ -503,7 +517,7 @@ class FarmActivity : AppCompatActivity() {
                     },
                     current.hour,
                     current.minute,
-                    false
+                    DateFormat.is24HourFormat(this)
                 )
                 timePicker.show()
             },
@@ -515,22 +529,59 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun showCurrencyChooser() {
-        val codes = arrayOf("NPR", "USD", "EUR", "INR")
-        AlertDialog.Builder(this)
+        val input = EditText(this).apply {
+            id = R.id.currencyInput
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
+            hint = string(R.string.currency_iso_hint)
+            setText(editorState?.currency.orEmpty())
+            setSelection(text?.length ?: 0)
+        }
+        val errorText = TextView(this).apply {
+            id = R.id.currencyErrorText
+            setTextColor(resources.getColor(android.R.color.holo_red_dark, theme))
+            text = ""
+            setPadding(0, dp(4), 0, 0)
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), 0)
+            addView(input)
+            addView(errorText)
+        }
+        val dialog = AlertDialog.Builder(this)
             .setTitle(string(R.string.currency_choice_dialog_title))
-            .setItems(codes) { _, which ->
-                editorState = editorState?.copy(currency = codes[which])
-                updateCurrencyDisplay()
-            }
+            .setView(content)
+            .setPositiveButton(string(R.string.action_ok), null)
             .setNegativeButton(string(R.string.action_cancel), null)
-            .show()
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val code = input.text?.toString()?.trim()?.uppercase(Locale.US).orEmpty()
+                if (code.matches(Regex("^[A-Z]{3}$"))) {
+                    applyCurrencyChange(code)
+                    dialog.dismiss()
+                } else {
+                    errorText.text = string(R.string.error_currency_iso_three_letters)
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun applyCurrencyChange(code: String) {
+        editorState = editorState?.copy(currency = code)
+        updateCurrencyDisplay()
     }
 
     private fun updateDateTimeDisplay() {
         val occurredAt = editorState?.occurredAt ?: return
         val now = OffsetDateTime.now()
         transactionDateTimeText.text = if (timePresentation.isToday(deviceZone, occurredAt, now)) {
-            string(R.string.today_label) + ", " + timePresentation.shortTime(presentationLocale, deviceZone, occurredAt)
+            string(
+                R.string.today_time_format,
+                string(R.string.today_label),
+                timePresentation.shortTime(presentationLocale, deviceZone, occurredAt)
+            )
         } else {
             timePresentation.displayDateTime(presentationLocale, deviceZone, occurredAt)
         }
@@ -579,33 +630,50 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun restoreEditorFrom(bundle: Bundle?) {
-        if (bundle == null || !bundle.getBoolean(STATE_EDITOR_OPEN, false)) return
-        val mode = bundle.getString(STATE_EDITOR_MODE)?.let {
+        if (bundle == null) return
+        toolsExpanded = bundle.getBoolean(STATE_TOOLS_EXPANDED, false)
+        updateToolsExpansion()
+        if (!bundle.getBoolean(STATE_EDITOR_OPEN, false)) return
+        val state = readEditorState(bundle, STATE_EDITOR_PREFIX) ?: return
+        val baseline = readEditorState(bundle, STATE_EDITOR_BASELINE_PREFIX) ?: state
+        applyEditorState(state, baseline = baseline)
+    }
+
+    private fun writeEditorState(bundle: Bundle, prefix: String, state: TransactionEditorState) {
+        bundle.putString(prefix + STATE_EDITOR_MODE, state.mode.name)
+        bundle.putString(prefix + STATE_EDITOR_TRANSACTION_ID, state.transactionId)
+        bundle.putString(prefix + STATE_EDITOR_TYPE, state.type.name)
+        bundle.putString(prefix + STATE_EDITOR_CATEGORY, state.category.name)
+        bundle.putString(prefix + STATE_EDITOR_AMOUNT, state.amountText)
+        bundle.putString(prefix + STATE_EDITOR_DESCRIPTION, state.description)
+        bundle.putString(prefix + STATE_EDITOR_OCCURRED_AT, state.occurredAt.toInstant().toString())
+        bundle.putString(prefix + STATE_EDITOR_CURRENCY, state.currency)
+    }
+
+    private fun readEditorState(bundle: Bundle, prefix: String): TransactionEditorState? {
+        val mode = bundle.getString(prefix + STATE_EDITOR_MODE)?.let {
             runCatching { TransactionEditorMode.valueOf(it) }.getOrNull()
-        } ?: return
-        val type = bundle.getString(STATE_EDITOR_TYPE)?.let {
+        } ?: return null
+        val type = bundle.getString(prefix + STATE_EDITOR_TYPE)?.let {
             runCatching { TransactionType.valueOf(it) }.getOrNull()
-        } ?: return
-        val category = bundle.getString(STATE_EDITOR_CATEGORY)?.let {
+        } ?: return null
+        val category = bundle.getString(prefix + STATE_EDITOR_CATEGORY)?.let {
             runCatching { TransactionCategory.valueOf(it) }.getOrNull()
-        } ?: return
-        val occurredAt = bundle.getString(STATE_EDITOR_OCCURRED_AT)?.let {
+        } ?: return null
+        val occurredAt = bundle.getString(prefix + STATE_EDITOR_OCCURRED_AT)?.let {
             runCatching { OffsetDateTime.parse(it) }.getOrNull()
-        } ?: return
-        val currency = bundle.getString(STATE_EDITOR_CURRENCY) ?: return
-        val state = TransactionEditorState(
+        } ?: return null
+        val currency = bundle.getString(prefix + STATE_EDITOR_CURRENCY) ?: return null
+        return TransactionEditorState(
             mode = mode,
-            transactionId = bundle.getString(STATE_EDITOR_TRANSACTION_ID),
+            transactionId = bundle.getString(prefix + STATE_EDITOR_TRANSACTION_ID),
             type = type,
             category = category,
-            amountText = bundle.getString(STATE_EDITOR_AMOUNT).orEmpty(),
-            description = bundle.getString(STATE_EDITOR_DESCRIPTION).orEmpty(),
+            amountText = bundle.getString(prefix + STATE_EDITOR_AMOUNT).orEmpty(),
+            description = bundle.getString(prefix + STATE_EDITOR_DESCRIPTION).orEmpty(),
             occurredAt = occurredAt,
             currency = currency
         )
-        toolsExpanded = bundle.getBoolean(STATE_TOOLS_EXPANDED, false)
-        updateToolsExpansion()
-        applyEditorState(state, baseline = state)
     }
 
     // --- Rendering ----------------------------------------------------------
@@ -758,15 +826,25 @@ class FarmActivity : AppCompatActivity() {
             .setTitle(string(R.string.dialog_replace_farm_title))
             .setMessage(string(R.string.dialog_import_backup_message_format, farm.name, summary))
             .setPositiveButton(string(R.string.action_replace_farm)) { _, _ ->
-                store.saveFarm(farm)
-                currentFarmId = farm.id
-                render()
-                showToast(R.string.toast_farm_restored)
+                if (editorState != null && isEditorDirty()) {
+                    showDiscardDialog { replaceFarmWith(farm) }
+                } else {
+                    closeEditor()
+                    replaceFarmWith(farm)
+                }
             }
             .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
                 showToast(R.string.toast_import_cancelled)
             }
             .show()
+    }
+
+    private fun replaceFarmWith(farm: FarmState) {
+        closeEditor()
+        store.saveFarm(farm)
+        currentFarmId = farm.id
+        render()
+        showToast(R.string.toast_farm_restored)
     }
 
     private fun buildImportedFarmSummary(farm: FarmState): String {
@@ -799,9 +877,6 @@ class FarmActivity : AppCompatActivity() {
     internal fun displayTransactionTime(transaction: FarmTransaction): String =
         timePresentation.displayDateTime(presentationLocale, deviceZone, transaction.occurredAt)
 
-    internal fun editFieldValue(transaction: FarmTransaction): String =
-        timePresentation.toEditFieldValue(deviceZone, transaction.occurredAt)
-
     internal fun editFieldAmount(currencyCode: String, amountMinor: Long): String =
         moneyFormatter.toEditFieldValue(presentationLocale, currencyCode, amountMinor)
 
@@ -810,15 +885,7 @@ class FarmActivity : AppCompatActivity() {
             ?.toOffsetDateTime()
             ?.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
-    internal fun overrideEditorOccurredAtForTest(iso: String) {
-        editorState = editorState?.copy(occurredAt = OffsetDateTime.parse(iso))
-        updateDateTimeDisplay()
-    }
-
-    internal fun setEditorCurrencyForTest(code: String) {
-        editorState = editorState?.copy(currency = code)
-        updateCurrencyDisplay()
-    }
+    internal fun pickerUses24HourView(): Boolean = DateFormat.is24HourFormat(this)
 
     // --- Validation and messages ---------------------------------------------
 
@@ -877,15 +944,17 @@ class FarmActivity : AppCompatActivity() {
 
     private companion object {
         const val LOG_TAG = "FarmActivity"
+        const val STATE_EDITOR_PREFIX = "editor"
+        const val STATE_EDITOR_BASELINE_PREFIX = "editorBaseline"
         const val STATE_EDITOR_OPEN = "editorOpen"
-        const val STATE_EDITOR_MODE = "editorMode"
-        const val STATE_EDITOR_TRANSACTION_ID = "editorTransactionId"
-        const val STATE_EDITOR_TYPE = "editorType"
-        const val STATE_EDITOR_CATEGORY = "editorCategory"
-        const val STATE_EDITOR_AMOUNT = "editorAmount"
-        const val STATE_EDITOR_DESCRIPTION = "editorDescription"
-        const val STATE_EDITOR_OCCURRED_AT = "editorOccurredAt"
-        const val STATE_EDITOR_CURRENCY = "editorCurrency"
+        const val STATE_EDITOR_MODE = "Mode"
+        const val STATE_EDITOR_TRANSACTION_ID = "TransactionId"
+        const val STATE_EDITOR_TYPE = "Type"
+        const val STATE_EDITOR_CATEGORY = "Category"
+        const val STATE_EDITOR_AMOUNT = "Amount"
+        const val STATE_EDITOR_DESCRIPTION = "Description"
+        const val STATE_EDITOR_OCCURRED_AT = "OccurredAt"
+        const val STATE_EDITOR_CURRENCY = "Currency"
         const val STATE_TOOLS_EXPANDED = "toolsExpanded"
     }
 }

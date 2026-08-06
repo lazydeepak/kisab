@@ -51,7 +51,10 @@
     <string name="update_transaction_action">लेनदेन अद्यावधिक गर्नुहोस्</string>
     <string name="cancel_editing_action">रद्द गर्नुहोस्</string>
     <string name="today_label">आज</string>
+    <string name="today_time_format">%1$s, %2$s</string>
     <string name="currency_choice_dialog_title">फार्मको मुद्रा छान्नुहोस्</string>
+    <string name="currency_iso_hint">ISO 4217 कोड</string>
+    <string name="action_ok">ठिक छ</string>
 
     <string name="recent_transactions_section">हालैका लेनदेनहरू</string>
     <string name="recent_transaction_accessibility_format">%1$s, %2$s, %3$s</string>

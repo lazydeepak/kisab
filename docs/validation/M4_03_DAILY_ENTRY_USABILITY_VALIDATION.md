@@ -95,17 +95,17 @@ Record income/expense → amount (focused, `imeOptions` `actionNext`) → catego
 
 `FarmTotalsTest` covers empty, income-only, expense-only, mixed, negative-balanced, and large-value farms plus exact `Long` overflow. `EditorDateTimeTest` covers Kathmandu, UTC, and New York DST gap/overlap resolution deterministically with explicit zones (host locale/zone independent).
 
-### Instrumentation (`:app:connectedDebugAndroidTest`) — 45 tests per device, 0 failures
+### Instrumentation (`:app:connectedDebugAndroidTest`) — 54 tests per device, 0 failures
 
-45 tests, zero failures, zero unexpected skips, and no crash or ANR on every device:
+54 tests, zero failures, zero unexpected skips, and no crash or ANR on every device:
 
 | Device | ABI | API | Full suite | Result |
 | --- | --- | --- | --- | --- |
-| Pixel 7a (physical, USB) | arm64-v8a | 37 | 45 | pass |
-| Emulator `kisab_api36_x86_64` | x86_64 | 36 | 45 | pass |
-| Emulator `api26` | x86_64 | 26 | 45 | pass |
+| Pixel 7a (physical, USB) | arm64-v8a | 37 | 54 | pass |
+| Emulator `kisab_api36_x86_64` | x86_64 | 36 | 54 | pass |
+| Emulator `api26` | x86_64 | 26 | 54 | pass |
 
-New `FarmActivityWorkflowTest` (13 tests) covers the daily-entry workflow: first income with no currency/ISO input and default-now time; repeated expense derives currency and supplies current time; edit preserves transaction identity; edit without date change preserves the exact instant; recreation preserves the editor draft; cancel and back require discard confirmation; switching to another transaction while dirty confirms; record while dirty confirms; empty-farm NPR default with currency choice and post-save lock; established farm currency lock; sole-transaction currency change; human-readable date/time with picker (no ISO typing); farm-tools expansion/collapse. Existing suites (`FarmActivityPresentationTest`, `FarmPersistenceIntegrationTest`, `FarmBackupIntegrationTest`, `FarmActivityLocalizationSmokeTest`, `LocalizedResourceResolutionTest`, session tests) were migrated to the new views and key set (e.g. `farm_tools_summary_format` with 3 args, `recentTransactionsContainer` rows) and pass unchanged in behavior. No sleeps/retries; dialog interactions are root-scoped (`inRoot(isDialog())`); locales and store state are cleared and restored between tests; every `ActivityScenario` is closed.
+`FarmActivityWorkflowTest` (20 tests) covers the daily-entry workflow: first income with no currency/ISO input and default-now time; repeated expense derives currency and supplies current time; edit preserves transaction identity; edit without date change preserves the exact instant; recreation preserves the editor draft; cancel and back require discard confirmation; switching to another transaction while dirty confirms; record while dirty confirms; empty-farm NPR default with currency choice and post-save lock; established farm currency lock; sole-transaction currency change; human-readable date/time with native picker (no ISO typing); farm-tools expansion/collapse; save label follows the selected transaction type (income/expense); invalid ISO currency keeps the dialog open with an inline error; dirty/clean editor baseline survives activity recreation (discard protection and silent close respectively); farm-tools expansion survives recreation; and currency fraction digits apply per ISO (`JPY` 0, `KWD` 3). The editor date/time is always entered through the real `DatePickerDialog`/`TimePickerDialog` (`PickerTestHelpers.pickDateTime`, device zone, asserted via `expectedInstant`), and the currency chooser through its text-input dialog (`selectCurrency` types the ISO code into `currencyInput` and confirms); the previous test-only `setOccurredAt`/`overrideEditorOccurredAtForTest` seams were removed. Existing suites (`FarmActivityPresentationTest`, `FarmPersistenceIntegrationTest`, `FarmBackupIntegrationTest`, `FarmActivityLocalizationSmokeTest`, `LocalizedResourceResolutionTest`, session tests) were migrated to the new views and key set (e.g. `farm_tools_summary_format` with 3 args, `recentTransactionsContainer` rows) and pass unchanged in behavior. No sleeps/retries; dialog interactions are root-scoped (`inRoot(isDialog())`); locales and store state are cleared and restored between tests; every `ActivityScenario` is closed. One intermittent load-related flake observed on the `api26` emulator (currency selection showing the prior ISO after a full parallel run) was confirmed non-reproducible in isolation and across a full-suite re-run on all three devices.
 
 ## Static analysis
 

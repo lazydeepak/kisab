@@ -98,7 +98,7 @@ class FarmPersistenceIntegrationTest {
         onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
         onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText("8000"), closeSoftKeyboard())
         onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText("Egg sale"), closeSoftKeyboard())
-        setOccurredAt(scenario, "2024-01-02T12:00:00Z")
+        PickerTestHelpers.pickDateTime(2024, 0, 2, 12, 0)
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         scenario.onActivity { activity ->
             activity.findViewById<Button>(R.id.saveTransactionButton).performClick()
@@ -124,8 +124,8 @@ class FarmPersistenceIntegrationTest {
         onView(withId(R.id.farmNameInput)).perform(typeText("Order Farm"), closeSoftKeyboard())
         onView(withId(R.id.createFarmButton)).perform(click())
 
-        addTransaction(scenario, description = "Old transaction", amount = "1000", occurredAt = "2024-01-01T12:00:00Z")
-        addTransaction(scenario, description = "New transaction", amount = "2000", occurredAt = "2024-01-02T12:00:00Z")
+        addTransaction(scenario, description = "Old transaction", amount = "1000", year = 2024, month = 1, day = 1)
+        addTransaction(scenario, description = "New transaction", amount = "2000", year = 2024, month = 1, day = 2)
 
         scenario.recreate()
 
@@ -144,20 +144,18 @@ class FarmPersistenceIntegrationTest {
         scenario: ActivityScenario<FarmActivity>,
         description: String,
         amount: String,
-        occurredAt: String
+        year: Int,
+        month: Int,
+        day: Int
     ) {
         onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
         onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText(amount), closeSoftKeyboard())
         onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
-        setOccurredAt(scenario, occurredAt)
+        PickerTestHelpers.pickDateTime(year, month - 1, day, 12, 0)
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         scenario.onActivity { activity ->
             activity.findViewById<Button>(R.id.saveTransactionButton).performClick()
         }
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-    }
-
-    private fun setOccurredAt(scenario: ActivityScenario<FarmActivity>, iso: String) {
-        scenario.onActivity { activity -> activity.overrideEditorOccurredAtForTest(iso) }
     }
 }

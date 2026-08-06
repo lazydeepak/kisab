@@ -125,4 +125,42 @@ class LocalizedResourceResolutionTest {
             assertNotEquals("English fallback for $key", englishText, nepaliText)
         }
     }
+
+    @Test
+    fun todayTimeFormatResolvesInBothLocales() {
+        val englishToday = english.getString(R.string.today_label)
+        val englishShort = english.getString(
+            R.string.today_time_format,
+            englishToday,
+            "5:45 PM"
+        )
+        assertEquals("$englishToday, 5:45 PM", englishShort)
+
+        val nepaliToday = nepali.getString(R.string.today_label)
+        val nepaliShort = nepali.getString(
+            R.string.today_time_format,
+            nepaliToday,
+            "5:45 PM"
+        )
+        assertNotEquals("English fallback for today_time_format", englishShort, nepaliShort)
+        assertTrue(nepaliShort.contains(nepaliToday))
+        assertTrue(nepaliShort.contains(", "))
+    }
+
+    @Test
+    fun dailyEntryCurrencyStringsResolveInBothLocales() {
+        val keys = listOf(
+            R.string.currency_choice_dialog_title,
+            R.string.currency_iso_hint,
+            R.string.action_ok,
+            R.string.action_cancel
+        )
+        for (key in keys) {
+            val englishText = english.getString(key)
+            val nepaliText = nepali.getString(key)
+            assertTrue("English text blank for $key", englishText.isNotBlank())
+            assertTrue("Nepali text blank for $key", nepaliText.isNotBlank())
+            assertNotEquals("English fallback for $key", englishText, nepaliText)
+        }
+    }
 }

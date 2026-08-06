@@ -52,7 +52,10 @@
     <string name="update_transaction_action">Update transaction</string>
     <string name="cancel_editing_action">Cancel</string>
     <string name="today_label">Today</string>
+    <string name="today_time_format">%1$s, %2$s</string>
     <string name="currency_choice_dialog_title">Choose the farm\'s currency</string>
+    <string name="currency_iso_hint">ISO 4217 code</string>
+    <string name="action_ok">OK</string>
 
     <string name="recent_transactions_section">Recent transactions</string>
     <string name="recent_transaction_accessibility_format">%1$s, %2$s, %3$s</string>
