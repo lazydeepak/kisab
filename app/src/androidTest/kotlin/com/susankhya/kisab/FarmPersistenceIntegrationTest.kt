@@ -105,9 +105,17 @@ class FarmPersistenceIntegrationTest {
 
         scenario.recreate()
 
-        onView(withId(R.id.summaryText)).check(matches(withText(containsString("Entry count: 1"))))
-        onView(withId(R.id.summaryText)).check(matches(withText(containsString("Transaction count: 1"))))
-        onView(withId(R.id.summaryText)).check(matches(withText(containsString("Balance: 8000 USD"))))
+        var entryCount: String? = null
+        var transactionCount: String? = null
+        var balance: String? = null
+        scenario.onActivity { activity ->
+            entryCount = activity.formatCount(1)
+            transactionCount = activity.formatCount(1)
+            balance = activity.formatMoney("USD", 800000L)
+        }
+        onView(withId(R.id.summaryText)).check(matches(withText(containsString("Entry count: $entryCount"))))
+        onView(withId(R.id.summaryText)).check(matches(withText(containsString("Transaction count: $transactionCount"))))
+        onView(withId(R.id.summaryText)).check(matches(withText(containsString("Balance: $balance"))))
     }
 
     @Test
