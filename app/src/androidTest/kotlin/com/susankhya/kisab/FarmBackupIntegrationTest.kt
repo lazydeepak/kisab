@@ -77,11 +77,10 @@ class FarmBackupIntegrationTest {
             var expectedSummary: String? = null
             scenario.onActivity { activity ->
                 expectedSummary = activity.getString(
-                    R.string.farm_summary_format,
-                    "Demo Farm",
-                    activity.formatCount(0),
-                    activity.formatCount(0),
-                    activity.formattedBalance(null, 0L)
+                        R.string.farm_tools_summary_format,
+                        "Demo Farm",
+                        activity.formatCount(0),
+                        activity.formattedBalance(null, 0L)
                 )
             }
             onView(withId(R.id.summaryText)).check(matches(withText(expectedSummary!!)))
@@ -104,9 +103,8 @@ class FarmBackupIntegrationTest {
             var expectedSummary: String? = null
             scenario.onActivity { activity ->
                 expectedSummary = activity.getString(
-                    R.string.farm_summary_format,
+                    R.string.farm_tools_summary_format,
                     "Original Farm",
-                    activity.formatCount(0),
                     activity.formatCount(0),
                     activity.formattedBalance(null, 0L)
                 )
@@ -137,9 +135,8 @@ class FarmBackupIntegrationTest {
             var expectedSummary: String? = null
             scenario.onActivity { activity ->
                 expectedSummary = activity.getString(
-                    R.string.farm_summary_format,
+                    R.string.farm_tools_summary_format,
                     "Original Farm",
-                    activity.formatCount(0),
                     activity.formatCount(0),
                     activity.formattedBalance(null, 0L)
                 )
@@ -176,9 +173,8 @@ class FarmBackupIntegrationTest {
                 var value: String? = null
                 scenario.onActivity { activity ->
                     value = activity.getString(
-                        R.string.farm_summary_format,
+                        R.string.farm_tools_summary_format,
                         "Original Farm",
-                        activity.formatCount(0),
                         activity.formatCount(0),
                         activity.formattedBalance(null, 0L)
                     )
@@ -237,11 +233,10 @@ class FarmBackupIntegrationTest {
             var expectedSummary: String? = null
             scenario.onActivity { activity ->
                 expectedSummary = activity.getString(
-                    R.string.farm_summary_format,
-                    "Restore Farm",
-                    activity.formatCount(0),
-                    activity.formatCount(1),
-                    activity.formattedBalance("USD", -1500L)
+                        R.string.farm_tools_summary_format,
+                        "Restore Farm",
+                        activity.formatCount(0),
+                        activity.formattedBalance("USD", -1500L)
                 )
             }
             onView(withId(R.id.summaryText)).check(matches(withText(expectedSummary!!)))

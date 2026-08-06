@@ -49,4 +49,30 @@ class TimePresentationTest {
         assertTrue("Expected -04:00 offset, was: $editValue", editValue.endsWith("-04:00"))
         assertEquals(stored.toInstant(), OffsetDateTime.parse(editValue).toInstant())
     }
+
+    @Test
+    fun shortTimeUsesDeviceZoneAndLocaleTimeFormat() {
+        val stored = OffsetDateTime.parse("2024-01-01T12:00:00Z")
+        val short = presentation.shortTime(Locale.ENGLISH, kathmandu, stored)
+        assertTrue("Expected 5:45 in short time, was: $short", short.contains("5:45"))
+        assertTrue("Expected PM marker in short time, was: $short", short.contains("PM"))
+    }
+
+    @Test
+    fun isTodayComparesDeviceLocalDates() {
+        val zone = ZoneId.of("Asia/Kathmandu")
+        val stored = OffsetDateTime.parse("2024-01-01T12:00:00Z")
+        val sameLocalDay = OffsetDateTime.parse("2024-01-01T10:00:00Z")
+        val nextLocalDay = OffsetDateTime.parse("2024-01-02T02:00:00Z")
+        assertTrue(presentation.isToday(zone, stored, sameLocalDay))
+        assertFalse(presentation.isToday(zone, stored, nextLocalDay))
+    }
+
+    @Test
+    fun isTodayIsFalseAcrossUtcMidnightBoundary() {
+        val zone = ZoneId.of("UTC")
+        val stored = OffsetDateTime.parse("2024-01-01T23:30:00Z")
+        val nextDay = OffsetDateTime.parse("2024-01-02T00:10:00Z")
+        assertFalse(presentation.isToday(zone, stored, nextDay))
+    }
 }

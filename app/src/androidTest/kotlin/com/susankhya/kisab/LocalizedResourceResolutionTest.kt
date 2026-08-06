@@ -30,14 +30,15 @@ class LocalizedResourceResolutionTest {
     fun englishResolvesRepresentativeUiText() {
         assertEquals("Entries", english.getString(R.string.entries_section))
         assertEquals("Create farm", english.getString(R.string.create_farm_action))
+        assertEquals("Record income", english.getString(R.string.record_income_action))
         assertEquals("Farm name is required", english.getString(R.string.error_farm_name_required))
         assertEquals("Invalid or unsupported backup", english.getString(R.string.error_backup_invalid_or_unsupported))
     }
 
     @Test
     fun formattedSummaryResolvesInEnglish() {
-        val summary = english.getString(R.string.farm_summary_format, "Demo Farm", "1", "2", "USD 30.00")
-        assertEquals("Farm: Demo Farm\nEntry count: 1\nTransaction count: 2\nBalance: USD 30.00", summary)
+        val summary = english.getString(R.string.farm_tools_summary_format, "Demo Farm", "1", "USD 30.00")
+        assertEquals("Farm: Demo Farm\nEntry count: 1\nBalance: USD 30.00", summary)
     }
 
     @Test
@@ -51,6 +52,7 @@ class LocalizedResourceResolutionTest {
     fun nepaliResolvesRepresentativeUiTextWithoutEnglishFallback() {
         assertNotEquals(english.getString(R.string.entries_section), nepali.getString(R.string.entries_section))
         assertNotEquals(english.getString(R.string.create_farm_action), nepali.getString(R.string.create_farm_action))
+        assertNotEquals(english.getString(R.string.record_income_action), nepali.getString(R.string.record_income_action))
         assertNotEquals(english.getString(R.string.error_farm_name_required), nepali.getString(R.string.error_farm_name_required))
         assertNotEquals(
             english.getString(R.string.error_backup_invalid_or_unsupported),
@@ -60,8 +62,8 @@ class LocalizedResourceResolutionTest {
 
     @Test
     fun formattedSummaryResolvesInNepaliWithoutEnglishFallback() {
-        val englishSummary = english.getString(R.string.farm_summary_format, "Demo Farm", "1", "2", "USD 30.00")
-        val nepaliSummary = nepali.getString(R.string.farm_summary_format, "Demo Farm", "1", "2", "USD 30.00")
+        val englishSummary = english.getString(R.string.farm_tools_summary_format, "Demo Farm", "1", "USD 30.00")
+        val nepaliSummary = nepali.getString(R.string.farm_tools_summary_format, "Demo Farm", "1", "USD 30.00")
         assertTrue(nepaliSummary.isNotBlank())
         assertNotEquals(englishSummary, nepaliSummary)
         assertTrue(nepaliSummary.contains("Demo Farm"))
@@ -107,8 +109,8 @@ class LocalizedResourceResolutionTest {
     fun validationAndBackupMessagesResolveInBothLocales() {
         val validationKeys = listOf(
             R.string.error_farm_name_required,
-            R.string.error_transaction_date_time_invalid,
-            R.string.error_transaction_selection_required,
+            R.string.error_currency_iso_three_letters,
+            R.string.error_transaction_currency_mismatch,
             R.string.error_unexpected
         )
         val backupKeys = listOf(
