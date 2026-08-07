@@ -30,14 +30,15 @@ class LocalizedResourceResolutionTest {
     fun englishResolvesRepresentativeUiText() {
         assertEquals("Entries", english.getString(R.string.entries_section))
         assertEquals("Create farm", english.getString(R.string.create_farm_action))
+        assertEquals("Record income", english.getString(R.string.record_income_action))
         assertEquals("Farm name is required", english.getString(R.string.error_farm_name_required))
         assertEquals("Invalid or unsupported backup", english.getString(R.string.error_backup_invalid_or_unsupported))
     }
 
     @Test
     fun formattedSummaryResolvesInEnglish() {
-        val summary = english.getString(R.string.farm_summary_format, "Demo Farm", "1", "2", "USD 30.00")
-        assertEquals("Farm: Demo Farm\nEntry count: 1\nTransaction count: 2\nBalance: USD 30.00", summary)
+        val summary = english.getString(R.string.farm_tools_summary_format, "Demo Farm", "1", "USD 30.00")
+        assertEquals("Farm: Demo Farm\nEntry count: 1\nBalance: USD 30.00", summary)
     }
 
     @Test
@@ -51,6 +52,7 @@ class LocalizedResourceResolutionTest {
     fun nepaliResolvesRepresentativeUiTextWithoutEnglishFallback() {
         assertNotEquals(english.getString(R.string.entries_section), nepali.getString(R.string.entries_section))
         assertNotEquals(english.getString(R.string.create_farm_action), nepali.getString(R.string.create_farm_action))
+        assertNotEquals(english.getString(R.string.record_income_action), nepali.getString(R.string.record_income_action))
         assertNotEquals(english.getString(R.string.error_farm_name_required), nepali.getString(R.string.error_farm_name_required))
         assertNotEquals(
             english.getString(R.string.error_backup_invalid_or_unsupported),
@@ -60,8 +62,8 @@ class LocalizedResourceResolutionTest {
 
     @Test
     fun formattedSummaryResolvesInNepaliWithoutEnglishFallback() {
-        val englishSummary = english.getString(R.string.farm_summary_format, "Demo Farm", "1", "2", "USD 30.00")
-        val nepaliSummary = nepali.getString(R.string.farm_summary_format, "Demo Farm", "1", "2", "USD 30.00")
+        val englishSummary = english.getString(R.string.farm_tools_summary_format, "Demo Farm", "1", "USD 30.00")
+        val nepaliSummary = nepali.getString(R.string.farm_tools_summary_format, "Demo Farm", "1", "USD 30.00")
         assertTrue(nepaliSummary.isNotBlank())
         assertNotEquals(englishSummary, nepaliSummary)
         assertTrue(nepaliSummary.contains("Demo Farm"))
@@ -107,8 +109,8 @@ class LocalizedResourceResolutionTest {
     fun validationAndBackupMessagesResolveInBothLocales() {
         val validationKeys = listOf(
             R.string.error_farm_name_required,
-            R.string.error_transaction_date_time_invalid,
-            R.string.error_transaction_selection_required,
+            R.string.error_currency_iso_three_letters,
+            R.string.error_transaction_currency_mismatch,
             R.string.error_unexpected
         )
         val backupKeys = listOf(
@@ -116,6 +118,44 @@ class LocalizedResourceResolutionTest {
             R.string.error_backup_too_large_or_unreadable
         )
         for (key in validationKeys + backupKeys) {
+            val englishText = english.getString(key)
+            val nepaliText = nepali.getString(key)
+            assertTrue("English text blank for $key", englishText.isNotBlank())
+            assertTrue("Nepali text blank for $key", nepaliText.isNotBlank())
+            assertNotEquals("English fallback for $key", englishText, nepaliText)
+        }
+    }
+
+    @Test
+    fun todayTimeFormatResolvesInBothLocales() {
+        val englishToday = english.getString(R.string.today_label)
+        val englishShort = english.getString(
+            R.string.today_time_format,
+            englishToday,
+            "5:45 PM"
+        )
+        assertEquals("$englishToday, 5:45 PM", englishShort)
+
+        val nepaliToday = nepali.getString(R.string.today_label)
+        val nepaliShort = nepali.getString(
+            R.string.today_time_format,
+            nepaliToday,
+            "5:45 PM"
+        )
+        assertNotEquals("English fallback for today_time_format", englishShort, nepaliShort)
+        assertTrue(nepaliShort.contains(nepaliToday))
+        assertTrue(nepaliShort.contains(", "))
+    }
+
+    @Test
+    fun dailyEntryCurrencyStringsResolveInBothLocales() {
+        val keys = listOf(
+            R.string.currency_choice_dialog_title,
+            R.string.currency_iso_hint,
+            R.string.action_ok,
+            R.string.action_cancel
+        )
+        for (key in keys) {
             val englishText = english.getString(key)
             val nepaliText = nepali.getString(key)
             assertTrue("English text blank for $key", englishText.isNotBlank())

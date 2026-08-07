@@ -2,8 +2,11 @@ package com.susankhya.kisab
 
 import android.content.Context
 import android.os.Build
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -17,8 +20,9 @@ import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
-import androidx.test.espresso.matcher.RootMatchers.isPlatformPopup
+import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -30,11 +34,15 @@ import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.FarmActivity
 import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.Locale
+import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.CoreMatchers.not
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -42,10 +50,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * On-device verification of M4-02 presentation rules: major-unit money entry
- * and prefill, NPR defaults, currency preservation with mixed-currency
- * rejection, localized amount validation, device-local time rendering, and
- * backup round trips under the new presentation.
+ * On-device verification of the M4-02 presentation rules under the M4-03
+ * daily-entry flow: major-unit money entry and prefill, NPR defaults, currency
+ * derivation and locking, localized amount validation, device-local time
+ * rendering, and backup round trips.
  */
 @RunWith(AndroidJUnit4::class)
 class FarmActivityPresentationTest {
@@ -69,17 +77,18 @@ class FarmActivityPresentationTest {
     fun majorUnitAmountEntryAndPrefillRoundTrip() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.farmNameInput)).perform(typeText("NPR Farm"), closeSoftKeyboard())
-            onView(withId(R.id.createFarmButton)).perform(click())
+            createFarm("NPR Farm")
 
-            fillForm(description = "Feed", amount = "123.45", currency = "NPR")
+            openExpenseEditor()
+            setOccurredAt(2024, 1, 1, 17, 45)
+            fillEditor(description = "Feed", amount = "123.45")
             clickSave(scenario)
 
             var balance: String? = null
             scenario.onActivity { activity -> balance = activity.formatMoney("NPR", 12345) }
-            onView(withId(R.id.summaryText)).check(matches(withText(containsString("Balance: $balance"))))
+            onView(withId(R.id.balanceText)).check(matches(withText(containsString(balance))))
 
-            selectTransaction("Feed")
+            openEditorForTransaction("Feed")
             var expectedEdit: String? = null
             scenario.onActivity { activity -> expectedEdit = activity.editFieldAmount("NPR", 12345) }
             onView(withId(R.id.transactionAmountInput)).check(matches(withText(expectedEdit!!)))
@@ -92,7 +101,7 @@ class FarmActivityPresentationTest {
                 assertEquals(1, farm.transactions.size)
                 assertEquals(12345, farm.transactions.single().amountMinor)
                 assertEquals("NPR", farm.transactions.single().currency)
-                assertEquals("2024-01-01T12:00:00Z", farm.transactions.single().occurredAt.toInstant().toString())
+                assertEquals(expectedInstant(2024, 1, 1, 17, 45), farm.transactions.single().occurredAt.toInstant().toString())
             }
         } finally {
             scenario.close()
@@ -104,47 +113,51 @@ class FarmActivityPresentationTest {
         setAppLocale(Locale("ne"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.farmNameInput)).perform(typeText("NPR Farm"), closeSoftKeyboard())
-            onView(withId(R.id.createFarmButton)).perform(click())
+            createFarm("NPR Farm")
 
-            onView(withId(R.id.transactionCurrencyInput)).check(matches(withText("NPR")))
+            openExpenseEditor()
+            onView(withId(R.id.transactionCurrencyText)).check(matches(withText("NPR")))
 
-            fillForm(description = "Feed", amount = "१२३.४५", currency = "NPR")
+            setOccurredAt(2024, 1, 1, 17, 45)
+            fillEditor(description = "Feed", amount = "१२३.४५")
             clickSave(scenario)
 
             var balance: String? = null
             scenario.onActivity { activity -> balance = activity.formatMoney("NPR", 12345) }
             assertTrue("Expected Nepali digits in balance, was: $balance", balance!!.contains("१२३.४५"))
-            onView(withId(R.id.summaryText)).check(matches(withText(containsString(balance!!))))
+            onView(withId(R.id.balanceText)).check(matches(withText(containsString(balance!!))))
         } finally {
             scenario.close()
         }
     }
 
     @Test
-    fun usdFarmPrefillsUsdAndRejectsMixedCurrency() {
+    fun usdFarmDerivesCurrencyAndDoesNotExposeFreeCurrencyEditing() {
         seedTransaction(amountMinor = 1500, currency = "USD", description = "Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.transactionCurrencyInput)).check(matches(withText("USD")))
+            openExpenseEditor()
+            onView(withId(R.id.transactionCurrencyText)).check(matches(withText("USD")))
+            onView(withId(R.id.changeCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            scenario.onActivity { activity ->
+                val view = activity.findViewById<View>(R.id.transactionCurrencyText)
+                assertFalse("Currency must not be a free-text field", view is EditText)
+            }
 
             var money: String? = null
             scenario.onActivity { activity -> money = activity.formatMoney("USD", 1500) }
-            onView(withId(R.id.transactionsText)).check(matches(withText(containsString(money!!))))
+            assertTrue("Expected USD amount in recent row", recentRowText(scenario).contains(money!!))
 
-            fillForm(description = "Feed", amount = "10.00", currency = "EUR")
+            setOccurredAt(2024, 1, 1, 17, 45)
+            fillEditor(description = "More feed", amount = "10.00")
             clickSave(scenario)
-
-            var expectedError: String? = null
-            scenario.onActivity { activity -> expectedError = activity.getString(R.string.error_transaction_currency_mismatch, "USD") }
-            onView(withId(R.id.validationMessageText)).check(matches(withText(expectedError!!)))
 
             scenario.onActivity { activity ->
                 val store = SharedPreferencesFarmStore(activity.applicationContext)
                 val service = FarmSliceService(store)
                 val farm = service.loadFarm(service.currentFarmId()!!)!!
-                assertEquals(1, farm.transactions.size)
-                assertEquals("USD", farm.transactions.single().currency)
+                assertEquals(2, farm.transactions.size)
+                assertTrue(farm.transactions.all { it.currency == "USD" })
             }
         } finally {
             scenario.close()
@@ -155,14 +168,13 @@ class FarmActivityPresentationTest {
     fun amountValidationShowsLocalizedErrors() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.farmNameInput)).perform(typeText("Demo Farm"), closeSoftKeyboard())
-            onView(withId(R.id.createFarmButton)).perform(click())
+            createFarm("Demo Farm")
+            openExpenseEditor()
+            setOccurredAt(2024, 1, 1, 17, 45)
 
             fun fillAmountAndSave(amount: String) {
                 onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText("Feed"), closeSoftKeyboard())
                 onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText(amount), closeSoftKeyboard())
-                onView(withId(R.id.transactionOccurredAtInput))
-                    .perform(scrollTo(), replaceText("2024-01-01T17:45:00+05:45"), closeSoftKeyboard())
                 clickSave(scenario)
             }
 
@@ -199,13 +211,11 @@ class FarmActivityPresentationTest {
         seedTransaction(amountMinor = 1500, currency = "USD", description = "Feed", occurredAt = "2024-01-01T12:00:00Z")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            selectTransaction("Feed")
+            openEditorForTransaction("Feed")
             var editTime: String? = null
-            scenario.onActivity { activity ->
-                editTime = activity.findViewById<EditText>(R.id.transactionOccurredAtInput).text.toString()
-            }
+            scenario.onActivity { activity -> editTime = activity.editorOccurredAtIsoForTest() }
             assertEquals("2024-01-01T12:00:00Z", OffsetDateTime.parse(editTime!!).toInstant().toString())
-            onView(withId(R.id.transactionsText)).check(matches(withText(not(containsString("UTC")))))
+            assertFalse("UTC literal leaked into recent row", recentRowText(scenario).contains("UTC"))
         } finally {
             scenario.close()
         }
@@ -230,18 +240,47 @@ class FarmActivityPresentationTest {
 
             var balance: String? = null
             scenario.onActivity { activity -> balance = activity.formatMoney("NPR", 12345) }
-            onView(withId(R.id.summaryText)).check(matches(withText(containsString("Balance: $balance"))))
+            onView(withId(R.id.balanceText)).check(matches(withText(containsString(balance))))
         } finally {
             scenario.close()
         }
     }
 
-    private fun fillForm(description: String, amount: String, currency: String) {
-        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
+    private fun createFarm(name: String) {
+        onView(withId(R.id.farmNameInput)).perform(typeText(name), closeSoftKeyboard())
+        onView(withId(R.id.createFarmButton)).perform(click())
+    }
+
+    private fun openExpenseEditor() {
+        onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+    }
+
+    private fun fillEditor(description: String, amount: String) {
         onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText(amount), closeSoftKeyboard())
-        onView(withId(R.id.transactionCurrencyInput)).perform(scrollTo(), replaceText(currency), closeSoftKeyboard())
-        onView(withId(R.id.transactionOccurredAtInput))
-            .perform(scrollTo(), replaceText("2024-01-01T17:45:00+05:45"), closeSoftKeyboard())
+        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
+    }
+
+    private fun setOccurredAt(year: Int, month: Int, day: Int, hour: Int, minute: Int) {
+        PickerTestHelpers.pickDateTime(year, month - 1, day, hour, minute)
+    }
+
+    private fun expectedInstant(year: Int, month: Int, day: Int, hour: Int, minute: Int): String =
+        ZonedDateTime.of(year, month, day, hour, minute, 0, 0, ZoneId.systemDefault())
+            .toInstant()
+            .toString()
+
+    private fun openEditorForTransaction(description: String) {
+        onView(allOf(withId(R.id.recentTransactionRow), withText(containsString(description))))
+            .perform(scrollTo(), click())
+    }
+
+    private fun recentRowText(scenario: ActivityScenario<FarmActivity>): String {
+        var text = ""
+        scenario.onActivity { activity ->
+            val container = activity.findViewById<LinearLayout>(R.id.recentTransactionsContainer)
+            text = (container.getChildAt(0) as TextView).text.toString()
+        }
+        return text
     }
 
     private fun clickSave(scenario: ActivityScenario<FarmActivity>) {
@@ -250,14 +289,6 @@ class FarmActivityPresentationTest {
             activity.findViewById<Button>(R.id.saveTransactionButton).performClick()
         }
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-    }
-
-    private fun selectTransaction(description: String) {
-        onView(withId(R.id.transactionSelectionSpinner)).perform(click())
-        onView(withText(containsString(description)))
-            .inRoot(isPlatformPopup())
-            .check(matches(isDisplayed()))
-            .perform(click())
     }
 
     private fun clickDialogAction(@StringRes labelRes: Int) {

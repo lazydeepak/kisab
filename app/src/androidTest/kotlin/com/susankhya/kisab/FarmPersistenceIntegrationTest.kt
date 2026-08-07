@@ -2,6 +2,7 @@ package com.susankhya.kisab
 
 import android.content.Context
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -87,16 +88,17 @@ class FarmPersistenceIntegrationTest {
 
         onView(withId(R.id.farmNameInput)).perform(typeText("Demo Farm"), closeSoftKeyboard())
         onView(withId(R.id.createFarmButton)).perform(click())
-        onView(withId(R.id.summaryText)).check(matches(withText(containsString("Demo Farm"))))
+        onView(withId(R.id.farmNameText)).check(matches(withText("Demo Farm")))
 
+        onView(withId(R.id.farmToolsToggleButton)).perform(scrollTo(), click())
         onView(withId(R.id.entryLabelInput)).perform(typeText("Goat"), closeSoftKeyboard())
         onView(withId(R.id.entryQuantityInput)).perform(typeText("3"), closeSoftKeyboard())
-        onView(withId(R.id.addEntryButton)).perform(click())
+        onView(withId(R.id.addEntryButton)).perform(scrollTo(), click())
 
-        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText("Egg sale"), closeSoftKeyboard())
+        onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
         onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText("8000"), closeSoftKeyboard())
-        onView(withId(R.id.transactionCurrencyInput)).perform(scrollTo(), replaceText("USD"), closeSoftKeyboard())
-        onView(withId(R.id.transactionOccurredAtInput)).perform(scrollTo(), replaceText("2024-01-02T12:00:00Z"), closeSoftKeyboard())
+        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText("Egg sale"), closeSoftKeyboard())
+        PickerTestHelpers.pickDateTime(2024, 0, 2, 12, 0)
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         scenario.onActivity { activity ->
             activity.findViewById<Button>(R.id.saveTransactionButton).performClick()
@@ -106,15 +108,12 @@ class FarmPersistenceIntegrationTest {
         scenario.recreate()
 
         var entryCount: String? = null
-        var transactionCount: String? = null
         var balance: String? = null
         scenario.onActivity { activity ->
             entryCount = activity.formatCount(1)
-            transactionCount = activity.formatCount(1)
-            balance = activity.formatMoney("USD", 800000L)
+            balance = activity.formatMoney("NPR", 800000L)
         }
         onView(withId(R.id.summaryText)).check(matches(withText(containsString("Entry count: $entryCount"))))
-        onView(withId(R.id.summaryText)).check(matches(withText(containsString("Transaction count: $transactionCount"))))
         onView(withId(R.id.summaryText)).check(matches(withText(containsString("Balance: $balance"))))
     }
 
@@ -125,16 +124,18 @@ class FarmPersistenceIntegrationTest {
         onView(withId(R.id.farmNameInput)).perform(typeText("Order Farm"), closeSoftKeyboard())
         onView(withId(R.id.createFarmButton)).perform(click())
 
-        addTransaction(scenario, description = "Old transaction", amount = "1000", occurredAt = "2024-01-01T12:00:00Z")
-        addTransaction(scenario, description = "New transaction", amount = "2000", occurredAt = "2024-01-02T12:00:00Z")
+        addTransaction(scenario, description = "Old transaction", amount = "1000", year = 2024, month = 1, day = 1)
+        addTransaction(scenario, description = "New transaction", amount = "2000", year = 2024, month = 1, day = 2)
 
         scenario.recreate()
 
         scenario.onActivity { activity ->
-            val history = activity.findViewById<TextView>(R.id.transactionsText).text.toString()
+            val container = activity.findViewById<LinearLayout>(R.id.recentTransactionsContainer)
+            val first = container.getChildAt(0) as TextView
+            val second = container.getChildAt(1) as TextView
             assertTrue(
-                "Expected newest transaction first in history, but was:\n$history",
-                history.indexOf("New transaction") < history.indexOf("Old transaction")
+                "Expected newest transaction first, but was:\n${first.text}\n---\n${second.text}",
+                first.text.contains("New transaction") && second.text.contains("Old transaction")
             )
         }
     }
@@ -143,12 +144,14 @@ class FarmPersistenceIntegrationTest {
         scenario: ActivityScenario<FarmActivity>,
         description: String,
         amount: String,
-        occurredAt: String
+        year: Int,
+        month: Int,
+        day: Int
     ) {
-        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
+        onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
         onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText(amount), closeSoftKeyboard())
-        onView(withId(R.id.transactionCurrencyInput)).perform(scrollTo(), replaceText("USD"), closeSoftKeyboard())
-        onView(withId(R.id.transactionOccurredAtInput)).perform(scrollTo(), replaceText(occurredAt), closeSoftKeyboard())
+        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
+        PickerTestHelpers.pickDateTime(year, month - 1, day, 12, 0)
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         scenario.onActivity { activity ->
             activity.findViewById<Button>(R.id.saveTransactionButton).performClick()

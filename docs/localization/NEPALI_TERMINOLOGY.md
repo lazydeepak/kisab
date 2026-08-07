@@ -62,6 +62,17 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Local time | Local time | स्थानीय समय (sthaaniya samay) | देशको समय | Device-timezone wall-clock time for timestamps | Provisional |  | Pending |
 | Decimal | Decimal | दशमलव (dashamalav) | दशांश | Fractional digits after the decimal separator | Provisional |  | Pending |
 | Positive | Positive | धनात्मक (dhanatmak) | धन | Greater than zero | Provisional |  | Pending |
+| Record | Record income / expense | अभिलेख गर्नुहोस् (abhiiekh garnuhos) | टिप्नुहोस् | Quick action that opens the transaction editor for income/expense | Provisional |  | Pending |
+| Overview | Overview | अवलोकन (awalokan) | सारांश | Balance/income/expense summary at the top of the main screen | Provisional |  | Pending |
+| Recent | Recent | हालैका (halaiika) | पछिल्ला | Recent transactions list (newest first) | Provisional |  | Pending |
+| Farm tools | Farm tools | फार्म उपकरणहरू (farm upakaranharu) | — | Collapsed section with farm summary, entries, and backup | Provisional |  | Pending |
+| Show | Show | देखाउनुहोस् (dekhaunuhos) | खोल्नुहोस् | Expand a collapsed section | Provisional |  | Pending |
+| Hide | Hide | लुकाउनुहोस् (lukauunuhos) | बन्द गर्नुहोस् | Collapse an expanded section | Provisional |  | Pending |
+| Discard | Discard | त्याग्नुहोस् (tyagnuhos) | छोड्नुहोस् | Abandon unsaved transaction changes | Provisional |  | Pending |
+| Keep editing | Keep editing | सम्पादन जारी राख्नुहोस् (sampadan jari rakhunuhos) | — | Continue editing instead of discarding | Provisional |  | Pending |
+| Today | Today | आज (aaj) | — | The current day, shown for a default timestamp | Provisional |  | Pending |
+| New transaction | New transaction | नयाँ लेनदेन (naya lenaden) | — | Editor title when creating a transaction | Provisional |  | Pending |
+| Change | Change | परिवर्तन गर्नुहोस् (parivartan garnuhos) | बदल्नुहोस् | Modify the date/time or currency in the editor | Provisional |  | Pending |
 
 ## Rules
 

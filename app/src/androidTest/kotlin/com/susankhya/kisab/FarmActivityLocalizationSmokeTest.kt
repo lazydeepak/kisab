@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -133,7 +134,10 @@ class FarmActivityLocalizationSmokeTest {
         onView(withId(R.id.exportBackupButton)).check(matches(withText(R.string.export_backup_action)))
         onView(withId(R.id.importBackupButton)).check(matches(withText(R.string.import_backup_action)))
         onView(withId(R.id.entriesText)).check(matches(withText(containsString("Goat"))))
-        onView(withId(R.id.transactionsText)).check(matches(withText(containsString("Feed"))))
+        scenario.onActivity { activity ->
+            val row = activity.findViewById<LinearLayout>(R.id.recentTransactionsContainer).getChildAt(0) as TextView
+            assertTrue("Expected seeded transaction in recent rows", row.text.contains("Feed"))
+        }
         scenario.close()
     }
 
