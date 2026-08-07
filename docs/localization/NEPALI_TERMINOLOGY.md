@@ -18,7 +18,7 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Transaction | Transaction | लेनदेन (lenaden) | कारोबार (karobar) | A recorded income or expense event | Provisional |  | Pending |
 | Income | Income | आम्दानी (aamdani) | आय (aaya) | Money received | Provisional |  | Pending |
 | Expense | Expense | खर्च (kharcha) | खर्च रकम | Money spent | Provisional |  | Pending |
-| Balance | Balance | बाँकी रकम (baki rakam) | मौजुदात रकम | Current remaining total | Provisional |  | Pending |
+| Balance | Balance | बाँकी रकम (baki rakam) | मौजुदात रकम | Current remaining total | Provisional | Rendered correctly in Nepali digits (`बाँकी रकम: १,२५०.५०`); no ambiguity observed in facilitator scenario (M4-04-01) | Pending |
 | Amount | Amount | रकम (rakam) | राशि | Numeric money value | Provisional |  | Pending |
 | Category | Category | श्रेणी (shreni) | वर्ग | Transaction category constrained by type | Provisional |  | Pending |
 | Date | Date | मिति (miti) | तारिख | Calendar date | Provisional |  | Pending |
@@ -26,9 +26,9 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Note | Note | टिप्पणी (tippani) | नोट | Optional free-text note on a transaction | Provisional |  | Pending |
 | Add | Add | थप्नुहोस् (thapnuhos) | थप गर्नुहोस् | Create a new entry | Provisional |  | Pending |
 | Edit | Edit | सम्पादन गर्नुहोस् (sampadan garnuhos) | सुधार गर्नुहोस् | Modify an existing entry | Provisional |  | Pending |
-| Delete | Delete | मेटाउनुहोस् (mataunuhos) | हटाउनुहोस् | Remove an entry (destructive) | Provisional |  | Pending |
+| Delete | Delete | मेटाउनुहोस् (mataunuhos) | हटाउनुहोस् | Remove an entry (destructive) | Provisional | Rendered in Nepali in delete-confirmation flow (M4-04-01) | Pending |
 | Confirm | Confirm | पुष्टि गर्नुहोस् (pushti garnuhos) | निश्चित गर्नुहोस् | Accept a destructive or final action | Provisional |  | Pending |
-| Cancel | Cancel | रद्द गर्नुहोस् (radd garnuhos) | छोड्नुहोस् | Abandon an action | Provisional |  | Pending |
+| Cancel | Cancel | रद्द गर्नुहोस् (radd garnuhos) | छोड्नुहोस् | Abandon an action | Provisional | Rendered in Nepali in delete-confirmation flow (M4-04-01) | Pending |
 | Backup | Backup | ब्याकअप (byakap) | जगेडा प्रति (jageda prati) | Exported farm file for safekeeping | Provisional |  | Pending |
 | Export | Export | निर्यात (niryat) | बाहिर पठाउनुहोस् | Save a backup file | Provisional |  | Pending |
 | Import | Import | आयात (aayat) | भित्र ल्याउनुहोस् | Load a backup file | Provisional |  | Pending |
@@ -46,13 +46,13 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Update | Update | अद्यावधिक गर्नुहोस् (adyabadhik garnuhos) | — | Save changes to an existing transaction | Provisional |  | Pending |
 | Replace | Replace | प्रतिस्थापन गर्नुहोस् (pratisthapan garnuhos) | ओभरराइट | Replace current farm from a backup (destructive) | Provisional |  | Pending |
 | Select | Select | चयन गर्नुहोस् (chayan garnuhos) | छान्नुहोस् | Choose an item from a list | Provisional |  | Pending |
-| Sales | Sales | बिक्री (bikri) | — | Income transaction category | Provisional |  | Pending |
+| Sales | Sales | बिक्री (bikri) | — | Income transaction category | Provisional | Rendered in Nepali; used for milk and vegetable sales in facilitator scenarios (M4-04-01/02) | Pending |
 | Services | Services | सेवा (sewa) | — | Income transaction category | Provisional |  | Pending |
 | Other income | Other income | अन्य आम्दानी (anya aamdani) | — | Catch-all income category | Provisional |  | Pending |
-| Feed | Feed | दाना (dana) | चारा | Expense transaction category (animal fodder) | Provisional |  | Pending |
-| Supplies | Supplies | सामग्री (samagri) | — | Expense transaction category | Provisional |  | Pending |
-| Labor | Labor | श्रम (shram) | ज्याला | Expense transaction category | Provisional |  | Pending |
-| Other expense | Other expense | अन्य खर्च (anya kharcha) | — | Catch-all expense category | Provisional |  | Pending |
+| Feed | Feed | दाना (dana) | चारा | Expense transaction category (animal fodder) | Provisional | Rendered in Nepali; used for feed expense (M4-04-01) | Pending |
+| Supplies | Supplies | सामग्री (samagri) | — | Expense transaction category | Provisional | Rendered in Nepali; used for seeds/fertilizer (M4-04-02) | Pending |
+| Labor | Labor | श्रम (shram) | ज्याला | Expense transaction category | Provisional | Rendered in Nepali; used for worker payment (M4-04-01) | Pending |
+| Other expense | Other expense | अन्य खर्च (anya kharcha) | — | Catch-all expense category | Provisional | Rendered in Nepali; used for transport in Scenario B because no transport category exists (M4-04-D001) | Pending |
 | Count | Count | सङ्ख्या (sankhya) | गणना | Number of entries or transactions | Provisional |  | Pending |
 | None yet | None yet | कुनै ... छैन (kunai ... chaina) | खाली | No entries/transactions recorded yet | Provisional |  | Pending |
 | Required | Required | आवश्यक छ (awashyak cha) | चाहिन्छ | A field must be provided | Provisional |  | Pending |
