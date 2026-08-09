@@ -32,6 +32,7 @@
     <string name="transaction_category_feed">दाना</string>
     <string name="transaction_category_supplies">सामग्री</string>
     <string name="transaction_category_labor">श्रम</string>
+    <string name="transaction_category_transport">यातायात</string>
     <string name="transaction_category_other_expense">अन्य खर्च</string>
 
     <string name="empty_entries">अहिलेसम्म कुनै प्रविष्टि छैन</string>

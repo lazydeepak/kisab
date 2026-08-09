@@ -33,6 +33,7 @@
     <string name="transaction_category_feed">Feed</string>
     <string name="transaction_category_supplies">Supplies</string>
     <string name="transaction_category_labor">Labor</string>
+    <string name="transaction_category_transport">Transport</string>
     <string name="transaction_category_other_expense">Other expense</string>
 
     <string name="empty_entries">No entries yet</string>

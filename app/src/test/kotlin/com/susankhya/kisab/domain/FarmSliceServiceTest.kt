@@ -745,6 +745,60 @@ class FarmSliceServiceTest {
     }
 
     @Test
+    fun transportExpenseTransactionRoundTripsThroughPersistenceAndBackup() {
+        val farm = service.createFarm("Transport Farm")
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.TRANSPORT,
+                amountMinor = 15000,
+                currency = "NPR",
+                description = "Van hire to market",
+                occurredAt = "2026-08-09T05:00:00Z"
+            )
+        )
+
+        val loaded = service.loadFarm(farm.id)!!
+        assertEquals(1, loaded.transactions.size)
+        val transaction = loaded.transactions.first()
+        assertEquals(TransactionType.EXPENSE, transaction.type)
+        assertEquals(TransactionCategory.TRANSPORT, transaction.category)
+
+        val persisted = FarmPersistenceCodec.decode(FarmPersistenceCodec.encode(loaded))
+        assertEquals(TransactionCategory.TRANSPORT, persisted.transactions.first().category)
+
+        val envelope = FarmBackupCodec.decode(FarmBackupCodec.encode(persisted))
+        assertEquals(TransactionCategory.TRANSPORT, envelope.farm.transactions.first().category)
+        assertEquals(15000L, envelope.farm.transactions.first().amountMinor)
+    }
+
+    @Test
+    fun transportCategoryIsExpenseOnlyAndRejectedWhenTypeMismatches() {
+        assertEquals(TransactionType.EXPENSE, TransactionCategory.TRANSPORT.type)
+
+        val farm = FarmState(
+            id = "farm-transport-mismatch",
+            name = "Transport Farm",
+            entries = mutableListOf(),
+            transactions = mutableListOf(
+                FarmTransaction(
+                    id = "tx-1",
+                    type = TransactionType.INCOME,
+                    category = TransactionCategory.TRANSPORT,
+                    amountMinor = 1000,
+                    currency = "USD",
+                    description = "Mismatch",
+                    occurredAt = OffsetDateTime.parse("2024-01-01T12:00:00Z")
+                )
+            )
+        )
+
+        val encoded = FarmBackupCodec.encode(farm)
+        assertNull(FarmBackupCodec.decodeOrNull(encoded))
+    }
+
+    @Test
     fun backupExportNormalizesToUtc() {
         val farm = service.createFarm("Demo Farm")
         val exportedAt = OffsetDateTime.of(2024, 6, 1, 12, 0, 0, 0, ZoneOffset.ofHours(5))

@@ -159,6 +159,7 @@ enum class TransactionCategory(val type: TransactionType) {
     FEED(TransactionType.EXPENSE),
     SUPPLIES(TransactionType.EXPENSE),
     LABOR(TransactionType.EXPENSE),
+    TRANSPORT(TransactionType.EXPENSE),
     OTHER_EXPENSE(TransactionType.EXPENSE)
 }
 

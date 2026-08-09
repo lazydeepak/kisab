@@ -22,6 +22,7 @@ import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withClassName
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
+import androidx.test.espresso.matcher.ViewMatchers.isChecked
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -31,6 +32,7 @@ import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.FarmActivity
+import com.susankhya.kisab.ui.FarmOrdering
 import java.time.Duration
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -76,6 +78,39 @@ class FarmActivityWorkflowTest {
         val occurredAt: String = "2024-01-01T12:00:00Z",
         val income: Boolean = false
     )
+
+    @Test
+    fun transportExpenseCategorySelectableAndPersisted() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            createFarm("Transport Farm")
+            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            onView(withId(R.id.transactionTypeExpenseRadio)).check(matches(isChecked()))
+
+            scenario.onActivity { activity ->
+                val spinner = activity.findViewById<android.widget.Spinner>(R.id.transactionCategorySpinner)
+                val labels: List<String> = (0 until spinner.count).map { spinner.getItemAtPosition(it) as String }
+                assertTrue("Transport must be offered for an expense", labels.contains(activity.getString(R.string.transaction_category_transport)))
+                spinner.setSelection(labels.indexOf(activity.getString(R.string.transaction_category_transport)))
+                assertEquals(TransactionCategory.TRANSPORT, FarmOrdering.categoriesFor(TransactionType.EXPENSE)[spinner.selectedItemPosition])
+            }
+
+            fillEditor(description = "Van hire", amount = "1500.00")
+            onView(withId(R.id.saveTransactionButton)).perform(scrollTo(), click())
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            scenario.onActivity { activity ->
+                val farm = farmFor(activity)
+                assertEquals(1, farm.transactions.size)
+                val transaction = farm.transactions.single()
+                assertEquals(TransactionType.EXPENSE, transaction.type)
+                assertEquals(TransactionCategory.TRANSPORT, transaction.category)
+                assertEquals(150000L, transaction.amountMinor)
+                assertEquals("Van hire", transaction.description)
+            }
+        } finally {
+            scenario.close()
+        }
+    }
 
     @Test
     fun firstIncomeQuickActionRecordsWithoutCurrencyOrIsoInput() {
