@@ -35,6 +35,16 @@ object PickerTestHelpers {
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 
+    /**
+     * Selects a date in the already-visible platform DatePicker without
+     * confirming the picker (used to cancel midway through the edit flow).
+     * The caller must have already opened the date-time flow.
+     */
+    fun setDateOnly(year: Int, pickerMonth: Int, dayOfMonth: Int) {
+        Espresso.onView(ViewMatchers.withClassName(equalTo(DatePicker::class.java.name)))
+            .perform(setDate(year, pickerMonth, dayOfMonth))
+    }
+
     private fun setDate(year: Int, month: Int, day: Int) = object : ViewAction {
         override fun getConstraints(): Matcher<View> = ViewMatchers.isDisplayed()
 
