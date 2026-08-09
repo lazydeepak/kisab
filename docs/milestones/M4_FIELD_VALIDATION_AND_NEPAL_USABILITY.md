@@ -13,7 +13,7 @@ M4-01 — COMPLETE
 M4-02 — COMPLETE
 M4-03 — COMPLETE
 M4-04 — COMPLETE
-M4-05 — NOT STARTED
+M4-05 — IN PROGRESS
 ```
 
 ## Purpose
@@ -28,8 +28,8 @@ M4 is organized into the following workstreams:
 - **M4-01 — Android string-resource and Nepali localization foundation.** Move all user-facing text into Android string resources and add the initial Nepali (`values-ne/`) resource set governed by the terminology glossary.
 - **M4-02 — Nepal-oriented currency, number, date and time presentation.** Deterministic NPR currency, number, date and time formatting and display rules, without breaking existing persistence or backup compatibility.
 - **M4-03 — First-run and daily transaction-entry usability.** Improve the first-run experience and the daily transaction-entry flow so the core tasks (record income/expense, review balance) are fast and unambiguous for a farmer. Status: COMPLETE (merged via pull request #11).
-- **M4-04 — Physical-device and guided farmer-pilot validation.** Execute the physical-device validation matrix and a small guided pilot on representative devices and farmer scenarios, capturing evidence for the M4 exit gate.
-- **M4-05 — Defect correction, release-candidate validation and closeout.** Correct defects found in M4-04, validate a signed `v0.2.0` release candidate, and close out the milestone.
+- **M4-04 — Physical-device and guided farmer-pilot validation.** Execute the physical-device validation matrix and a small guided pilot on representative devices and farmer scenarios, capturing evidence for the M4 exit gate. Status: COMPLETE (merged via pull request #12).
+- **M4-05 — Defect correction, release-candidate validation and closeout.** Correct defects found in M4-04, validate a signed `v0.2.0` release candidate, and close out the milestone. Status: IN PROGRESS. In scope: D001 (Transport category), D002 (pick recent/past-date interaction), complete regression, signed `v0.2.0` RC, independent signer/hash/version verification, `v0.1.0 → v0.2.0` preservation/upgrade proof, and the **residual M4 exit-gate item: older/lower-resource physical-device coverage — NOT YET PROVEN ON PHYSICAL HARDWARE** (Moto Edge 60 Fusion is the second physical device at API 36; the API-26 emulator stays supplemental/non-physical).
 
 ## Localization rules
 
