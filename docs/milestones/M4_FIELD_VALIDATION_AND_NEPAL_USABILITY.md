@@ -2,7 +2,7 @@
 
 ## Status
 
-**IN PROGRESS.** This document defines the M4 milestone. M4-00 is complete; M4-01 (Android string-resource and Nepali localization foundation) is complete and merged into `main` via pull request #8; M4-02 (Nepal-oriented currency, number, date and time presentation) is complete and merged into `main` via pull request #10; M4-03 (first-run and daily transaction-entry usability) is complete and merged into `main` via pull request #11. The remaining workstreams (M4-04 … M4-05) are not started. See `docs/validation/M4_01_LOCALIZATION_VALIDATION.md`, `docs/validation/M4_02_PRESENTATION_VALIDATION.md`, and `docs/validation/M4_03_DAILY_ENTRY_USABILITY_VALIDATION.md` for the validation records.
+**IN PROGRESS.** This document defines the M4 milestone. M4-00 is complete; M4-01 (Android string-resource and Nepali localization foundation) is complete and merged into `main` via pull request #8; M4-02 (Nepal-oriented currency, number, date and time presentation) is complete and merged into `main` via pull request #10; M4-03 (first-run and daily transaction-entry usability) is complete and merged into `main` via pull request #11. M4-04 (physical-device and guided farmer-pilot validation) is **complete**: executed on the Pixel 7a (M4-04-01/02/03) and the Moto Edge 60 Fusion (M4-04-04 upgrade gate, M4-04-05 second physical-device gate). See `docs/validation/M4_01_LOCALIZATION_VALIDATION.md`, `docs/validation/M4_02_PRESENTATION_VALIDATION.md`, `docs/validation/M4_03_DAILY_ENTRY_USABILITY_VALIDATION.md`, and `docs/validation/M4_04_GATE_DISPOSITION.md` for the validation records.
 
 Current status:
 
@@ -12,7 +12,8 @@ M4-00 — COMPLETE
 M4-01 — COMPLETE
 M4-02 — COMPLETE
 M4-03 — COMPLETE
-M4-04 AND M4-05 — NOT STARTED
+M4-04 — COMPLETE
+M4-05 — NOT STARTED
 ```
 
 ## Purpose

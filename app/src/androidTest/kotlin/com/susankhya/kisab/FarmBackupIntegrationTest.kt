@@ -20,6 +20,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.susankhya.kisab.domain.FarmSliceService
 import com.susankhya.kisab.domain.FarmState
 import com.susankhya.kisab.domain.FarmTransaction
@@ -455,6 +456,13 @@ class FarmBackupIntegrationTest {
         return text
     }
 
+    private fun acceptDefaultDateTime() {
+        onView(withId(R.id.changeDateTimeButton)).perform(scrollTo(), click())
+        onView(withId(android.R.id.button1)).perform(click())
+        onView(withId(android.R.id.button1)).perform(click())
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+    }
+
     private fun clickSave(scenario: ActivityScenario<FarmActivity>) {
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         scenario.onActivity { activity ->
@@ -480,5 +488,92 @@ class FarmBackupIntegrationTest {
             )
         )
         return FarmBackupCodec.encode(farm)
+    }
+
+    @Test
+    fun postUpgradeNewTransactionAppearsInBackupExport() {
+        // Phase 1: Create v0.1.0-like farm with pre-existing transactions
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            onView(withId(R.id.farmNameInput)).perform(typeText("MotoUpgradeFarm"), closeSoftKeyboard())
+            onView(withId(R.id.createFarmButton)).perform(click())
+
+            // Add entry (Cow x3)
+            onView(withId(R.id.farmToolsToggleButton)).perform(scrollTo(), click())
+            onView(withId(R.id.entryLabelInput)).perform(scrollTo(), typeText("Cow"), closeSoftKeyboard())
+            onView(withId(R.id.entryQuantityInput)).perform(scrollTo(), typeText("3"), closeSoftKeyboard())
+            onView(withId(R.id.addEntryButton)).perform(scrollTo(), click())
+
+            // Add 3 pre-existing transactions (like v0.1.0 data)
+            // Transaction 1: Milk sale (Income, SALES, 120050, USD, Aug 5)
+            onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
+            onView(withId(R.id.transactionAmountInput)).perform(replaceText("120050"), closeSoftKeyboard())
+            onView(withId(R.id.transactionDescriptionInput)).perform(replaceText("Milk sale"), closeSoftKeyboard())
+            acceptDefaultDateTime()
+            onView(withId(R.id.saveTransactionButton)).perform(click())
+
+            // Transaction 2: Feed purchase (Expense, FEED, 45000, USD, Aug 1)
+            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            onView(withId(R.id.transactionAmountInput)).perform(replaceText("45000"), closeSoftKeyboard())
+            onView(withId(R.id.transactionDescriptionInput)).perform(replaceText("Feed purchase"), closeSoftKeyboard())
+            acceptDefaultDateTime()
+            onView(withId(R.id.saveTransactionButton)).perform(click())
+
+            // Transaction 3: Egg sale (Income, SALES, 8000, USD, Aug 7)
+            onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
+            onView(withId(R.id.transactionAmountInput)).perform(replaceText("8000"), closeSoftKeyboard())
+            onView(withId(R.id.transactionDescriptionInput)).perform(replaceText("Egg sale"), closeSoftKeyboard())
+            acceptDefaultDateTime()
+            onView(withId(R.id.saveTransactionButton)).perform(click())
+
+            // Verify initial state: 3 transactions, 1 entry
+            var backupContent: String? = null
+            scenario.onActivity { activity ->
+                backupContent = activity.createBackupContentForCurrentFarm()
+            }
+            assertNotNull(backupContent)
+            var envelope = FarmBackupCodec.decode(backupContent!!)
+            assertEquals(3, envelope.farm.transactions.size)
+            assertEquals(1, envelope.farm.entries.size)
+
+            // Phase 2: Simulate upgrade by recreating the activity (process death/restart)
+            scenario.recreate()
+
+            // Verify pre-existing data survived
+            backupContent = null
+            scenario.onActivity { activity ->
+                backupContent = activity.createBackupContentForCurrentFarm()
+            }
+            assertNotNull(backupContent)
+            envelope = FarmBackupCodec.decode(backupContent!!)
+            assertEquals(3, envelope.farm.transactions.size)
+            assertEquals(1, envelope.farm.entries.size)
+
+            // Phase 3: Create a NEW transaction after "upgrade"
+            // Post-upgrade milk sale (Income, SALES, 15000, USD)
+            onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
+            onView(withId(R.id.transactionAmountInput)).perform(replaceText("15000"), closeSoftKeyboard())
+            onView(withId(R.id.transactionDescriptionInput)).perform(replaceText("Post-upgrade milk sale"), closeSoftKeyboard())
+            acceptDefaultDateTime()
+            onView(withId(R.id.saveTransactionButton)).perform(click())
+
+            // Phase 4: Export backup and verify it contains ALL 4 transactions
+            backupContent = null
+            scenario.onActivity { activity ->
+                backupContent = activity.createBackupContentForCurrentFarm()
+            }
+            assertNotNull(backupContent)
+            envelope = FarmBackupCodec.decode(backupContent!!)
+
+            // The critical assertion: backup must contain all 4 transactions
+            assertEquals(4, envelope.farm.transactions.size)
+            assertTrue("Backup must contain the post-upgrade transaction", envelope.farm.transactions.any { it.description == "Post-upgrade milk sale" })
+            assertTrue("Backup must contain Milk sale", envelope.farm.transactions.any { it.description == "Milk sale" })
+            assertTrue("Backup must contain Feed purchase", envelope.farm.transactions.any { it.description == "Feed purchase" })
+            assertTrue("Backup must contain Egg sale", envelope.farm.transactions.any { it.description == "Egg sale" })
+            assertEquals(1, envelope.farm.entries.size)
+        } finally {
+            scenario.close()
+        }
     }
 }
