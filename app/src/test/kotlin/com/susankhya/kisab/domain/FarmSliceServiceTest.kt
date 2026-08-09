@@ -12,6 +12,7 @@ import java.util.Base64
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
@@ -753,5 +754,88 @@ class FarmSliceServiceTest {
 
         assertEquals("2024-06-01T07:00Z", envelope.exportedAt.toString())
         assertEquals(ZoneOffset.UTC, envelope.exportedAt.offset)
+    }
+
+    @Test
+    fun postUpgradeNewTransactionAppearsInBackupExport() {
+        // Simulate v0.1.0 farm with pre-existing transactions (3 txns, 1 entry)
+        val farm = service.createFarm("MotoUpgradeFarm")
+        service.addEntry(farm.id, FarmEntry(FarmEntryKind.LIVESTOCK, "Cow", 3))
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 120050,
+                currency = "USD",
+                description = "Milk sale",
+                occurredAt = "2026-08-05T05:48:00Z"
+            )
+        )
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 45000,
+                currency = "USD",
+                description = "Feed purchase",
+                occurredAt = "2026-08-01T12:15:00Z"
+            )
+        )
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 8000,
+                currency = "USD",
+                description = "Egg sale",
+                occurredAt = "2026-08-07T07:20:00Z"
+            )
+        )
+
+        // Verify initial state
+        var loadedFarm = service.loadFarm(farm.id)!!
+        assertEquals(3, loadedFarm.transactions.size)
+        assertEquals(1, loadedFarm.entries.size)
+
+        // Simulate upgrade: just continue using the same service/store
+        // (in real upgrade, the app process restarts but SharedPreferences persists)
+
+        // Create a NEW transaction after "upgrade" (Post-upgrade milk sale)
+        val newTx = service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 15000,
+                currency = "USD",
+                description = "Post-upgrade milk sale",
+                occurredAt = "2026-08-08T05:15:00Z"
+            )
+        )
+
+        // Verify new transaction is in the farm
+        loadedFarm = service.loadFarm(farm.id)!!
+        assertEquals(4, loadedFarm.transactions.size)
+        assertTrue(loadedFarm.transactions.any { it.id == newTx.id })
+        assertTrue(loadedFarm.transactions.any { it.description == "Post-upgrade milk sale" })
+
+        // Export backup (simulating EXPORT BACKUP button)
+        val backupContent = FarmBackupCodec.encode(loadedFarm)
+        val envelope = FarmBackupCodec.decode(backupContent)
+
+        // Verify backup contains ALL 4 transactions including the new one
+        assertEquals(4, envelope.farm.transactions.size)
+        assertTrue("Backup must contain the post-upgrade transaction", envelope.farm.transactions.any { it.description == "Post-upgrade milk sale" })
+        assertTrue("Backup must contain Milk sale", envelope.farm.transactions.any { it.description == "Milk sale" })
+        assertTrue("Backup must contain Feed purchase", envelope.farm.transactions.any { it.description == "Feed purchase" })
+        assertTrue("Backup must contain Egg sale", envelope.farm.transactions.any { it.description == "Egg sale" })
+
+        // Verify entry is also in backup
+        assertEquals(1, envelope.farm.entries.size)
+        assertEquals("Cow", envelope.farm.entries.first().label)
+        assertEquals(3, envelope.farm.entries.first().quantity)
     }
 }

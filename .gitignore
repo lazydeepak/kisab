@@ -12,3 +12,6 @@ local.properties
 keystore.properties
 signing.properties
 keystores/
+
+# M4-04 validation evidence (APKs, screenshots, backups never committed)
+.m4-04-evidence/

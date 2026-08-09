@@ -2,7 +2,7 @@
 
 Plan for the **physical-device and guided farmer-pilot validation** workstream (M4-04). M4-04 executes the physical-device validation matrix and a small guided pilot on representative devices and farmer scenarios, capturing evidence for the M4 exit gate. It is a validation and evidence workstream: no product features are introduced and defects found during the pilot are recorded for M4-05, not silently fixed here.
 
-> **Status:** IN PROGRESS — protocol prepared; candidate identified; execution evidence recorded as it is collected.
+> **Status:** COMPLETE — protocol executed on Pixel 7a (M4-04-01/02/03) and Moto Edge 60 Fusion (M4-04-04 upgrade gate, M4-04-05 second-device gate, 2026-08-09). See `M4_04_GATE_DISPOSITION.md`.
 >
 > **Fidelity rule:** every claim below marked "verified"/"passed" reflects a session actually performed on a physical device. No result is inferred from an automated test alone; no reaction is invented for a session that did not occur.
 
