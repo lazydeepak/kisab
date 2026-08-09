@@ -139,7 +139,7 @@ Evidence files (`.m4-04-evidence/moto-second-gate/`, local only, not committed):
 | PRODUCTION-SIGNED UPGRADE | **PASS** | Same-signer production APK installed over v0.1.0; all pre-existing data preserved through install, force-stop, and reboot. |
 | SECOND PHYSICAL DEVICE | **PASS** | Full M4-04 acceptance flow exercised on the Moto Edge 60 Fusion (serial `ZA22374XPC`, a second physical device distinct from the Pixel 7a). Upgrade, data preservation, edit/delete-confirm, force-stop, full reboot, and D003 re-verification all PASS. Note: this unit is API 36 (Android 16, 8 cores, 7.4 GB RAM), not an older/lower-resource API-26-class phone; gate passed for a second physical device with environment stated verbatim. |
 | D001 (No Transport category for crop-farm costs) | **RESOLVED IN M4-05** | Minor; captured in M4-04 pilot Scenario B. `TRANSPORT` expense category added and validated in M4-05. See `M4_05_D001_TRANSPORT_CATEGORY.md`. |
-| D002 (Date/time picker multi-step) | **HANDED TO M4-05** | Observation; captured in M4-04 pilot Scenario B. Handed to M4-05 per M4-04 plan. See `M4_04_DEFECT_REGISTER.md`. |
+| D002 (Date/time picker multi-step) | **DEFERRED / ACCEPTED IN M4-05** | Observation; no production change. See `M4_05_D002_DATETIME_PICKER_DISPOSITION.md`. |
 | D003 (Post-upgrade tx missing from backup) | **RESOLVED — NOT A DEFECT** | Disproven by deterministic on-device instrumentation test and a replay of the signed upgrade; original record was stale copies of the pre-upgrade export. See `d003-verification/D003_VERIFICATION.md`. |
 
 ## Known issues (v0.2.0-pilot.1)
