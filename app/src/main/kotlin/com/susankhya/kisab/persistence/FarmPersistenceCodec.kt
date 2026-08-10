@@ -4,6 +4,8 @@ import com.susankhya.kisab.domain.FarmEntry
 import com.susankhya.kisab.domain.FarmEntryKind
 import com.susankhya.kisab.domain.FarmState
 import com.susankhya.kisab.domain.FarmTransaction
+import com.susankhya.kisab.domain.Party
+import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import java.time.OffsetDateTime
@@ -14,12 +16,14 @@ import java.time.format.DateTimeFormatter
  *
  * Schema 2 stored a currency code on every transaction record. Schema 3 moves
  * currency ownership to the farm level ([FarmState.currencyCode]) and drops the
- * per-transaction currency field. Schema-2 and legacy payloads still decode and
- * upgrade to schema 3; the backup envelope ([FarmBackupCodec]) is unchanged
- * because it wraps this versioned payload.
+ * per-transaction currency field. Schema 4 appends the farm's [Party] list for
+ * the Hisab-Kitab domain foundation. Schema-2, schema-3 and legacy payloads
+ * still decode and upgrade to schema 4 (with an empty party list); the backup
+ * envelope ([FarmBackupCodec]) is unchanged because it wraps this versioned
+ * payload.
  */
 object FarmPersistenceCodec {
-    const val CURRENT_SCHEMA_VERSION = 3
+    const val CURRENT_SCHEMA_VERSION = 4
 
     private const val FIELD_SEPARATOR = "\u001F"
     private const val RECORD_SEPARATOR = "\u001E"
@@ -50,6 +54,14 @@ object FarmPersistenceCodec {
             transaction.description,
             transaction.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
+        append(FIELD_SEPARATOR)
+        append(farm.parties.joinToString(RECORD_SEPARATOR) { party -> listOf(
+            party.id,
+            party.role.name,
+            party.name,
+            party.contact,
+            party.notes
+        ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
     }
 
     fun decode(encoded: String): FarmState = decodeOrNull(encoded)
@@ -58,7 +70,7 @@ object FarmPersistenceCodec {
     fun decodeOrNull(encoded: String): FarmState? {
         return try {
             val legacyParts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex())
-            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3")) {
+            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4")) {
                 decodeLegacy(legacyParts)
             } else {
                 val fields = encoded.split(FIELD_SEPARATOR)
@@ -70,6 +82,7 @@ object FarmPersistenceCodec {
                 when (version) {
                     2 -> decodeSchema2(fields)
                     3 -> decodeSchema3(fields)
+                    4 -> decodeSchema4(fields)
                     else -> null
                 }
             }
@@ -83,6 +96,33 @@ object FarmPersistenceCodec {
             val (kind, label, quantity) = entry.split(":", limit = 3)
             FarmEntry(FarmEntryKind.valueOf(kind), label, quantity.toInt())
         }?.toMutableList() ?: mutableListOf()
+
+    private fun decodeParties(encoded: String): MutableList<Party> =
+        encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { party ->
+            val parts = party.split(TRANSACTION_FIELD_SEPARATOR)
+            require(parts.size == 5) { "Invalid party payload" }
+            Party(
+                id = parts[0],
+                role = PartyRole.valueOf(parts[1]),
+                name = parts[2],
+                contact = parts[3],
+                notes = parts[4]
+            )
+        }?.toMutableList() ?: mutableListOf()
+
+    private fun decodeSchema4(fields: List<String>): FarmState {
+        require(fields.size >= 7) { "Invalid persisted farm data" }
+        val currencyCode = fields[4].ifBlank { EMPTY_FARM_CURRENCY_CODE }
+        return FarmState(
+            id = fields[1],
+            name = fields[2],
+            currencyCode = currencyCode,
+            entries = decodeEntries(fields[3]),
+            transactions = decodeSchema3Transactions(fields[5]),
+            parties = decodeParties(fields[6]),
+            schemaVersion = CURRENT_SCHEMA_VERSION
+        )
+    }
 
     private fun decodeSchema3(fields: List<String>): FarmState {
         require(fields.size >= 6) { "Invalid persisted farm data" }

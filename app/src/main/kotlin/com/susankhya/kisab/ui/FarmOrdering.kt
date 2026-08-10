@@ -1,6 +1,7 @@
 package com.susankhya.kisab.ui
 
 import com.susankhya.kisab.domain.FarmEntryKind
+import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 
@@ -12,6 +13,8 @@ import com.susankhya.kisab.domain.TransactionType
  */
 object FarmOrdering {
     val entryKinds: List<FarmEntryKind> = listOf(FarmEntryKind.LIVESTOCK, FarmEntryKind.CROP)
+
+    val partyRoles: List<PartyRole> = listOf(PartyRole.CUSTOMER, PartyRole.SUPPLIER, PartyRole.OTHER)
 
     val transactionTypes: List<TransactionType> = listOf(TransactionType.INCOME, TransactionType.EXPENSE)
 

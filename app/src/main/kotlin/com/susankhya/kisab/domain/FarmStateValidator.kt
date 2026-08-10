@@ -25,5 +25,13 @@ object FarmStateValidator {
         farm.transactions.forEach(::validateTransaction)
         val transactionIds = farm.transactions.map { it.id }
         require(transactionIds.size == transactionIds.toSet().size) { "Transaction IDs must be unique" }
+        farm.parties.forEach(::validateParty)
+        val partyIds = farm.parties.map { it.id }
+        require(partyIds.size == partyIds.toSet().size) { "Party IDs must be unique" }
+    }
+
+    fun validateParty(party: Party) {
+        require(party.id.isNotBlank()) { "Party id is required" }
+        require(party.name.isNotBlank()) { "Party name is required" }
     }
 }

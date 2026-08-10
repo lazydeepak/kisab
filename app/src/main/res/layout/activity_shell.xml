@@ -426,15 +426,120 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/hisab_kitab_placeholder_title"
+                    android:text="@string/parties_section"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/partiesEmptyText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="@string/hisab_kitab_placeholder_body" />
+                    android:text="@string/parties_empty"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/partiesContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <Button
+                    android:id="@+id/addPartyButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:minHeight="48dp"
+                    android:text="@string/add_party_action" />
+
+                <TextView
+                    android:id="@+id/partyEditorTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/party_editor_title"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <EditText
+                    android:id="@+id/partyNameInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/party_name_hint"
+                    android:inputType="textCapWords"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/partyRoleLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/party_role_label"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <Spinner
+                    android:id="@+id/partyRoleSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:visibility="gone" />
+
+                <EditText
+                    android:id="@+id/partyContactInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/party_contact_hint"
+                    android:inputType="text"
+                    android:visibility="gone" />
+
+                <EditText
+                    android:id="@+id/partyNotesInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/party_notes_hint"
+                    android:inputType="textMultiLine"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/savePartyButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/save_party_action"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/cancelPartyButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/action_cancel"
+                        android:visibility="gone" />
+
+                    <Button
+                        android:id="@+id/deletePartyButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/delete_party_action"
+                        android:visibility="gone" />
+                </LinearLayout>
             </LinearLayout>
         </ScrollView>
 

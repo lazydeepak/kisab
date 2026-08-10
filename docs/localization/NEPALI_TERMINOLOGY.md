@@ -74,6 +74,12 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Today | Today | आज (aaj) | — | The current day, shown for a default timestamp | Provisional |  | Pending |
 | New transaction | New transaction | नयाँ लेनदेन (naya lenaden) | — | Editor title when creating a transaction | Provisional |  | Pending |
 | Change | Change | परिवर्तन गर्नुहोस् (parivartan garnuhos) | बदल्नुहोस् | Modify the date/time or currency in the editor | Provisional |  | Pending |
+| Party | Party | पार्टी (parti) | — | A business counterpart of the farm (buyer or supplier) | Provisional |  | Pending |
+| Customer | Customer | ग्राहक (grahak) | — | Party role: buys farm produce from the farmer | Provisional |  | Pending |
+| Supplier | Supplier | आपूर्तिकर्ता (aapurtikarta) | विक्रेता (bikreta) | Party role: sells inputs to the farmer | Provisional |  | Pending |
+| Contact | Contact | सम्पर्क (sampark) | फोन नम्बर (phone number) | Free-text contact detail for a party (e.g. phone number) | Provisional |  | Pending |
+| Add party | Add party | पार्टी थप्नुहोस् (parti thapnuhos) | — | Action that opens the party editor for a new party | Provisional |  | Pending |
+| Parties | Parties | पार्टीहरू (partiharū) | — | List of parties on the Hisab-Kitab destination | Provisional |  | Pending |
 
 ## Rules
 

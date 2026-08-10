@@ -95,6 +95,46 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         store.saveFarm(farm.copy(currencyCode = currencyCode.trim().uppercase()))
     }
 
+    fun addParty(farmId: String, draft: PartyDraft): Party {
+        val farm = getFarm(farmId)
+        require(draft.name.isNotBlank()) { "Party name is required" }
+        val party = Party(id = "party-${UUID.randomUUID()}", name = draft.name.trim(), role = draft.role, contact = draft.contact.trim(), notes = draft.notes.trim())
+        val updated = farm.copy(parties = (farm.parties + party).toMutableList())
+        store.saveFarm(updated)
+        return party
+    }
+
+    fun updateParty(farmId: String, partyId: String, draft: PartyDraft): Party {
+        val farm = getFarm(farmId)
+        require(draft.name.isNotBlank()) { "Party name is required" }
+        val index = farm.parties.indexOfFirst { it.id == partyId }
+        require(index >= 0) { "Party not found: $partyId" }
+        val party = farm.parties[index].copy(name = draft.name.trim(), role = draft.role, contact = draft.contact.trim(), notes = draft.notes.trim())
+        val updatedParties = farm.parties.toMutableList()
+        updatedParties[index] = party
+        store.saveFarm(farm.copy(parties = updatedParties))
+        return party
+    }
+
+    fun deleteParty(farmId: String, partyId: String) {
+        val farm = getFarm(farmId)
+        val updatedParties = farm.parties.filterNot { it.id == partyId }
+        require(updatedParties.size < farm.parties.size) { "Party not found: $partyId" }
+        store.saveFarm(farm.copy(parties = updatedParties.toMutableList()))
+    }
+
+    fun parties(farmId: String): List<Party> {
+        val farm = getFarm(farmId)
+        return farm.parties.withIndex()
+            .sortedWith(
+                compareBy<IndexedValue<Party>> { it.value.name.lowercase() }
+                    .thenBy { it.index }
+            )
+            .map { it.value }
+    }
+
+    fun party(farmId: String, partyId: String): Party? = getFarm(farmId).parties.firstOrNull { it.id == partyId }
+
     fun transactionsNewestFirst(farmId: String): List<FarmTransaction> =
         getFarm(farmId).transactionsNewestFirst()
 
@@ -137,11 +177,12 @@ data class FarmState(
     val currencyCode: String = DEFAULT_CURRENCY_CODE,
     val entries: MutableList<FarmEntry> = mutableListOf(),
     val transactions: MutableList<FarmTransaction> = mutableListOf(),
+    val parties: MutableList<Party> = mutableListOf(),
     val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
 ) {
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 3
+        const val CURRENT_FARM_SCHEMA_VERSION = 4
     }
 }
 

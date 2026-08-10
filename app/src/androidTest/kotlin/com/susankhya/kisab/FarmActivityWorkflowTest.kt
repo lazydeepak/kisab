@@ -650,6 +650,81 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
+    fun partyListShowsEmptyStateThenAddsAndEditsParty() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            createFarm("Party Farm")
+            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.partiesEmptyText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.addPartyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+
+            onView(withId(R.id.addPartyButton)).perform(scrollTo(), click())
+            onView(withId(R.id.partyNameInput)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.partyNameInput)).perform(replaceText("Feed Store"), closeSoftKeyboard())
+            onView(withId(R.id.partyContactInput)).perform(replaceText("9800000001"), closeSoftKeyboard())
+            onView(withId(R.id.savePartyButton)).perform(scrollTo(), click())
+
+            onView(withId(R.id.partiesEmptyText)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.partyRow)).check(matches(withText(containsString("Feed Store"))))
+
+            onView(withId(R.id.partyRow)).perform(click())
+            onView(withId(R.id.partyNameInput)).check(matches(withText("Feed Store")))
+            onView(withId(R.id.partyContactInput)).check(matches(withText("9800000001")))
+            onView(withId(R.id.deletePartyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+
+            onView(withId(R.id.partyNameInput)).perform(replaceText("Corner Feed"), closeSoftKeyboard())
+            onView(withId(R.id.savePartyButton)).perform(scrollTo(), click())
+            onView(withId(R.id.partyRow)).check(matches(withText(containsString("Corner Feed"))))
+
+            scenario.onActivity { activity ->
+                val parties = farmFor(activity).parties
+                assertEquals(1, parties.size)
+                assertEquals("Corner Feed", parties.single().name)
+                assertEquals(com.susankhya.kisab.domain.PartyRole.SUPPLIER, parties.single().role)
+                assertEquals("9800000001", parties.single().contact)
+            }
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test
+    fun partyEditorRejectsBlankName() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            createFarm("Party Farm")
+            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.addPartyButton)).perform(scrollTo(), click())
+            onView(withId(R.id.savePartyButton)).perform(scrollTo(), click())
+            onView(withText(R.string.error_party_name_required)).check(matches(isDisplayed()))
+            scenario.onActivity { activity ->
+                assertEquals(0, farmFor(activity).parties.size)
+            }
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test
+    fun partyEditorDeleteConfirmsAndRemovesParty() {
+        seedParty("Delete Me", "9800000001")
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.partyRow)).perform(click())
+            onView(withId(R.id.deletePartyButton)).perform(scrollTo(), click())
+            onView(withText(R.string.dialog_delete_party_title)).inRoot(isDialog()).check(matches(isDisplayed()))
+            clickDialogAction(R.string.delete_party_action)
+            onView(withId(R.id.partiesEmptyText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            scenario.onActivity { activity ->
+                assertEquals(0, farmFor(activity).parties.size)
+            }
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test
     fun destinationSurvivesRecreation() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
@@ -790,5 +865,15 @@ class FarmActivityWorkflowTest {
                 )
             )
         }
+    }
+
+    private fun seedParty(name: String, contact: String, role: com.susankhya.kisab.domain.PartyRole = com.susankhya.kisab.domain.PartyRole.SUPPLIER) {
+        val store = SharedPreferencesFarmStore(context)
+        val service = FarmSliceService(store)
+        val farm = service.createFarm("Party Farm", currencyCode = "NPR")
+        service.addParty(
+            farm.id,
+            com.susankhya.kisab.domain.PartyDraft(name = name, role = role, contact = contact)
+        )
     }
 }
