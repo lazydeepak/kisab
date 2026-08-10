@@ -55,6 +55,7 @@
     <string name="currency_choice_dialog_title">फार्मको मुद्रा छान्नुहोस्</string>
     <string name="currency_iso_hint">ISO 4217 कोड</string>
     <string name="action_ok">ठिक छ</string>
+    <string name="action_done">सम्पन्न</string>
 
     <string name="recent_transactions_section">हालैका लेनदेनहरू</string>
     <string name="recent_transaction_accessibility_format">%1$s, %2$s, %3$s</string>
@@ -188,6 +189,35 @@
     <string name="toast_trade_created">बिक्री/खरिद बचत भयो</string>
     <string name="toast_trade_updated">बिक्री/खरिद अद्यावधिक भयो</string>
     <string name="toast_trade_deleted">बिक्री/खरिद मेटियो</string>
+    <string name="manage_payments_action">भुक्तानीहरू</string>
+    <string name="receive_payment_action">भुक्तानी लिनुहोस्</string>
+    <string name="record_payment_action">भुक्तानी रेकर्ड गर्नुहोस्</string>
+    <string name="add_payment_action">भुक्तानी थप्नुहोस्</string>
+    <string name="new_payment_title">नयाँ भुक्तानी</string>
+    <string name="edit_payment_title">भुक्तानी सम्पादन गर्नुहोस्</string>
+    <string name="delete_payment_action">भुक्तानी मेटाउनुहोस्</string>
+    <string name="update_payment_action">भुक्तानी अद्यावधिक गर्नुहोस्</string>
+    <string name="dialog_delete_payment_title">के भुक्तानी मेट्ने?</string>
+    <string name="dialog_delete_payment_message">के यो भुक्तानी स्थायी रूपमा मेट्ने?</string>
+    <string name="payment_amount_label">भुक्तानी रकम</string>
+    <string name="payment_note_hint">टिप्पणी (ऐच्छिक)</string>
+    <string name="settlements_empty">अहिलेसम्म कुनै भुक्तानी रेकर्ड छैन।</string>
+    <string name="settlement_row_format">%1$s — %2$s</string>
+    <string name="settlement_row_detail_format">%1$s\n%2$s</string>
+    <string name="payments_received_label">प्राप्त भुक्तानीहरू</string>
+    <string name="payments_made_label">गरिएका भुक्तानीहरू</string>
+    <string name="paid_summary_format">भुक्तानी: %1$s</string>
+    <string name="due_summary_format">बाँकी: %1$s</string>
+    <string name="trade_paid_due_summary_format">भुक्तानी: %1$s · बाँकी: %2$s</string>
+    <string name="settlement_trade_summary_format">%1$s · %2$s · %3$s</string>
+    <string name="trade_has_payments_error">यो बिक्री/खरिदमा भुक्तानी रेकर्डहरू छन्। मेटाउनु अघि पहिले ती रेकर्डहरू हटाउनुहोस्।</string>
+    <string name="trade_total_below_settled_error">कुल रकम पहिले नै भुक्तानी भइसकेको रकमभन्दा कम हुन सक्दैन।</string>
+    <string name="error_settlement_amount_required">भुक्तानी रकम आवश्यक छ</string>
+    <string name="error_settlement_over_remaining">भुक्तानी बाँकी रकमभन्दा बढी हुन सक्दैन।</string>
+    <string name="error_settlement_requires_party">रकम बाँकी छोड्नुहुन्छ भने पार्टी चयन गर्नुहोस्।</string>
+    <string name="toast_settlement_created">भुक्तानी रेकर्ड भयो</string>
+    <string name="toast_settlement_updated">भुक्तानी अद्यावधिक भयो</string>
+    <string name="toast_settlement_deleted">भुक्तानी मेटियो</string>
 
     <string name="hisab_placeholder_title">हिसाब चाँडै आउँदैछ</string>
     <string name="hisab_placeholder_body">किसानको हिसाब खोज र गणनाहरू भविष्यको अद्यावधिकमा यहाँ देखा पर्नेछन्।</string>

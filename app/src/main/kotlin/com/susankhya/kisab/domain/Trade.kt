@@ -11,9 +11,9 @@ import java.time.format.DateTimeFormatter
  *
  * A trade is deliberately NOT a Home cashflow event: recording a SALE does not
  * add income to the farm balance, and recording a PURCHASE does not add
- * expense. Receiving or paying the money is a separate event that M5-03 will
- * model as settlements. This boundary keeps partially paid sales from
- * appearing as full cash income on the Home screen.
+ * expense. Receiving or paying the money is modeled separately as [Settlement]
+ * records (a first-class payment history), so partially paid sales never appear
+ * as full cash income on the Home screen.
  */
 enum class TradeType {
     SALE,
@@ -21,23 +21,24 @@ enum class TradeType {
 }
 
 /**
- * A trade between the farm and a party. The identity ([id]) is stable and is
- * the future anchor for M5-03 settlement records (receipts/payments against a
- * single trade).
+ * A trade between the farm and a party, carrying only what was *owed*. The
+ * identity ([id]) is stable and is the anchor for [Settlement] records
+ * (receipts/payments against a single trade).
  *
- * Monetary facts are stored only as exact minor-unit totals ([totalMinor] and
- * [paidMinor]); the payment status and outstanding amount are always derived
- * from those two numbers. Currency is owned by [FarmState.currencyCode], never
- * by the trade.
+ * Monetary facts are stored only as exact minor-unit totals ([totalMinor]);
+ * payment status and outstanding amount are always derived from the trade's
+ * [Settlement] records ([Settlement.paidMinorFor], [Settlement.outstandingMinorFor],
+ * [Settlement.paymentSummaryFor]) — never persisted on the trade itself.
+ * Currency is owned by [FarmState.currencyCode], never by the trade.
  *
- * The party is optional only when the trade is fully paid (a cash transaction);
- * a trade with money still receivable/payable must name the party who owes or
- * is owed.
+ * The party is optional only when the trade is fully settled (a cash
+ * transaction); a trade with money still receivable/payable must name the
+ * party who owes or is owed.
  *
  * Invariants (enforced by [FarmStateValidator.validateTrade]):
  *  - [totalMinor] > 0
- *  - 0 <= [paidMinor] <= [totalMinor]
- *  - [paidMinor] < [totalMinor] requires a [partyId]
+ *  - the sum of the trade's settlements never exceeds [totalMinor]
+ *  - outstanding > 0 requires a [partyId]
  *  - a linked party must exist and its role must be compatible with [type]
  */
 data class Trade(
@@ -45,7 +46,6 @@ data class Trade(
     val type: TradeType,
     val partyId: String?,
     val totalMinor: Long,
-    val paidMinor: Long,
     val description: String,
     val occurredAt: OffsetDateTime
 )
@@ -53,13 +53,13 @@ data class Trade(
 /**
  * Input for creating or updating a [Trade]. Mirrors [FarmTransactionDraft]:
  * the date/time is carried as an ISO-8601 offset string and normalized to UTC
- * on construction.
+ * on construction. Payment on a new trade is expressed through a separate
+ * initial [Settlement] (see [FarmSliceService.addTrade]).
  */
 data class TradeDraft(
     val type: TradeType,
     val partyId: String?,
     val totalMinor: Long,
-    val paidMinor: Long,
     val description: String = "",
     val occurredAt: String
 ) {
@@ -69,7 +69,6 @@ data class TradeDraft(
             type = type,
             partyId = partyId?.takeIf { it.isNotBlank() },
             totalMinor = totalMinor,
-            paidMinor = paidMinor,
             description = description.trim(),
             occurredAt = OffsetDateTime.parse(occurredAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                 .withOffsetSameInstant(ZoneOffset.UTC)
@@ -80,7 +79,7 @@ data class TradeDraft(
 }
 
 /**
- * Payment status derived from the monetary facts, never persisted independently.
+ * Payment status derived from monetary facts, never persisted independently.
  */
 enum class PaymentStatus {
     UNPAID,
@@ -95,10 +94,16 @@ fun paymentStatusOf(totalMinor: Long, paidMinor: Long): PaymentStatus = when {
     else -> PaymentStatus.PARTIAL
 }
 
-fun Trade.paymentStatus(): PaymentStatus = paymentStatusOf(totalMinor, paidMinor)
-
-/** Money still receivable (SALE) or payable (PURCHASE). Zero when fully paid. */
-fun Trade.outstandingMinor(): Long = totalMinor - paidMinor
+/**
+ * A read-only projection of a trade's settlement state, derived from its
+ * [Settlement] records. Never persisted independently.
+ */
+data class TradePaymentSummary(
+    val paidMinor: Long,
+    val outstandingMinor: Long,
+    val status: PaymentStatus
+)
 
 /** True when no counterparty has been named and no money remains to settle. */
-fun Trade.isCashTrade(): Boolean = partyId.isNullOrBlank() && outstandingMinor() == 0L
+fun Trade.isCashTrade(settlements: List<Settlement>): Boolean =
+    partyId.isNullOrBlank() && settlements.outstandingMinorFor(this) == 0L

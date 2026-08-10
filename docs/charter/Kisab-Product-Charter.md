@@ -21,8 +21,11 @@ A smallholder or farm operator who needs to record a farm, one or more livestock
 ## Roadmap
 
 - **M4-05** — currency/settings ownership correction, RC validation, `v0.2.0`.
-- **M5-00** — Kisab Application Shell: top app bar, bottom navigation, Settings destination (Language, Currency), navigation/back-stack rules, editor/save/discard behavior across navigation, screen wrapper conventions, responsive behavior. Deliberate UI/UX design conversation precedes implementation. The currency domain contract locked in M4-05 moves here from its temporary Farm Tools location; the domain does not change again for that capability.
-- **M5-01 onward** — Hisab-Kitab domain and screens (Parties, Udhar/Khata, Sales/Purchases).
+- **M5-00** — Kisab Application Shell: top app bar, bottom navigation, Settings destination (Language, Currency), navigation/back-stack rules, editor/save/discard behavior across navigation, screen wrapper conventions, responsive behavior. Deliberate UI/UX design conversation precedes implementation. The currency domain contract locked in M4-05 moves here from its temporary Farm Tools location; the domain does not change again for that capability. **Status: COMPLETE.**
+- **M5-01** — Hisab-Kitab party domain: the **Party** model (role, contact, notes) and its persistence evolution, with the party list/editor on the Hisab-Kitab destination. **Status: COMPLETE.**
+- **M5-02** — Sale/Purchase (Trade) records with payment status: trades and their derived Paid/Due/Status, trade editor/list, farm-schema v5, farm-wide to-receive/to-pay totals. **Status: COMPLETE.**
+- **M5-03** — Settlements (receivable/payable): Trade = obligation, Settlement = payment/receipt event, Paid/Due/Status = projections from settlements; per-trade payment ledger UI; schema v6 with deterministic v5→v6 opening-settlement migration. **Status: COMPLETE** (see `docs/milestones/M5_03_SETTLEMENTS_RECEIVABLE_PAYABLE.md`).
+- **M5-04** — Party Khata / Ledger: per-party chronological projection of sales, purchases, payments received/made, running balance, and current receivable/payable position — an additional projection over the Party → Trade → Settlement model, not a second accounting authority. **Status: NEXT.**
 - **M6** — Farmer Hisab calculators.
 
 ## Product boundary

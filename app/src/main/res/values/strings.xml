@@ -56,6 +56,7 @@
     <string name="currency_choice_dialog_title">Choose the farm\'s currency</string>
     <string name="currency_iso_hint">ISO 4217 code</string>
     <string name="action_ok">OK</string>
+    <string name="action_done">Done</string>
 
     <string name="recent_transactions_section">Recent transactions</string>
     <string name="recent_transaction_accessibility_format">%1$s, %2$s, %3$s</string>
@@ -192,6 +193,35 @@
     <string name="toast_trade_created">Sale/purchase saved</string>
     <string name="toast_trade_updated">Sale/purchase updated</string>
     <string name="toast_trade_deleted">Sale/purchase deleted</string>
+    <string name="manage_payments_action">Payments</string>
+    <string name="receive_payment_action">Receive payment</string>
+    <string name="record_payment_action">Record payment</string>
+    <string name="add_payment_action">Add payment</string>
+    <string name="new_payment_title">New payment</string>
+    <string name="edit_payment_title">Edit payment</string>
+    <string name="delete_payment_action">Delete payment</string>
+    <string name="update_payment_action">Update payment</string>
+    <string name="dialog_delete_payment_title">Delete payment?</string>
+    <string name="dialog_delete_payment_message">Delete this payment permanently?</string>
+    <string name="payment_amount_label">Payment amount</string>
+    <string name="payment_note_hint">Note (optional)</string>
+    <string name="settlements_empty">No payments recorded yet.</string>
+    <string name="settlement_row_format">%1$s — %2$s</string>
+    <string name="settlement_row_detail_format">%1$s\n%2$s</string>
+    <string name="payments_received_label">Payments received</string>
+    <string name="payments_made_label">Payments made</string>
+    <string name="paid_summary_format">Paid: %1$s</string>
+    <string name="due_summary_format">Due: %1$s</string>
+    <string name="trade_paid_due_summary_format">Paid: %1$s · Due: %2$s</string>
+    <string name="settlement_trade_summary_format">%1$s · %2$s · %3$s</string>
+    <string name="trade_has_payments_error">This sale/purchase has payment records. Remove those payment records first before deleting it.</string>
+    <string name="trade_total_below_settled_error">Total cannot be less than the amount already paid.</string>
+    <string name="error_settlement_amount_required">Payment amount is required</string>
+    <string name="error_settlement_over_remaining">Payment cannot be more than the remaining amount.</string>
+    <string name="error_settlement_requires_party">Select a party before leaving an amount unpaid.</string>
+    <string name="toast_settlement_created">Payment recorded</string>
+    <string name="toast_settlement_updated">Payment updated</string>
+    <string name="toast_settlement_deleted">Payment deleted</string>
 
     <string name="hisab_placeholder_title">Hisab is coming soon</string>
     <string name="hisab_placeholder_body">Farmer hisab lookups and calculations will appear here in a future update.</string>
