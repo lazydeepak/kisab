@@ -80,6 +80,23 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Contact | Contact | सम्पर्क (sampark) | फोन नम्बर (phone number) | Free-text contact detail for a party (e.g. phone number) | Provisional |  | Pending |
 | Add party | Add party | पार्टी थप्नुहोस् (parti thapnuhos) | — | Action that opens the party editor for a new party | Provisional |  | Pending |
 | Parties | Parties | पार्टीहरू (partiharū) | — | List of parties on the Hisab-Kitab destination | Provisional |  | Pending |
+| Sale | Sale | बिक्री (bikri) | — | Trade type: produce sold by the farmer to a customer or for cash | Provisional | Reuses the M4 governed term for the income category | Pending |
+| Purchase | Purchase | खरिद (kharid) | — | Trade type: inputs bought by the farmer from a supplier or for cash | Provisional |  | Pending |
+| New sale | New sale | नयाँ बिक्री (naya bikri) | — | Action/editor title for a new sale | Provisional |  | Pending |
+| New purchase | New purchase | नयाँ खरिद (naya kharid) | — | Action/editor title for a new purchase | Provisional |  | Pending |
+| Total amount | Total amount | कुल रकम (kul rakam) | — | Full monetary value of a sale or purchase | Provisional |  | Pending |
+| Payment | Payment | भुक्तानी (bhuktani) | — | The state of payment for a sale/purchase (paid/partial/unpaid) | Provisional |  | Pending |
+| Paid | Paid | भुक्तानी भयो (bhuktani bhayo) | — | Fully paid | Provisional |  | Pending |
+| Partially paid | Partially paid | आंशिक भुक्तानी (aanshik bhuktani) | — | Paid more than zero but less than the total | Provisional |  | Pending |
+| Unpaid | Unpaid | भुक्तानी बाँकी (bhuktani banki) | — | Nothing paid yet; amount still owed | Provisional |  | Pending |
+| Amount paid | Amount paid | भुक्तानी गरिएको रकम (bhuktani garieko rakam) | — | Money received (sale) or handed over (purchase) so far | Provisional |  | Pending |
+| Amount due | Amount due | बाँकी रकम (banki rakam) | — | Outstanding balance on a trade | Provisional |  | Pending |
+| To receive | To receive | प्राप्त गर्न बाँकी (prapat garna banki) | — | Outstanding money the farmer is owed (sale balances) | Provisional |  | Pending |
+| To pay | To pay | तिर्न बाँकी (tirna banki) | — | Outstanding money the farmer owes (purchase balances) | Provisional |  | Pending |
+| Cash sale | Cash sale | नगद बिक्री (nagad bikri) | — | Fully paid sale with no party linked | Provisional |  | Pending |
+| Cash purchase | Cash purchase | नगद खरिद (nagad kharid) | — | Fully paid purchase with no party linked | Provisional |  | Pending |
+| Customer and supplier | Customer and supplier | ग्राहक र आपूर्तिकर्ता दुवै (grahak ra aapurtikarta duvai) | — | Party role valid on both sides of the farm's business | Provisional |  | Pending |
+| Recent sales and purchases | Recent sales and purchases | हालैका बिक्री र खरिदहरू (halaiika bikri ra kharidharu) | — | Recent trades section on the Hisab-Kitab destination | Provisional |  | Pending |
 
 ## Rules
 

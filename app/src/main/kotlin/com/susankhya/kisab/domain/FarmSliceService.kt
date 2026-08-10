@@ -109,6 +109,11 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         require(draft.name.isNotBlank()) { "Party name is required" }
         val index = farm.parties.indexOfFirst { it.id == partyId }
         require(index >= 0) { "Party not found: $partyId" }
+        val referencedTypes = farm.trades.filter { it.partyId == partyId }.map { it.type }.distinct()
+        val incompatibleType = referencedTypes.firstOrNull { !draft.role.compatibleWith(it) }
+        require(incompatibleType == null) {
+            "Party role cannot change while sales or purchases reference this party"
+        }
         val party = farm.parties[index].copy(name = draft.name.trim(), role = draft.role, contact = draft.contact.trim(), notes = draft.notes.trim())
         val updatedParties = farm.parties.toMutableList()
         updatedParties[index] = party
@@ -118,10 +123,45 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
 
     fun deleteParty(farmId: String, partyId: String) {
         val farm = getFarm(farmId)
+        val referenced = farm.trades.any { it.partyId == partyId }
+        require(!referenced) { "Party cannot be deleted while sales or purchases reference it" }
         val updatedParties = farm.parties.filterNot { it.id == partyId }
         require(updatedParties.size < farm.parties.size) { "Party not found: $partyId" }
         store.saveFarm(farm.copy(parties = updatedParties.toMutableList()))
     }
+
+    fun addTrade(farmId: String, draft: TradeDraft): Trade {
+        val farm = getFarm(farmId)
+        val trade = draft.toTrade("trade-${UUID.randomUUID()}")
+        FarmStateValidator.validateTrade(farm, trade)
+        val updated = farm.copy(trades = (farm.trades + trade).toMutableList())
+        store.saveFarm(updated)
+        return trade
+    }
+
+    fun updateTrade(farmId: String, tradeId: String, draft: TradeDraft): Trade {
+        val farm = getFarm(farmId)
+        val index = farm.trades.indexOfFirst { it.id == tradeId }
+        require(index >= 0) { "Trade not found: $tradeId" }
+        val trade = draft.toTrade(tradeId)
+        FarmStateValidator.validateTrade(farm, trade)
+        val updatedTrades = farm.trades.toMutableList()
+        updatedTrades[index] = trade
+        val updated = farm.copy(trades = updatedTrades)
+        store.saveFarm(updated)
+        return trade
+    }
+
+    fun deleteTrade(farmId: String, tradeId: String) {
+        val farm = getFarm(farmId)
+        val updatedTrades = farm.trades.filterNot { it.id == tradeId }
+        require(updatedTrades.size < farm.trades.size) { "Trade not found: $tradeId" }
+        store.saveFarm(farm.copy(trades = updatedTrades.toMutableList()))
+    }
+
+    fun trade(farmId: String, tradeId: String): Trade? = getFarm(farmId).trades.firstOrNull { it.id == tradeId }
+
+    fun trades(farmId: String): List<Trade> = getFarm(farmId).tradesNewestFirst()
 
     fun parties(farmId: String): List<Party> {
         val farm = getFarm(farmId)
@@ -178,11 +218,12 @@ data class FarmState(
     val entries: MutableList<FarmEntry> = mutableListOf(),
     val transactions: MutableList<FarmTransaction> = mutableListOf(),
     val parties: MutableList<Party> = mutableListOf(),
+    val trades: MutableList<Trade> = mutableListOf(),
     val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
 ) {
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 4
+        const val CURRENT_FARM_SCHEMA_VERSION = 5
     }
 }
 
@@ -190,6 +231,14 @@ fun FarmState.transactionsNewestFirst(): List<FarmTransaction> =
     transactions.withIndex()
         .sortedWith(
             compareByDescending<IndexedValue<FarmTransaction>> { it.value.occurredAt }
+                .thenByDescending { it.index }
+        )
+        .map { it.value }
+
+fun FarmState.tradesNewestFirst(): List<Trade> =
+    trades.withIndex()
+        .sortedWith(
+            compareByDescending<IndexedValue<Trade>> { it.value.occurredAt }
                 .thenByDescending { it.index }
         )
         .map { it.value }

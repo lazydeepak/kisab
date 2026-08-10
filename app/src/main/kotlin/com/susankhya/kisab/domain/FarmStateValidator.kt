@@ -28,10 +28,33 @@ object FarmStateValidator {
         farm.parties.forEach(::validateParty)
         val partyIds = farm.parties.map { it.id }
         require(partyIds.size == partyIds.toSet().size) { "Party IDs must be unique" }
+        farm.trades.forEach { validateTrade(farm, it) }
+        val tradeIds = farm.trades.map { it.id }
+        require(tradeIds.size == tradeIds.toSet().size) { "Trade IDs must be unique" }
     }
 
     fun validateParty(party: Party) {
         require(party.id.isNotBlank()) { "Party id is required" }
         require(party.name.isNotBlank()) { "Party name is required" }
+    }
+
+    fun validateTrade(farm: FarmState, trade: Trade) {
+        require(trade.id.isNotBlank()) { "Trade id is required" }
+        require(trade.totalMinor > 0) { "Trade total must be positive" }
+        require(trade.paidMinor >= 0) { "Trade paid amount must not be negative" }
+        require(trade.paidMinor <= trade.totalMinor) { "Trade paid amount cannot exceed the total" }
+        require(trade.occurredAt.format(DATE_TIME_FORMATTER).isNotBlank()) { "Trade date/time is required" }
+        if (trade.paidMinor < trade.totalMinor) {
+            require(!trade.partyId.isNullOrBlank()) { "Partially paid or unpaid trades require a party" }
+        }
+        val party = trade.partyId?.let { id -> farm.parties.firstOrNull { it.id == id } }
+        if (trade.partyId != null) {
+            requireNotNull(party) { "Trade party not found: ${trade.partyId}" }
+        }
+        party?.let {
+            require(it.role.compatibleWith(trade.type)) {
+                "Trade party role is incompatible with the trade type"
+            }
+        }
     }
 }

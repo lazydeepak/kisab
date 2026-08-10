@@ -210,6 +210,7 @@ class LocalizedResourceResolutionTest {
             R.string.party_notes_hint,
             R.string.party_role_customer,
             R.string.party_role_supplier,
+            R.string.party_role_both,
             R.string.party_role_other,
             R.string.save_party_action,
             R.string.error_party_name_required,
@@ -219,6 +220,65 @@ class LocalizedResourceResolutionTest {
             R.string.delete_party_action,
             R.string.toast_party_saved,
             R.string.toast_party_deleted
+        )
+        for (key in keys) {
+            val englishText = english.getString(key)
+            val nepaliText = nepali.getString(key)
+            assertTrue("English text blank for $key", englishText.isNotBlank())
+            assertTrue("Nepali text blank for $key", nepaliText.isNotBlank())
+            assertNotEquals("English fallback for $key", englishText, nepaliText)
+        }
+    }
+
+    @Test
+    fun tradeStringsResolveInBothLocales() {
+        val keys = listOf(
+            R.string.trade_type_sale,
+            R.string.trade_type_purchase,
+            R.string.new_sale_action,
+            R.string.new_purchase_action,
+            R.string.trade_editor_new_sale,
+            R.string.trade_editor_new_purchase,
+            R.string.trade_editor_edit_sale,
+            R.string.trade_editor_edit_purchase,
+            R.string.save_sale_action,
+            R.string.save_purchase_action,
+            R.string.update_trade_action,
+            R.string.cancel_trade_action,
+            R.string.delete_trade_action,
+            R.string.total_amount_label,
+            R.string.trade_party_label,
+            R.string.trade_party_none,
+            R.string.trade_party_hint,
+            R.string.trade_description_hint,
+            R.string.payment_status_label,
+            R.string.payment_status_paid,
+            R.string.payment_status_partial,
+            R.string.payment_status_unpaid,
+            R.string.amount_paid_label,
+            R.string.amount_due_label,
+            R.string.to_receive_label,
+            R.string.to_pay_label,
+            R.string.to_receive_summary_format,
+            R.string.to_pay_summary_format,
+            R.string.cash_sale_label,
+            R.string.cash_purchase_label,
+            R.string.trades_section,
+            R.string.trades_empty,
+            R.string.trade_row_format,
+            R.string.trade_row_status_due_format,
+            R.string.trade_row_paid,
+            R.string.trade_row_time_format,
+            R.string.dialog_delete_trade_title,
+            R.string.dialog_delete_trade_message,
+            R.string.error_party_has_trades,
+            R.string.error_party_role_incompatible,
+            R.string.error_trade_party_required,
+            R.string.error_trade_paid_out_of_range,
+            R.string.error_trade_total_required,
+            R.string.toast_trade_created,
+            R.string.toast_trade_updated,
+            R.string.toast_trade_deleted
         )
         for (key in keys) {
             val englishText = english.getString(key)
