@@ -25,6 +25,7 @@ object FarmOrdering {
             TransactionCategory.FEED,
             TransactionCategory.SUPPLIES,
             TransactionCategory.LABOR,
+            TransactionCategory.TRANSPORT,
             TransactionCategory.OTHER_EXPENSE
         )
     }

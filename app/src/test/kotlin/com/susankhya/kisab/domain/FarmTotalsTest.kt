@@ -108,7 +108,6 @@ class FarmTotalsTest {
             type = type,
             category = if (type == TransactionType.INCOME) TransactionCategory.SALES else TransactionCategory.FEED,
             amountMinor = amountMinor,
-            currency = "NPR",
             description = "d",
             occurredAt = OffsetDateTime.parse("2024-01-01T12:00:00Z")
         )

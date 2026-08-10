@@ -30,6 +30,7 @@ object FarmLabels {
         TransactionCategory.FEED -> R.string.transaction_category_feed
         TransactionCategory.SUPPLIES -> R.string.transaction_category_supplies
         TransactionCategory.LABOR -> R.string.transaction_category_labor
+        TransactionCategory.TRANSPORT -> R.string.transaction_category_transport
         TransactionCategory.OTHER_EXPENSE -> R.string.transaction_category_other_expense
     }
 

@@ -27,12 +27,13 @@ class FarmOrderingTest {
     }
 
     @Test
-    fun expenseShowsFeedSuppliesLaborOtherExpense() {
+    fun expenseShowsFeedSuppliesLaborTransportOtherExpense() {
         assertEquals(
             listOf(
                 TransactionCategory.FEED,
                 TransactionCategory.SUPPLIES,
                 TransactionCategory.LABOR,
+                TransactionCategory.TRANSPORT,
                 TransactionCategory.OTHER_EXPENSE
             ),
             FarmOrdering.categoriesFor(TransactionType.EXPENSE)

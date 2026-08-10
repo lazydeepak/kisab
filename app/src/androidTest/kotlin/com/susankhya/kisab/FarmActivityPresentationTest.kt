@@ -100,7 +100,7 @@ class FarmActivityPresentationTest {
                 val farm = service.loadFarm(service.currentFarmId()!!)!!
                 assertEquals(1, farm.transactions.size)
                 assertEquals(12345, farm.transactions.single().amountMinor)
-                assertEquals("NPR", farm.transactions.single().currency)
+                assertEquals("NPR", farm.currencyCode)
                 assertEquals(expectedInstant(2024, 1, 1, 17, 45), farm.transactions.single().occurredAt.toInstant().toString())
             }
         } finally {
@@ -115,9 +115,11 @@ class FarmActivityPresentationTest {
         try {
             createFarm("NPR Farm")
 
-            openExpenseEditor()
-            onView(withId(R.id.transactionCurrencyText)).check(matches(withText("NPR")))
+            openFarmTools()
+            onView(withId(R.id.farmCurrencyText)).check(matches(withText("NPR")))
+            onView(withId(R.id.farmToolsToggleButton)).perform(scrollTo(), click())
 
+            openExpenseEditor()
             setOccurredAt(2024, 1, 1, 17, 45)
             fillEditor(description = "Feed", amount = "१२३.४५")
             clickSave(scenario)
@@ -132,22 +134,20 @@ class FarmActivityPresentationTest {
     }
 
     @Test
-    fun usdFarmDerivesCurrencyAndDoesNotExposeFreeCurrencyEditing() {
+    fun usdFarmDerivesCurrencyAndLocksFarmCurrency() {
         seedTransaction(amountMinor = 1500, currency = "USD", description = "Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            openExpenseEditor()
-            onView(withId(R.id.transactionCurrencyText)).check(matches(withText("USD")))
-            onView(withId(R.id.changeCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            scenario.onActivity { activity ->
-                val view = activity.findViewById<View>(R.id.transactionCurrencyText)
-                assertFalse("Currency must not be a free-text field", view is EditText)
-            }
+            openFarmTools()
+            onView(withId(R.id.farmCurrencyText)).check(matches(withText("USD")))
+            onView(withId(R.id.changeFarmCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.farmCurrencyLockedText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             var money: String? = null
             scenario.onActivity { activity -> money = activity.formatMoney("USD", 1500) }
             assertTrue("Expected USD amount in recent row", recentRowText(scenario).contains(money!!))
 
+            openExpenseEditor()
             setOccurredAt(2024, 1, 1, 17, 45)
             fillEditor(description = "More feed", amount = "10.00")
             clickSave(scenario)
@@ -157,7 +157,7 @@ class FarmActivityPresentationTest {
                 val service = FarmSliceService(store)
                 val farm = service.loadFarm(service.currentFarmId()!!)!!
                 assertEquals(2, farm.transactions.size)
-                assertTrue(farm.transactions.all { it.currency == "USD" })
+                assertEquals("USD", farm.currencyCode)
             }
         } finally {
             scenario.close()
@@ -231,7 +231,7 @@ class FarmActivityPresentationTest {
             assertNotNull(backup)
 
             val envelope = FarmBackupCodec.decode(backup!!)
-            assertEquals("NPR", envelope.farm.transactions.single().currency)
+            assertEquals("NPR", envelope.farm.currencyCode)
             assertEquals(12345, envelope.farm.transactions.single().amountMinor)
 
             SharedPreferencesFarmStore(context).clear()
@@ -307,18 +307,21 @@ class FarmActivityPresentationTest {
     ) {
         val store = SharedPreferencesFarmStore(context)
         val service = FarmSliceService(store)
-        val farm = service.createFarm("Demo Farm")
+        val farm = service.createFarm("Demo Farm", currencyCode = currency)
         service.createTransaction(
             farm.id,
             FarmTransactionDraft(
                 type = if (income) TransactionType.INCOME else TransactionType.EXPENSE,
                 category = if (income) TransactionCategory.SALES else TransactionCategory.FEED,
                 amountMinor = amountMinor,
-                currency = currency,
                 description = description,
                 occurredAt = occurredAt
             )
         )
+    }
+
+    private fun openFarmTools() {
+        onView(withId(R.id.farmToolsToggleButton)).perform(scrollTo(), click())
     }
 
     private fun setAppLocale(locale: Locale) {

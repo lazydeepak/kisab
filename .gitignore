@@ -15,3 +15,6 @@ keystores/
 
 # M4-04 validation evidence (APKs, screenshots, backups never committed)
 .m4-04-evidence/
+
+# M4-05 validation evidence (APKs, keystores, backups never committed)
+.m4-05-evidence/

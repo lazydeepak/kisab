@@ -37,9 +37,10 @@ class InMemoryFarmStore : FarmStore {
 }
 
 class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
-    fun createFarm(name: String): FarmState {
+    fun createFarm(name: String, currencyCode: String = FarmState.DEFAULT_CURRENCY_CODE): FarmState {
         require(name.isNotBlank()) { "Farm name is required" }
-        val farm = FarmState(id = "farm-${UUID.randomUUID()}", name = name)
+        require(currencyCode.matches(CURRENCY_CODE_PATTERN)) { "Farm currency must be a 3-letter ISO code" }
+        val farm = FarmState(id = "farm-${UUID.randomUUID()}", name = name, currencyCode = currencyCode.uppercase())
         store.saveFarm(farm)
         store.setCurrentFarmId(farm.id)
         return farm
@@ -87,13 +88,19 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         store.saveFarm(updated)
     }
 
+    fun setFarmCurrency(farmId: String, currencyCode: String) {
+        val farm = getFarm(farmId)
+        require(farm.transactions.isEmpty()) { "Farm currency cannot change after transactions are recorded" }
+        require(currencyCode.matches(CURRENCY_CODE_PATTERN)) { "Farm currency must be a 3-letter ISO code" }
+        store.saveFarm(farm.copy(currencyCode = currencyCode.trim().uppercase()))
+    }
+
     fun transactionsNewestFirst(farmId: String): List<FarmTransaction> =
         getFarm(farmId).transactionsNewestFirst()
 
     fun summary(farmId: String): FarmSummary {
         val farm = getFarm(farmId)
         FarmStateValidator.validateFarm(farm)
-        val currencies = farm.transactions.map { it.currency }.toSet()
         var balanceMinor = 0L
         for (transaction in farm.transactions) {
             val signedAmount = if (transaction.type == TransactionType.INCOME) {
@@ -109,7 +116,7 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
             entryCount = farm.entries.size,
             transactionCount = farm.transactions.size,
             balanceMinor = balanceMinor,
-            currencyCode = currencies.firstOrNull()
+            currencyCode = farm.currencyCode
         )
     }
 
@@ -118,15 +125,25 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
     private fun getFarm(farmId: String): FarmState =
         store.loadFarm(farmId) ?: throw IllegalArgumentException("Unknown farm: $farmId")
 
+    companion object {
+        private val CURRENCY_CODE_PATTERN = Regex("^[A-Z]{3}$")
+    }
+
 }
 
 data class FarmState(
     val id: String,
     val name: String,
+    val currencyCode: String = DEFAULT_CURRENCY_CODE,
     val entries: MutableList<FarmEntry> = mutableListOf(),
     val transactions: MutableList<FarmTransaction> = mutableListOf(),
-    val schemaVersion: Int = 2
-)
+    val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
+) {
+    companion object {
+        const val DEFAULT_CURRENCY_CODE = "NPR"
+        const val CURRENT_FARM_SCHEMA_VERSION = 3
+    }
+}
 
 fun FarmState.transactionsNewestFirst(): List<FarmTransaction> =
     transactions.withIndex()
@@ -159,6 +176,7 @@ enum class TransactionCategory(val type: TransactionType) {
     FEED(TransactionType.EXPENSE),
     SUPPLIES(TransactionType.EXPENSE),
     LABOR(TransactionType.EXPENSE),
+    TRANSPORT(TransactionType.EXPENSE),
     OTHER_EXPENSE(TransactionType.EXPENSE)
 }
 
@@ -166,7 +184,6 @@ data class FarmTransactionDraft(
     val type: TransactionType,
     val category: TransactionCategory,
     val amountMinor: Long,
-    val currency: String,
     val description: String,
     val occurredAt: String
 ) {
@@ -176,7 +193,6 @@ data class FarmTransactionDraft(
             type = type,
             category = category,
             amountMinor = amountMinor,
-            currency = currency.trim().uppercase(),
             description = description.trim(),
             occurredAt = OffsetDateTime.parse(occurredAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                 .withOffsetSameInstant(ZoneOffset.UTC)
@@ -191,7 +207,6 @@ data class FarmTransaction(
     val type: TransactionType,
     val category: TransactionCategory,
     val amountMinor: Long,
-    val currency: String,
     val description: String,
     val occurredAt: OffsetDateTime
 )

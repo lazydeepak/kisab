@@ -85,8 +85,6 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var transactionDescriptionInput: EditText
     private lateinit var transactionDateTimeText: TextView
     private lateinit var changeDateTimeButton: Button
-    private lateinit var transactionCurrencyText: TextView
-    private lateinit var changeCurrencyButton: Button
     private lateinit var validationMessageText: TextView
     private lateinit var saveTransactionButton: Button
     private lateinit var cancelTransactionButton: Button
@@ -97,6 +95,9 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var farmToolsContainer: LinearLayoutCompat
     private lateinit var summaryText: TextView
     private lateinit var entriesText: TextView
+    private lateinit var farmCurrencyText: TextView
+    private lateinit var changeFarmCurrencyButton: Button
+    private lateinit var farmCurrencyLockedText: TextView
     private lateinit var entryKindSpinner: Spinner
     private lateinit var entryLabelInput: EditText
     private lateinit var entryQuantityInput: EditText
@@ -218,8 +219,6 @@ class FarmActivity : AppCompatActivity() {
         transactionDescriptionInput = findViewById(R.id.transactionDescriptionInput)
         transactionDateTimeText = findViewById(R.id.transactionDateTimeText)
         changeDateTimeButton = findViewById(R.id.changeDateTimeButton)
-        transactionCurrencyText = findViewById(R.id.transactionCurrencyText)
-        changeCurrencyButton = findViewById(R.id.changeCurrencyButton)
         validationMessageText = findViewById(R.id.validationMessageText)
         saveTransactionButton = findViewById(R.id.saveTransactionButton)
         cancelTransactionButton = findViewById(R.id.cancelTransactionButton)
@@ -230,6 +229,9 @@ class FarmActivity : AppCompatActivity() {
         farmToolsContainer = findViewById(R.id.farmToolsContainer)
         summaryText = findViewById(R.id.summaryText)
         entriesText = findViewById(R.id.entriesText)
+        farmCurrencyText = findViewById(R.id.farmCurrencyText)
+        changeFarmCurrencyButton = findViewById(R.id.changeFarmCurrencyButton)
+        farmCurrencyLockedText = findViewById(R.id.farmCurrencyLockedText)
         entryKindSpinner = findViewById(R.id.entryKindSpinner)
         entryLabelInput = findViewById(R.id.entryLabelInput)
         entryQuantityInput = findViewById(R.id.entryQuantityInput)
@@ -268,7 +270,7 @@ class FarmActivity : AppCompatActivity() {
         cancelTransactionButton.setOnClickListener { cancelEditing() }
         deleteTransactionButton.setOnClickListener { deleteTransaction() }
         changeDateTimeButton.setOnClickListener { showDateTimePickers() }
-        changeCurrencyButton.setOnClickListener { showCurrencyChooser() }
+        changeFarmCurrencyButton.setOnClickListener { showFarmCurrencyChooser() }
         farmToolsToggleButton.setOnClickListener { toggleFarmTools() }
     }
 
@@ -320,7 +322,6 @@ class FarmActivity : AppCompatActivity() {
     private fun openEditorForNew(type: TransactionType) {
         val state = TransactionEditorState.create(
             type = type,
-            currency = currentFarmCurrency(),
             occurredAt = OffsetDateTime.now(deviceZone)
         )
         applyEditorState(state, baseline = state)
@@ -332,12 +333,16 @@ class FarmActivity : AppCompatActivity() {
             transactionId = transaction.id,
             type = transaction.type,
             category = transaction.category,
-            amountText = moneyFormatter.toEditFieldValue(presentationLocale, transaction.currency, transaction.amountMinor),
+            amountText = moneyFormatter.toEditFieldValue(presentationLocale, farmCurrencyOf(transaction), transaction.amountMinor),
             description = transaction.description,
-            occurredAt = transaction.occurredAt,
-            currency = transaction.currency
+            occurredAt = transaction.occurredAt
         )
         applyEditorState(state, baseline = state)
+    }
+
+    private fun farmCurrencyOf(transaction: FarmTransaction): String {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        return farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
     }
 
     private fun applyEditorState(state: TransactionEditorState, baseline: TransactionEditorState) {
@@ -357,7 +362,6 @@ class FarmActivity : AppCompatActivity() {
         transactionAmountInput.setText(state.amountText)
         transactionDescriptionInput.setText(state.description)
         updateDateTimeDisplay()
-        updateCurrencyDisplay()
         saveTransactionButton.text = string(saveActionRes(state))
         deleteTransactionButton.visibility =
             if (state.mode == TransactionEditorMode.EDIT) View.VISIBLE else View.GONE
@@ -427,21 +431,9 @@ class FarmActivity : AppCompatActivity() {
     private fun saveTransaction() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentEditorState() ?: return
-        if (!state.currency.matches(Regex("^[A-Z]{3}$"))) {
-            showEditorError(FarmUiError.CURRENCY_ISO_THREE_LETTERS, null)
-            return
-        }
         val farm = service.loadFarm(farmId)
-        val farmCurrency = farm?.transactions
-            ?.filterNot { it.id == state.transactionId }
-            ?.map { it.currency }
-            ?.toSet()
-            .orEmpty()
-        if (farmCurrency.isNotEmpty() && state.currency !in farmCurrency) {
-            showEditorError(FarmUiError.CURRENCY_MISMATCH, null, farmCurrency.first())
-            return
-        }
-        val amount = when (val result = moneyInputParser.parse(presentationLocale, state.currency, state.amountText)) {
+        val farmCurrency = farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
+        val amount = when (val result = moneyInputParser.parse(presentationLocale, farmCurrency, state.amountText)) {
             is MoneyInputResult.Valid -> result.amountMinor
             MoneyInputResult.Missing -> return showEditorError(FarmUiError.AMOUNT_REQUIRED, transactionAmountInput)
             MoneyInputResult.NotPositive -> return showEditorError(FarmUiError.AMOUNT_NOT_POSITIVE, transactionAmountInput)
@@ -460,7 +452,6 @@ class FarmActivity : AppCompatActivity() {
             type = state.type,
             category = state.category,
             amountMinor = amount,
-            currency = state.currency,
             description = state.description,
             occurredAt = occurredAt
         )
@@ -528,12 +519,12 @@ class FarmActivity : AppCompatActivity() {
         datePicker.show()
     }
 
-    private fun showCurrencyChooser() {
+    private fun showFarmCurrencyChooser() {
         val input = EditText(this).apply {
             id = R.id.currencyInput
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
             hint = string(R.string.currency_iso_hint)
-            setText(editorState?.currency.orEmpty())
+            setText(currentFarmCurrencyOrNull())
             setSelection(text?.length ?: 0)
         }
         val errorText = TextView(this).apply {
@@ -558,7 +549,7 @@ class FarmActivity : AppCompatActivity() {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val code = input.text?.toString()?.trim()?.uppercase(Locale.US).orEmpty()
                 if (code.matches(Regex("^[A-Z]{3}$"))) {
-                    applyCurrencyChange(code)
+                    applyFarmCurrencyChange(code)
                     dialog.dismiss()
                 } else {
                     errorText.text = string(R.string.error_currency_iso_three_letters)
@@ -568,9 +559,20 @@ class FarmActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun applyCurrencyChange(code: String) {
-        editorState = editorState?.copy(currency = code)
-        updateCurrencyDisplay()
+    private fun applyFarmCurrencyChange(code: String) {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        try {
+            service.setFarmCurrency(farmId, code)
+            render()
+        } catch (exception: Exception) {
+            showValidationMessage(FarmUiError.CURRENCY_LOCKED.resourceId)
+            Log.e(LOG_TAG, "change farm currency failed", exception)
+        }
+    }
+
+    private fun currentFarmCurrencyOrNull(): String {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        return farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
     }
 
     private fun updateDateTimeDisplay() {
@@ -585,32 +587,6 @@ class FarmActivity : AppCompatActivity() {
         } else {
             timePresentation.displayDateTime(presentationLocale, deviceZone, occurredAt)
         }
-    }
-
-    private fun updateCurrencyDisplay() {
-        val state = editorState ?: return
-        transactionCurrencyText.text = state.currency
-        val showChange = when (state.mode) {
-            TransactionEditorMode.CREATE -> farmHasNoTransactions()
-            TransactionEditorMode.EDIT -> isSoleTransaction(state.transactionId)
-        }
-        changeCurrencyButton.visibility = if (showChange) View.VISIBLE else View.GONE
-    }
-
-    private fun currentFarmCurrency(): String {
-        val farm = currentFarmId?.let { service.loadFarm(it) }
-        return farm?.transactions?.firstOrNull()?.currency ?: "NPR"
-    }
-
-    private fun farmHasNoTransactions(): Boolean {
-        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return true
-        return farm.transactions.isEmpty()
-    }
-
-    private fun isSoleTransaction(transactionId: String?): Boolean {
-        if (transactionId == null) return false
-        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return false
-        return farm.transactions.size == 1 && farm.transactions.single().id == transactionId
     }
 
     private fun showDiscardDialog(onDiscard: () -> Unit) {
@@ -647,7 +623,6 @@ class FarmActivity : AppCompatActivity() {
         bundle.putString(prefix + STATE_EDITOR_AMOUNT, state.amountText)
         bundle.putString(prefix + STATE_EDITOR_DESCRIPTION, state.description)
         bundle.putString(prefix + STATE_EDITOR_OCCURRED_AT, state.occurredAt.toInstant().toString())
-        bundle.putString(prefix + STATE_EDITOR_CURRENCY, state.currency)
     }
 
     private fun readEditorState(bundle: Bundle, prefix: String): TransactionEditorState? {
@@ -663,7 +638,6 @@ class FarmActivity : AppCompatActivity() {
         val occurredAt = bundle.getString(prefix + STATE_EDITOR_OCCURRED_AT)?.let {
             runCatching { OffsetDateTime.parse(it) }.getOrNull()
         } ?: return null
-        val currency = bundle.getString(prefix + STATE_EDITOR_CURRENCY) ?: return null
         return TransactionEditorState(
             mode = mode,
             transactionId = bundle.getString(prefix + STATE_EDITOR_TRANSACTION_ID),
@@ -671,8 +645,7 @@ class FarmActivity : AppCompatActivity() {
             category = category,
             amountText = bundle.getString(prefix + STATE_EDITOR_AMOUNT).orEmpty(),
             description = bundle.getString(prefix + STATE_EDITOR_DESCRIPTION).orEmpty(),
-            occurredAt = occurredAt,
-            currency = currency
+            occurredAt = occurredAt
         )
     }
 
@@ -694,7 +667,7 @@ class FarmActivity : AppCompatActivity() {
 
     private fun renderFarm(farm: FarmState) {
         farmNameText.text = farm.name
-        val currency = farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "NPR"
+        val currency = farm.currencyCode
         val totals = try {
             FarmTotals.of(farm.transactions)
         } catch (exception: ArithmeticException) {
@@ -706,11 +679,11 @@ class FarmActivity : AppCompatActivity() {
         incomeText.text = string(R.string.overview_income_format, formatMoney(currency, totals.incomeMinor))
         expensesText.text = string(R.string.overview_expenses_format, formatMoney(currency, totals.expensesMinor))
         firstActionPrompt.visibility = if (farm.transactions.isEmpty()) View.VISIBLE else View.GONE
-        renderRecentTransactions(farm)
+        renderRecentTransactions(farm, currency)
         renderFarmTools(farm, currency, totals)
     }
 
-    private fun renderRecentTransactions(farm: FarmState) {
+    private fun renderRecentTransactions(farm: FarmState, currency: String) {
         val transactions = farm.transactionsNewestFirst()
         recentTransactionsContainer.removeAllViews()
         if (transactions.isEmpty()) {
@@ -730,13 +703,13 @@ class FarmActivity : AppCompatActivity() {
                 FarmLabels.transactionType(this, transaction.type),
                 FarmLabels.transactionCategory(this, transaction.category),
                 transaction.description,
-                formatMoney(transaction.currency, transaction.amountMinor)
+                formatMoney(currency, transaction.amountMinor)
             )
             row.contentDescription = string(
                 R.string.recent_transaction_accessibility_format,
                 FarmLabels.transactionType(this, transaction.type),
                 transaction.description,
-                formatMoney(transaction.currency, transaction.amountMinor)
+                formatMoney(currency, transaction.amountMinor)
             )
             row.setOnClickListener {
                 confirmDiscardIfNeeded { openEditorForTransaction(transaction) }
@@ -752,6 +725,10 @@ class FarmActivity : AppCompatActivity() {
             numberFormatter.format(presentationLocale, farm.entries.size),
             formatMoney(currency, totals.balanceMinor)
         )
+        val canChangeCurrency = farm.transactions.isEmpty()
+        farmCurrencyText.text = currency
+        changeFarmCurrencyButton.visibility = if (canChangeCurrency) View.VISIBLE else View.GONE
+        farmCurrencyLockedText.visibility = if (canChangeCurrency) View.GONE else View.VISIBLE
         entriesText.text = if (farm.entries.isEmpty()) {
             string(R.string.empty_entries)
         } else {
@@ -848,7 +825,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun buildImportedFarmSummary(farm: FarmState): String {
-        val currencyCode = farm.transactions.map { it.currency }.toSet().firstOrNull() ?: "NPR"
+        val currencyCode = farm.currencyCode
         val totals = try {
             FarmTotals.of(farm.transactions)
         } catch (exception: ArithmeticException) {
@@ -954,7 +931,6 @@ class FarmActivity : AppCompatActivity() {
         const val STATE_EDITOR_AMOUNT = "Amount"
         const val STATE_EDITOR_DESCRIPTION = "Description"
         const val STATE_EDITOR_OCCURRED_AT = "OccurredAt"
-        const val STATE_EDITOR_CURRENCY = "Currency"
         const val STATE_TOOLS_EXPANDED = "toolsExpanded"
     }
 }

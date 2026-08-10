@@ -23,7 +23,7 @@ enum class FarmUiError(@StringRes val resourceId: Int) {
     AMOUNT_TOO_PRECISE(R.string.error_transaction_amount_too_precise),
     AMOUNT_TOO_LARGE(R.string.error_transaction_amount_too_large),
     CURRENCY_ISO_THREE_LETTERS(R.string.error_currency_iso_three_letters),
-    CURRENCY_MISMATCH(R.string.error_transaction_currency_mismatch),
+    CURRENCY_LOCKED(R.string.error_currency_locked),
     BACKUP_INVALID_OR_UNSUPPORTED(R.string.error_backup_invalid_or_unsupported),
     BACKUP_TOO_LARGE_OR_UNREADABLE(R.string.error_backup_too_large_or_unreadable),
     CURRENT_FARM_MISSING(R.string.error_current_farm_missing),

@@ -52,7 +52,8 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Feed | Feed | दाना (dana) | चारा | Expense transaction category (animal fodder) | Provisional | Rendered in Nepali; used for feed expense (M4-04-01) | Pending |
 | Supplies | Supplies | सामग्री (samagri) | — | Expense transaction category | Provisional | Rendered in Nepali; used for seeds/fertilizer (M4-04-02) | Pending |
 | Labor | Labor | श्रम (shram) | ज्याला | Expense transaction category | Provisional | Rendered in Nepali; used for worker payment (M4-04-01) | Pending |
-| Other expense | Other expense | अन्य खर्च (anya kharcha) | — | Catch-all expense category | Provisional | Rendered in Nepali; used for transport in Scenario B because no transport category exists (M4-04-D001) | Pending |
+| Transport | Transport | यातायात (yatayat) | ढुवानी | Expense transaction category (haulage/market transport) | Provisional | Rendered in Nepali; new category added for M4-05-D001 | Pending |
+| Other expense | Other expense | अन्य खर्च (anya kharcha) | — | Catch-all expense category | Provisional | Rendered in Nepali; no longer the fallback for transport since M4-05-D001 | Pending |
 | Count | Count | सङ्ख्या (sankhya) | गणना | Number of entries or transactions | Provisional |  | Pending |
 | None yet | None yet | कुनै ... छैन (kunai ... chaina) | खाली | No entries/transactions recorded yet | Provisional |  | Pending |
 | Required | Required | आवश्यक छ (awashyak cha) | चाहिन्छ | A field must be provided | Provisional |  | Pending |

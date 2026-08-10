@@ -33,6 +33,7 @@
     <string name="transaction_category_feed">Feed</string>
     <string name="transaction_category_supplies">Supplies</string>
     <string name="transaction_category_labor">Labor</string>
+    <string name="transaction_category_transport">Transport</string>
     <string name="transaction_category_other_expense">Other expense</string>
 
     <string name="empty_entries">No entries yet</string>
@@ -44,7 +45,6 @@
     <string name="transaction_editor_new_section">New transaction</string>
     <string name="transaction_editor_edit_section">Edit transaction</string>
     <string name="transaction_date_time_label">Date/time</string>
-    <string name="transaction_currency_label">Currency</string>
     <string name="change_date_time_action">Change date and time</string>
     <string name="change_currency_action">Change currency</string>
     <string name="save_income_action">Save income</string>
@@ -63,6 +63,8 @@
     <string name="farm_tools_section">Farm tools</string>
     <string name="show_farm_tools_action">Show farm tools</string>
     <string name="hide_farm_tools_action">Hide farm tools</string>
+    <string name="farm_currency_label">Currency</string>
+    <string name="currency_locked_note">Currency is locked after transactions are recorded.</string>
     <string name="backup_section">Backup</string>
 
     <string name="farm_tools_summary_format">Farm: %1$s\nEntry count: %2$s\nBalance: %3$s</string>
@@ -104,7 +106,7 @@
     <string name="error_transaction_amount_too_precise">Amount has too many decimal places for this currency</string>
     <string name="error_transaction_amount_too_large">Amount is too large</string>
     <string name="error_currency_iso_three_letters">Currency must be a three-letter ISO code</string>
-    <string name="error_transaction_currency_mismatch">Amounts must use the farm\'s currency: %1$s</string>
+    <string name="error_currency_locked">Currency cannot change after transactions are recorded</string>
     <string name="error_backup_invalid_or_unsupported">Invalid or unsupported backup</string>
     <string name="error_backup_too_large_or_unreadable">Backup is too large or unreadable</string>
     <string name="error_current_farm_missing">Create a farm first</string>
