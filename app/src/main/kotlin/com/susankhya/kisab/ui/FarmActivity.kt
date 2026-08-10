@@ -49,10 +49,11 @@ import com.susankhya.kisab.domain.TradeDraft
 import com.susankhya.kisab.domain.TradeType
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
+import com.susankhya.kisab.domain.Settlement
+import com.susankhya.kisab.domain.SettlementDraft
+import com.susankhya.kisab.domain.TradePaymentSummary
 import com.susankhya.kisab.domain.compatibleWith
-import com.susankhya.kisab.domain.outstandingMinor
-import com.susankhya.kisab.domain.paymentStatus
-import com.susankhya.kisab.domain.paymentStatusOf
+import com.susankhya.kisab.domain.paymentSummaryFor
 import com.susankhya.kisab.domain.transactionsNewestFirst
 import com.susankhya.kisab.persistence.AndroidStorageAccessFrameworkBackupFileAdapter
 import com.susankhya.kisab.persistence.FarmBackupCodec
@@ -127,8 +128,33 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var saveTradeButton: Button
     private lateinit var cancelTradeButton: Button
     private lateinit var deleteTradeButton: Button
+    private lateinit var tradePaidDueText: TextView
+    private lateinit var managePaymentsButton: Button
+    private lateinit var tradeStatusLabel: TextView
+    private lateinit var tradeStatusRadioGroup: RadioGroup
     private lateinit var tradesEmptyText: TextView
     private lateinit var tradesContainer: LinearLayout
+
+    private lateinit var settlementEditorContainer: androidx.appcompat.widget.LinearLayoutCompat
+    private lateinit var settlementEditorTitle: TextView
+    private lateinit var settlementTradeSummaryText: TextView
+    private lateinit var settlementPaidDueText: TextView
+    private lateinit var settlementEditorFormTitle: TextView
+    private lateinit var settlementAmountLabel: TextView
+    private lateinit var settlementAmountInput: EditText
+    private lateinit var settlementDateTimeLabel: TextView
+    private lateinit var settlementDateTimeText: TextView
+    private lateinit var changeSettlementDateTimeButton: Button
+    private lateinit var settlementNoteInput: EditText
+    private lateinit var settlementValidationMessageText: TextView
+    private lateinit var saveSettlementButton: Button
+    private lateinit var cancelSettlementFormButton: Button
+    private lateinit var deleteSettlementButton: Button
+    private lateinit var settlementsHistoryLabel: TextView
+    private lateinit var settlementsEmptyText: TextView
+    private lateinit var settlementsContainer: LinearLayout
+    private lateinit var addSettlementButton: Button
+    private lateinit var doneSettlementsButton: Button
 
     private lateinit var settingsCurrencyText: TextView
     private lateinit var changeSettingsCurrencyButton: Button
@@ -194,6 +220,9 @@ class FarmActivity : AppCompatActivity() {
     private var tradeEditorState: TradeEditorState? = null
     private var tradeEditorBaseline: TradeEditorState? = null
     private var tradeParties: List<Party?> = emptyList()
+    private var settlementEditorState: SettlementEditorState? = null
+    private var settlementEditorBaseline: SettlementEditorState? = null
+    private var settlementTargetTradeId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -254,6 +283,16 @@ class FarmActivity : AppCompatActivity() {
                     } else {
                         closeEditor()
                     }
+                } else if (currentDestination == Destination.HISAB_KITAB && settlementTargetTradeId != null) {
+                    if (settlementEditorState != null) {
+                        if (isSettlementEditorDirty()) {
+                            showDiscardDialog { cancelSettlementForm() }
+                        } else {
+                            cancelSettlementForm()
+                        }
+                    } else {
+                        closeSettlementEditor()
+                    }
                 } else if (currentDestination == Destination.HISAB_KITAB && tradeEditorState != null) {
                     if (isTradeEditorDirty()) {
                         showDiscardDialog { closeTradeEditor() }
@@ -281,6 +320,7 @@ class FarmActivity : AppCompatActivity() {
         showDestination(currentDestination)
         restoreEditorFrom(savedInstanceState)
         restoreTradeEditorFrom(savedInstanceState)
+        restoreSettlementEditorFrom(savedInstanceState)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -300,6 +340,17 @@ class FarmActivity : AppCompatActivity() {
             writeTradeEditorState(outState, STATE_TRADE_EDITOR_PREFIX, tradeState)
             tradeEditorBaseline?.let {
                 writeTradeEditorState(outState, STATE_TRADE_EDITOR_BASELINE_PREFIX, it)
+            }
+        }
+        settlementTargetTradeId?.let { target ->
+            outState.putString(STATE_SETTLEMENT_TARGET_TRADE_ID, target)
+            val settlementState = currentSettlementEditorState()
+            if (settlementState != null) {
+                outState.putBoolean(STATE_SETTLEMENT_EDITOR_OPEN, true)
+                writeSettlementEditorState(outState, STATE_SETTLEMENT_EDITOR_PREFIX, settlementState)
+                settlementEditorBaseline?.let {
+                    writeSettlementEditorState(outState, STATE_SETTLEMENT_EDITOR_BASELINE_PREFIX, it)
+                }
             }
         }
     }
@@ -415,8 +466,32 @@ class FarmActivity : AppCompatActivity() {
         saveTradeButton = findViewById(R.id.saveTradeButton)
         cancelTradeButton = findViewById(R.id.cancelTradeButton)
         deleteTradeButton = findViewById(R.id.deleteTradeButton)
+        tradePaidDueText = findViewById(R.id.tradePaidDueText)
+        managePaymentsButton = findViewById(R.id.managePaymentsButton)
+        tradeStatusLabel = findViewById(R.id.tradeStatusLabel)
+        tradeStatusRadioGroup = findViewById(R.id.tradeStatusRadioGroup)
         tradesEmptyText = findViewById(R.id.tradesEmptyText)
         tradesContainer = findViewById(R.id.tradesContainer)
+        settlementEditorContainer = findViewById(R.id.settlementEditorContainer)
+        settlementEditorTitle = findViewById(R.id.settlementEditorTitle)
+        settlementTradeSummaryText = findViewById(R.id.settlementTradeSummaryText)
+        settlementPaidDueText = findViewById(R.id.settlementPaidDueText)
+        settlementEditorFormTitle = findViewById(R.id.settlementEditorFormTitle)
+        settlementAmountLabel = findViewById(R.id.settlementAmountLabel)
+        settlementAmountInput = findViewById(R.id.settlementAmountInput)
+        settlementDateTimeLabel = findViewById(R.id.settlementDateTimeLabel)
+        settlementDateTimeText = findViewById(R.id.settlementDateTimeText)
+        changeSettlementDateTimeButton = findViewById(R.id.changeSettlementDateTimeButton)
+        settlementNoteInput = findViewById(R.id.settlementNoteInput)
+        settlementValidationMessageText = findViewById(R.id.settlementValidationMessageText)
+        saveSettlementButton = findViewById(R.id.saveSettlementButton)
+        cancelSettlementFormButton = findViewById(R.id.cancelSettlementFormButton)
+        deleteSettlementButton = findViewById(R.id.deleteSettlementButton)
+        settlementsHistoryLabel = findViewById(R.id.settlementsHistoryLabel)
+        settlementsEmptyText = findViewById(R.id.settlementsEmptyText)
+        settlementsContainer = findViewById(R.id.settlementsContainer)
+        addSettlementButton = findViewById(R.id.addSettlementButton)
+        doneSettlementsButton = findViewById(R.id.doneSettlementsButton)
     }
 
     private fun wireListeners() {
@@ -432,7 +507,9 @@ class FarmActivity : AppCompatActivity() {
         shellSettingsButton.setOnClickListener { navigateTo(Destination.SETTINGS) }
 
         addPartyButton.setOnClickListener {
-            confirmDiscardTradeIfNeeded { openPartyEditor(null) }
+            confirmDiscardTradeIfNeeded {
+                confirmDiscardSettlementIfNeeded { openPartyEditor(null) }
+            }
         }
         savePartyButton.setOnClickListener { saveParty() }
         cancelPartyButton.setOnClickListener { closePartyEditor() }
@@ -453,6 +530,13 @@ class FarmActivity : AppCompatActivity() {
         tradeStatusUnpaidRadio.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) onTradePaymentStatusChanged(PaymentStatus.UNPAID)
         }
+        managePaymentsButton.setOnClickListener { openPaymentsForTradeBeingEdited() }
+        addSettlementButton.setOnClickListener { newSettlementForm() }
+        doneSettlementsButton.setOnClickListener { closeSettlementEditor() }
+        saveSettlementButton.setOnClickListener { saveSettlement() }
+        cancelSettlementFormButton.setOnClickListener { cancelSettlementEditing() }
+        deleteSettlementButton.setOnClickListener { confirmDeleteSettlement() }
+        changeSettlementDateTimeButton.setOnClickListener { showSettlementDateTimePickers() }
 
         val languageRadios = listOf(
             languageFollowDeviceRadio to AppLanguage.FOLLOW_DEVICE,
@@ -491,7 +575,13 @@ class FarmActivity : AppCompatActivity() {
             render()
             return
         }
-        confirmDiscardIfNeeded { confirmDiscardTradeIfNeeded { confirmDiscardPartyIfNeeded { showDestination(destination) } } }
+        confirmDiscardIfNeeded {
+            confirmDiscardSettlementIfNeeded {
+                confirmDiscardTradeIfNeeded {
+                    confirmDiscardPartyIfNeeded { showDestination(destination) }
+                }
+            }
+        }
     }
 
     private fun showDestination(destination: Destination) {
@@ -535,10 +625,10 @@ if (destination == Destination.SETTINGS) renderSettings()
         hisabSummaryContainer.visibility = View.VISIBLE
         val currency = farm.currencyCode
         val toReceive = farm.trades.filter { it.type == TradeType.SALE }.fold(0L) { acc, trade ->
-            Math.addExact(acc, trade.outstandingMinor())
+            Math.addExact(acc, farm.settlements.paymentSummaryFor(trade).outstandingMinor)
         }
         val toPay = farm.trades.filter { it.type == TradeType.PURCHASE }.fold(0L) { acc, trade ->
-            Math.addExact(acc, trade.outstandingMinor())
+            Math.addExact(acc, farm.settlements.paymentSummaryFor(trade).outstandingMinor)
         }
         toReceiveText.text = string(R.string.to_receive_summary_format, formatMoney(currency, toReceive))
         toPayText.text = string(R.string.to_pay_summary_format, formatMoney(currency, toPay))
@@ -553,6 +643,7 @@ if (destination == Destination.SETTINGS) renderSettings()
         val farm = service.loadFarm(farmId)
         val currency = farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
         val trades = service.trades(farmId)
+        val settlements = farm?.settlements.orEmpty()
         tradesEmptyText.visibility = if (trades.isEmpty()) View.VISIBLE else View.GONE
         tradesContainer.removeAllViews()
         if (trades.isEmpty()) return
@@ -560,10 +651,11 @@ if (destination == Destination.SETTINGS) renderSettings()
         trades.forEach { trade ->
             val row = inflater.inflate(R.layout.item_trade_row, tradesContainer, false) as TextView
             row.setTag(trade.id)
-            val statusText = if (trade.paymentStatus() == PaymentStatus.PAID) {
+            val summary = settlements.paymentSummaryFor(trade)
+            val statusText = if (summary.status == PaymentStatus.PAID) {
                 string(R.string.trade_row_paid)
             } else {
-                string(R.string.trade_row_status_due_format, formatMoney(currency, trade.outstandingMinor()))
+                string(R.string.trade_row_status_due_format, formatMoney(currency, summary.outstandingMinor))
             }
             row.text = string(
                 R.string.trade_row_format,
@@ -602,14 +694,15 @@ if (destination == Destination.SETTINGS) renderSettings()
     private fun openTradeEditorForTrade(trade: Trade) {
         confirmDiscardIfNeeded {
             confirmDiscardPartyIfNeeded {
+                val summary = currentFarmId?.let { service.tradePaymentSummary(it, trade) }
                 val state = TradeEditorState(
                     mode = TradeEditorMode.EDIT,
                     tradeId = trade.id,
                     type = trade.type,
                     partyId = trade.partyId,
                     totalText = moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), trade.totalMinor),
-                    paidStatus = trade.paymentStatus(),
-                    paidText = moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), trade.paidMinor),
+                    paidStatus = summary?.status ?: PaymentStatus.UNPAID,
+                    paidText = "",
                     description = trade.description,
                     occurredAt = trade.occurredAt
                 )
@@ -626,21 +719,48 @@ if (destination == Destination.SETTINGS) renderSettings()
         tradeEditorTitle.text = string(tradeEditorTitleRes(state))
         tradeTotalInput.setText(state.totalText)
         syncTradeStatusListener = true
-        when (state.paidStatus) {
-            PaymentStatus.PAID -> tradeStatusPaidRadio.isChecked = true
-            PaymentStatus.PARTIAL -> tradeStatusPartialRadio.isChecked = true
-            PaymentStatus.UNPAID -> tradeStatusUnpaidRadio.isChecked = true
+        if (state.mode == TradeEditorMode.CREATE) {
+            when (state.paidStatus) {
+                PaymentStatus.PAID -> tradeStatusPaidRadio.isChecked = true
+                PaymentStatus.PARTIAL -> tradeStatusPartialRadio.isChecked = true
+                PaymentStatus.UNPAID -> tradeStatusUnpaidRadio.isChecked = true
+            }
         }
         syncTradeStatusListener = false
         state.paidStatus.let { updateTradePaymentVisibility(it) }
         tradePaidInput.setText(state.paidText)
         tradeDescriptionInput.setText(state.description)
+        refreshTradeEditorPaymentSection(state)
         updateTradeDateTimeDisplay()
         saveTradeButton.text = string(tradeSaveActionRes(state))
         deleteTradeButton.visibility = if (state.mode == TradeEditorMode.EDIT) View.VISIBLE else View.GONE
         tradeValidationMessageText.visibility = View.GONE
         tradeEditorContainer.visibility = View.VISIBLE
         if (state.mode == TradeEditorMode.CREATE) tradeTotalInput.requestFocus()
+    }
+
+    private fun refreshTradeEditorPaymentSection(state: TradeEditorState) {
+        val editMode = state.mode == TradeEditorMode.EDIT
+        tradeStatusLabel.visibility = if (editMode) View.GONE else View.VISIBLE
+        tradeStatusRadioGroup.visibility = if (editMode) View.GONE else View.VISIBLE
+        tradePaidLabel.visibility = if (editMode) View.GONE else View.VISIBLE
+        tradePaidInput.visibility = if (editMode) View.GONE else View.VISIBLE
+        tradePaidDueText.visibility = if (editMode) View.VISIBLE else View.GONE
+        managePaymentsButton.visibility = if (editMode) View.VISIBLE else View.GONE
+        if (editMode) {
+            state.tradeId?.let { tradeId ->
+                currentFarmId?.let { farmId ->
+                    val trade = service.trade(farmId, tradeId)
+                    if (trade != null) {
+                        val summary = service.tradePaymentSummary(farmId, trade)
+                        tradePaidDueText.text = tradePaidDueSummary(summary)
+                    }
+                }
+            }
+        } else {
+            tradePaidDueText.text = ""
+            updateTradePaymentVisibility(state.paidStatus)
+        }
     }
 
     private fun buildTradePartyChoices(type: TradeType): List<Party?> {
@@ -693,11 +813,12 @@ if (destination == Destination.SETTINGS) renderSettings()
 
     private fun currentTradeEditorState(): TradeEditorState? {
         val state = tradeEditorState ?: return null
+        val editMode = state.mode == TradeEditorMode.EDIT
         return state.copy(
             partyId = selectedTradePartyId(),
             totalText = tradeTotalInput.text?.toString().orEmpty(),
-            paidStatus = selectedTradePaymentStatus(),
-            paidText = tradePaidInput.text?.toString().orEmpty(),
+            paidStatus = if (editMode) state.paidStatus else selectedTradePaymentStatus(),
+            paidText = if (editMode) state.paidText else tradePaidInput.text?.toString().orEmpty(),
             description = tradeDescriptionInput.text?.toString().orEmpty()
         )
     }
@@ -717,6 +838,17 @@ if (destination == Destination.SETTINGS) renderSettings()
         if (tradeEditorState != null && isTradeEditorDirty()) {
             showDiscardDialog {
                 closeTradeEditor()
+                action()
+            }
+        } else {
+            action()
+        }
+    }
+
+    private fun confirmDiscardSettlementIfNeeded(action: () -> Unit) {
+        if (settlementEditorState != null && isSettlementEditorDirty()) {
+            showDiscardDialog {
+                cancelSettlementForm()
                 action()
             }
         } else {
@@ -761,6 +893,15 @@ if (destination == Destination.SETTINGS) renderSettings()
         if (paid < total && partyId == null) {
             return showTradeEditorError(FarmUiError.TRADE_PARTY_REQUIRED, tradePartySpinner)
         }
+        if (state.mode == TradeEditorMode.EDIT) {
+            val tradeId = state.tradeId
+            val settled = tradeId?.let { id ->
+                service.trade(farmId, id)?.let { service.tradePaymentSummary(farmId, it) }
+            }?.paidMinor ?: 0L
+            if (settled > total) {
+                return showTradeEditorError(FarmUiError.TRADE_TOTAL_BELOW_SETTLED, tradeTotalInput)
+            }
+        }
         val occurredAt = state.occurredAt.atZoneSameInstant(deviceZone)
             .toOffsetDateTime()
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -768,13 +909,12 @@ if (destination == Destination.SETTINGS) renderSettings()
             type = state.type,
             partyId = partyId,
             totalMinor = total,
-            paidMinor = paid,
             description = state.description,
             occurredAt = occurredAt
         )
         try {
             if (state.mode == TradeEditorMode.CREATE) {
-                service.addTrade(farmId, draft)
+                service.addTradeWithInitialSettlement(farmId, draft, initialSettlementMinor = paid.takeIf { it > 0 })
                 showToast(R.string.toast_trade_created)
             } else {
                 service.updateTrade(farmId, state.tradeId!!, draft)
@@ -792,6 +932,10 @@ if (destination == Destination.SETTINGS) renderSettings()
         val state = currentTradeEditorState() ?: return
         if (state.mode != TradeEditorMode.EDIT) return
         val tradeId = state.tradeId ?: return
+        val trade = service.trade(farmId, tradeId)
+        if (trade != null && service.tradePaymentSummary(farmId, trade).paidMinor > 0L) {
+            return showTradeEditorError(FarmUiError.TRADE_HAS_PAYMENTS, deleteTradeButton)
+        }
         AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_delete_trade_title))
             .setMessage(string(R.string.dialog_delete_trade_message))
@@ -918,6 +1062,378 @@ if (destination == Destination.SETTINGS) renderSettings()
             paidStatus = paidStatus,
             paidText = bundle.getString(prefix + STATE_TRADE_EDITOR_PAID).orEmpty(),
             description = bundle.getString(prefix + STATE_TRADE_EDITOR_DESCRIPTION).orEmpty(),
+            occurredAt = occurredAt
+        )
+    }
+
+    // --- Hisab-Kitab: settlement (payment) editor ------------------------------
+
+    private fun openPaymentsForTradeBeingEdited() {
+        val state = tradeEditorState ?: return
+        val tradeId = state.tradeId ?: return
+        confirmDiscardIfNeeded {
+            settlementTargetTradeId = tradeId
+            tradeEditorContainer.visibility = View.GONE
+            settlementEditorContainer.visibility = View.VISIBLE
+            settlementEditorState = null
+            settlementEditorBaseline = null
+            renderSettlementEditor()
+        }
+    }
+
+    private fun renderSettlementEditor() {
+        val farmId = currentFarmId ?: run {
+            closeSettlementEditor()
+            showMissingFarmMessage()
+            return
+        }
+        val tradeId = settlementTargetTradeId ?: return
+        val trade = service.trade(farmId, tradeId)
+        if (trade == null) {
+            closeSettlementEditor()
+            showMissingFarmMessage()
+            return
+        }
+        val currency = currentFarmCurrency()
+        val summary = service.tradePaymentSummary(farmId, trade)
+        val state = settlementEditorState
+        val formOpen = state != null
+
+        settlementEditorTitle.text = string(
+            if (state?.mode == SettlementEditorMode.EDIT) R.string.edit_payment_title else R.string.new_payment_title
+        )
+        settlementTradeSummaryText.text = string(
+            R.string.settlement_trade_summary_format,
+            FarmLabels.tradeType(this, trade.type),
+            displayTradeCounterparty(trade),
+            formatMoney(currency, trade.totalMinor)
+        )
+        settlementPaidDueText.text = tradePaidDueSummary(summary)
+
+        settlementEditorFormTitle.visibility = if (formOpen) View.VISIBLE else View.GONE
+        settlementEditorFormTitle.text = string(
+            if (state?.mode == SettlementEditorMode.EDIT) R.string.edit_payment_title else R.string.new_payment_title
+        )
+        settlementAmountLabel.visibility = if (formOpen) View.VISIBLE else View.GONE
+        settlementAmountInput.visibility = if (formOpen) View.VISIBLE else View.GONE
+        settlementDateTimeLabel.visibility = if (formOpen) View.VISIBLE else View.GONE
+        settlementDateTimeText.visibility = if (formOpen) View.VISIBLE else View.GONE
+        changeSettlementDateTimeButton.visibility = if (formOpen) View.VISIBLE else View.GONE
+        settlementNoteInput.visibility = if (formOpen) View.VISIBLE else View.GONE
+        settlementValidationMessageText.visibility = View.GONE
+        saveSettlementButton.visibility = if (formOpen) View.VISIBLE else View.GONE
+        saveSettlementButton.text = string(
+            if (state?.mode == SettlementEditorMode.CREATE) R.string.add_payment_action else R.string.update_payment_action
+        )
+        cancelSettlementFormButton.visibility = if (formOpen) View.VISIBLE else View.GONE
+        deleteSettlementButton.visibility =
+            if (state?.mode == SettlementEditorMode.EDIT && formOpen) View.VISIBLE else View.GONE
+        if (state != null) {
+            settlementAmountInput.setText(state.amountText)
+            settlementNoteInput.setText(state.note)
+            updateSettlementDateTimeDisplay()
+        }
+
+        val settlements = service.settlementsForTrade(farmId, tradeId)
+        settlementsHistoryLabel.visibility = View.VISIBLE
+        settlementsHistoryLabel.text = string(
+            if (trade.type == TradeType.SALE) R.string.payments_received_label else R.string.payments_made_label
+        )
+        settlementsEmptyText.visibility = if (settlements.isEmpty()) View.VISIBLE else View.GONE
+        settlementsContainer.removeAllViews()
+        if (settlements.isNotEmpty()) {
+            val inflater = LayoutInflater.from(this)
+            settlements.forEach { settlement ->
+                val row = inflater.inflate(R.layout.item_settlement_row, settlementsContainer, false) as TextView
+                row.setTag(settlement.id)
+                val timeText = displaySettlementTime(settlement)
+                val detail = if (settlement.note.isBlank()) {
+                    string(
+                        R.string.settlement_row_detail_format,
+                        formatMoney(currency, settlement.amountMinor),
+                        timeText
+                    )
+                } else {
+                    string(
+                        R.string.settlement_row_detail_format,
+                        formatMoney(currency, settlement.amountMinor),
+                        string(R.string.settlement_row_format, settlement.note, timeText)
+                    )
+                }
+                row.text = detail
+                row.contentDescription = detail
+                row.setOnClickListener {
+                    if (isSettlementEditorDirty()) {
+                        showDiscardDialog { editSettlementForm(settlement) }
+                    } else {
+                        editSettlementForm(settlement)
+                    }
+                }
+                settlementsContainer.addView(row)
+            }
+        }
+
+        addSettlementButton.visibility = if (formOpen) View.GONE else View.VISIBLE
+        addSettlementButton.text = string(
+            if (trade.type == TradeType.SALE) R.string.receive_payment_action else R.string.record_payment_action
+        )
+    }
+
+    private fun newSettlementForm() {
+        val tradeId = settlementTargetTradeId ?: return
+        val state = SettlementEditorState.create(
+            tradeId = tradeId,
+            occurredAt = OffsetDateTime.now(deviceZone)
+        )
+        applySettlementEditorState(state, baseline = state)
+    }
+
+    private fun editSettlementForm(settlement: Settlement) {
+        val state = SettlementEditorState(
+            mode = SettlementEditorMode.EDIT,
+            tradeId = settlement.tradeId,
+            settlementId = settlement.id,
+            amountText = moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), settlement.amountMinor),
+            note = settlement.note,
+            occurredAt = settlement.occurredAt
+        )
+        applySettlementEditorState(state, baseline = state)
+    }
+
+    private fun applySettlementEditorState(state: SettlementEditorState, baseline: SettlementEditorState) {
+        settlementEditorState = state
+        settlementEditorBaseline = baseline
+        settlementAmountInput.setText(state.amountText)
+        settlementNoteInput.setText(state.note)
+        updateSettlementDateTimeDisplay()
+        settlementValidationMessageText.visibility = View.GONE
+        renderSettlementEditor()
+    }
+
+    private fun currentSettlementEditorState(): SettlementEditorState? {
+        val state = settlementEditorState ?: return null
+        return state.copy(
+            amountText = settlementAmountInput.text?.toString().orEmpty(),
+            note = settlementNoteInput.text?.toString().orEmpty()
+        )
+    }
+
+    private fun isSettlementEditorDirty(): Boolean {
+        val baseline = settlementEditorBaseline ?: return false
+        val current = currentSettlementEditorState() ?: return false
+        return current != baseline
+    }
+
+    private fun cancelSettlementForm() {
+        settlementEditorState = null
+        settlementEditorBaseline = null
+        renderSettlementEditor()
+    }
+
+    private fun cancelSettlementEditing() {
+        if (isSettlementEditorDirty()) {
+            showDiscardDialog { cancelSettlementForm() }
+        } else {
+            cancelSettlementForm()
+        }
+    }
+
+    private fun closeSettlementEditor() {
+        settlementTargetTradeId = null
+        settlementEditorState = null
+        settlementEditorBaseline = null
+        settlementEditorContainer.visibility = View.GONE
+        settlementValidationMessageText.visibility = View.GONE
+        settlementAmountInput.setText("")
+        settlementNoteInput.setText("")
+        if (tradeEditorState != null) {
+            tradeEditorContainer.visibility = View.VISIBLE
+            tradeEditorState?.let { refreshTradeEditorPaymentSection(it) }
+        }
+        renderHisabKitab()
+    }
+
+    private fun saveSettlement() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val state = currentSettlementEditorState() ?: return
+        val tradeId = settlementTargetTradeId ?: return
+        val trade = service.trade(farmId, tradeId)
+        if (trade == null) {
+            closeSettlementEditor()
+            showMissingFarmMessage()
+            return
+        }
+        val amount = when (val result = moneyInputParser.parse(presentationLocale, currentFarmCurrency(), state.amountText)) {
+            is MoneyInputResult.Valid -> result.amountMinor
+            MoneyInputResult.Missing -> return showSettlementEditorError(FarmUiError.SETTLEMENT_AMOUNT_REQUIRED, settlementAmountInput)
+            MoneyInputResult.NotPositive -> return showSettlementEditorError(FarmUiError.SETTLEMENT_AMOUNT_REQUIRED, settlementAmountInput)
+            MoneyInputResult.Invalid -> return showSettlementEditorError(FarmUiError.SETTLEMENT_AMOUNT_REQUIRED, settlementAmountInput)
+            MoneyInputResult.TooPrecise -> return showSettlementEditorError(FarmUiError.SETTLEMENT_AMOUNT_REQUIRED, settlementAmountInput)
+            MoneyInputResult.TooLarge -> return showSettlementEditorError(FarmUiError.SETTLEMENT_AMOUNT_REQUIRED, settlementAmountInput)
+        }
+        val currentPaid = service.tradePaymentSummary(farmId, trade).paidMinor
+        val excludingSelf = settlementEditorState?.let { os ->
+            if (os.settlementId != null) {
+                currentPaid - (service.settlement(farmId, os.settlementId)?.amountMinor ?: 0L)
+            } else {
+                currentPaid
+            }
+        } ?: currentPaid
+        if (excludingSelf + amount > trade.totalMinor) {
+            return showSettlementEditorError(FarmUiError.SETTLEMENT_OVER_REMAINING, settlementAmountInput)
+        }
+        if (excludingSelf + amount < trade.totalMinor && trade.partyId == null) {
+            return showSettlementEditorError(FarmUiError.SETTLEMENT_REQUIRES_PARTY, settlementAmountInput)
+        }
+        val occurredAt = state.occurredAt.atZoneSameInstant(deviceZone)
+            .toOffsetDateTime()
+            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        val note = state.note
+        try {
+            if (state.mode == SettlementEditorMode.CREATE) {
+                service.addSettlement(farmId, SettlementDraft(tradeId = tradeId, amountMinor = amount, occurredAt = occurredAt, note = note))
+                showToast(R.string.toast_settlement_created)
+            } else {
+                service.updateSettlement(farmId, state.settlementId!!, SettlementDraft(tradeId = tradeId, amountMinor = amount, occurredAt = occurredAt, note = note))
+                showToast(R.string.toast_settlement_updated)
+            }
+            cancelSettlementForm()
+            renderSettlementEditor()
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "save settlement failed")
+        }
+    }
+
+    private fun confirmDeleteSettlement() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val state = currentSettlementEditorState() ?: return
+        if (state.mode != SettlementEditorMode.EDIT) return
+        val settlementId = state.settlementId ?: return
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_delete_payment_title))
+            .setMessage(string(R.string.dialog_delete_payment_message))
+            .setPositiveButton(string(R.string.delete_payment_action)) { _, _ ->
+                try {
+                    service.deleteSettlement(farmId, settlementId)
+                    showToast(R.string.toast_settlement_deleted)
+                    cancelSettlementForm()
+                    renderSettlementEditor()
+                } catch (exception: Exception) {
+                    showUnexpectedFailure(exception, "delete settlement failed")
+                }
+            }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .show()
+    }
+
+    private fun showSettlementDateTimePickers() {
+        val zone = deviceZone
+        val current = settlementEditorState?.occurredAt?.atZoneSameInstant(zone) ?: ZonedDateTime.now(zone)
+        val datePicker = DatePickerDialog(
+            this,
+            { _, year, monthOfYear, dayOfMonth ->
+                val timePicker = TimePickerDialog(
+                    this,
+                    { _, hourOfDay, minute ->
+                        settlementEditorState = settlementEditorState?.copy(
+                            occurredAt = EditorDateTime.fromPickerValues(year, monthOfYear, dayOfMonth, hourOfDay, minute, zone)
+                        )
+                        updateSettlementDateTimeDisplay()
+                    },
+                    current.hour,
+                    current.minute,
+                    DateFormat.is24HourFormat(this)
+                )
+                timePicker.show()
+            },
+            current.year,
+            current.monthValue - 1,
+            current.dayOfMonth
+        )
+        datePicker.show()
+    }
+
+    private fun updateSettlementDateTimeDisplay() {
+        val occurredAt = settlementEditorState?.occurredAt ?: return
+        val now = OffsetDateTime.now()
+        settlementDateTimeText.text = if (timePresentation.isToday(deviceZone, occurredAt, now)) {
+            string(
+                R.string.today_time_format,
+                string(R.string.today_label),
+                timePresentation.shortTime(presentationLocale, deviceZone, occurredAt)
+            )
+        } else {
+            timePresentation.displayDateTime(presentationLocale, deviceZone, occurredAt)
+        }
+    }
+
+    private fun tradePaidDueSummary(summary: TradePaymentSummary): String =
+        string(
+            R.string.trade_paid_due_summary_format,
+            formatMoney(currentFarmCurrency(), summary.paidMinor),
+            formatMoney(currentFarmCurrency(), summary.outstandingMinor)
+        )
+
+    private fun displaySettlementTime(settlement: Settlement): String =
+        timePresentation.displayDateTime(presentationLocale, deviceZone, settlement.occurredAt)
+
+    private fun showSettlementEditorError(error: FarmUiError, field: View) {
+        val message = string(error.resourceId)
+        settlementValidationMessageText.text = message
+        settlementValidationMessageText.visibility = View.VISIBLE
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        field.requestFocus()
+    }
+
+    private fun restoreSettlementEditorFrom(bundle: Bundle?) {
+        if (bundle == null) return
+        val target = bundle.getString(STATE_SETTLEMENT_TARGET_TRADE_ID) ?: return
+        if (currentFarmId?.let { service.trade(it, target) } == null) return
+        settlementTargetTradeId = target
+        tradeEditorContainer.visibility = View.GONE
+        settlementEditorContainer.visibility = View.VISIBLE
+        val state = if (bundle.getBoolean(STATE_SETTLEMENT_EDITOR_OPEN, false)) {
+            readSettlementEditorState(bundle, STATE_SETTLEMENT_EDITOR_PREFIX)
+        } else {
+            null
+        }
+        val baseline = if (state != null) {
+            readSettlementEditorState(bundle, STATE_SETTLEMENT_EDITOR_BASELINE_PREFIX) ?: state
+        } else {
+            null
+        }
+        if (state != null) {
+            applySettlementEditorState(state, baseline = baseline ?: state)
+        } else {
+            settlementEditorState = null
+            settlementEditorBaseline = null
+            renderSettlementEditor()
+        }
+    }
+
+    private fun writeSettlementEditorState(bundle: Bundle, prefix: String, state: SettlementEditorState) {
+        bundle.putString(prefix + STATE_SETTLEMENT_EDITOR_MODE, state.mode.name)
+        bundle.putString(prefix + STATE_SETTLEMENT_EDITOR_TRADE_ID, state.tradeId)
+        bundle.putString(prefix + STATE_SETTLEMENT_EDITOR_SETTLEMENT_ID, state.settlementId)
+        bundle.putString(prefix + STATE_SETTLEMENT_EDITOR_AMOUNT, state.amountText)
+        bundle.putString(prefix + STATE_SETTLEMENT_EDITOR_NOTE, state.note)
+        bundle.putString(prefix + STATE_SETTLEMENT_EDITOR_OCCURRED_AT, state.occurredAt.toInstant().toString())
+    }
+
+    private fun readSettlementEditorState(bundle: Bundle, prefix: String): SettlementEditorState? {
+        val mode = bundle.getString(prefix + STATE_SETTLEMENT_EDITOR_MODE)?.let {
+            runCatching { SettlementEditorMode.valueOf(it) }.getOrNull()
+        } ?: return null
+        val tradeId = bundle.getString(prefix + STATE_SETTLEMENT_EDITOR_TRADE_ID) ?: return null
+        val occurredAt = bundle.getString(prefix + STATE_SETTLEMENT_EDITOR_OCCURRED_AT)?.let {
+            runCatching { OffsetDateTime.parse(it) }.getOrNull()
+        } ?: return null
+        return SettlementEditorState(
+            mode = mode,
+            tradeId = tradeId,
+            settlementId = bundle.getString(prefix + STATE_SETTLEMENT_EDITOR_SETTLEMENT_ID),
+            amountText = bundle.getString(prefix + STATE_SETTLEMENT_EDITOR_AMOUNT).orEmpty(),
+            note = bundle.getString(prefix + STATE_SETTLEMENT_EDITOR_NOTE).orEmpty(),
             occurredAt = occurredAt
         )
     }
@@ -1807,5 +2323,15 @@ if (destination == Destination.SETTINGS) renderSettings()
         const val STATE_TRADE_EDITOR_PAID = "Paid"
         const val STATE_TRADE_EDITOR_DESCRIPTION = "Description"
         const val STATE_TRADE_EDITOR_OCCURRED_AT = "OccurredAt"
+        const val STATE_SETTLEMENT_TARGET_TRADE_ID = "settlementTargetTradeId"
+        const val STATE_SETTLEMENT_EDITOR_OPEN = "settlementEditorOpen"
+        const val STATE_SETTLEMENT_EDITOR_PREFIX = "settlementEditor"
+        const val STATE_SETTLEMENT_EDITOR_BASELINE_PREFIX = "settlementEditorBaseline"
+        const val STATE_SETTLEMENT_EDITOR_MODE = "Mode"
+        const val STATE_SETTLEMENT_EDITOR_TRADE_ID = "TradeId"
+        const val STATE_SETTLEMENT_EDITOR_SETTLEMENT_ID = "SettlementId"
+        const val STATE_SETTLEMENT_EDITOR_AMOUNT = "Amount"
+        const val STATE_SETTLEMENT_EDITOR_NOTE = "Note"
+        const val STATE_SETTLEMENT_EDITOR_OCCURRED_AT = "OccurredAt"
     }
 }

@@ -97,6 +97,19 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Cash purchase | Cash purchase | नगद खरिद (nagad kharid) | — | Fully paid purchase with no party linked | Provisional |  | Pending |
 | Customer and supplier | Customer and supplier | ग्राहक र आपूर्तिकर्ता दुवै (grahak ra aapurtikarta duvai) | — | Party role valid on both sides of the farm's business | Provisional |  | Pending |
 | Recent sales and purchases | Recent sales and purchases | हालैका बिक्री र खरिदहरू (halaiika bikri ra kharidharu) | — | Recent trades section on the Hisab-Kitab destination | Provisional |  | Pending |
+| Payments | Payments | भुक्तानीहरू (bhuktani-haru) | — | Button that opens a trade's payment records | Provisional | M5-03: per-trade settlement ledger view | Pending |
+| Receive payment | Receive payment | भुक्तानी लिनुहोस् (bhuktani linuhos) | — | Action adding a payment to a sale (money received) | Provisional | M5-03 | Pending |
+| Record payment | Record payment | भुक्तानी रेकर्ड गर्नुहोस् (bhuktani record garnuhos) | — | Action adding a payment to a purchase (money paid) | Provisional | M5-03 | Pending |
+| Add payment | Add payment | भुक्तानी थप्नुहोस् (bhuktani thapnuhos) | — | Save action for a new payment record | Provisional | M5-03 | Pending |
+| New payment | New payment | नयाँ भुक्तानी (naya bhuktani) | — | Title for the new-payment form | Provisional | M5-03 | Pending |
+| Edit payment | Edit payment | भुक्तानी सम्पादन गर्नुहोस् (bhuktani sampadan garnuhos) | — | Title for the edit-payment form | Provisional | M5-03 | Pending |
+| Update payment | Update payment | भुक्तानी अद्यावधिक गर्नुहोस् (bhuktani adyavadhik garnuhos) | — | Save action for editing an existing payment record | Provisional | M5-03 | Pending |
+| Delete payment | Delete payment | भुक्तानी मेटाउनुहोस् (bhuktani metaunuhos) | — | Removes a payment record permanently | Provisional | M5-03 | Pending |
+| Payment amount | Payment amount | भुक्तानी रकम (bhuktani rakam) | — | Money amount of one payment record | Provisional | M5-03 | Pending |
+| Payment note | Payment note | टिप्पणी (tippani) | — | Optional free-text note on a payment record | Provisional | M5-03 | Pending |
+| Payments received | Payments received | प्राप्त भुक्तानीहरू (prapat bhuktani-haru) | — | History heading for a sale's money received | Provisional | M5-03 | Pending |
+| Payments made | Payments made | गरिएका भुक्तानीहरू (garieka bhuktani-haru) | — | History heading for a purchase's money paid | Provisional | M5-03 | Pending |
+| No payments recorded yet | No payments recorded yet | अहिलेसम्म कुनै भुक्तानी रेकर्ड छैन (ahilesamma kunai bhuktani record chaina) | — | Empty state for a trade with no payment records | Provisional | M5-03 | Pending |
 
 ## Rules
 

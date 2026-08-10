@@ -28,9 +28,14 @@ object FarmStateValidator {
         farm.parties.forEach(::validateParty)
         val partyIds = farm.parties.map { it.id }
         require(partyIds.size == partyIds.toSet().size) { "Party IDs must be unique" }
+        // Trades validate against the resulting farm (which includes its settled
+        // amounts as derived state), then settlements validate the monetary facts.
         farm.trades.forEach { validateTrade(farm, it) }
         val tradeIds = farm.trades.map { it.id }
         require(tradeIds.size == tradeIds.toSet().size) { "Trade IDs must be unique" }
+        farm.settlements.forEach { validateSettlement(farm, it) }
+        val settlementIds = farm.settlements.map { it.id }
+        require(settlementIds.size == settlementIds.toSet().size) { "Settlement IDs must be unique" }
     }
 
     fun validateParty(party: Party) {
@@ -41,10 +46,10 @@ object FarmStateValidator {
     fun validateTrade(farm: FarmState, trade: Trade) {
         require(trade.id.isNotBlank()) { "Trade id is required" }
         require(trade.totalMinor > 0) { "Trade total must be positive" }
-        require(trade.paidMinor >= 0) { "Trade paid amount must not be negative" }
-        require(trade.paidMinor <= trade.totalMinor) { "Trade paid amount cannot exceed the total" }
         require(trade.occurredAt.format(DATE_TIME_FORMATTER).isNotBlank()) { "Trade date/time is required" }
-        if (trade.paidMinor < trade.totalMinor) {
+        val paidMinor = farm.settlements.paidMinorFor(trade.id)
+        require(paidMinor <= trade.totalMinor) { "Trade total cannot be less than the settled amount" }
+        if (paidMinor < trade.totalMinor) {
             require(!trade.partyId.isNullOrBlank()) { "Partially paid or unpaid trades require a party" }
         }
         val party = trade.partyId?.let { id -> farm.parties.firstOrNull { it.id == id } }
@@ -56,5 +61,16 @@ object FarmStateValidator {
                 "Trade party role is incompatible with the trade type"
             }
         }
+    }
+
+    fun validateSettlement(farm: FarmState, settlement: Settlement) {
+        require(settlement.id.isNotBlank()) { "Settlement id is required" }
+        require(settlement.amountMinor > 0) { "Settlement amount must be positive" }
+        require(settlement.tradeId.isNotBlank()) { "Settlement trade id is required" }
+        val trade = farm.trades.firstOrNull { it.id == settlement.tradeId }
+        requireNotNull(trade) { "Settlement trade not found: ${settlement.tradeId}" }
+        require(settlement.occurredAt.format(DATE_TIME_FORMATTER).isNotBlank()) { "Settlement date/time is required" }
+        val paidMinor = farm.settlements.paidMinorFor(settlement.tradeId)
+        require(paidMinor <= trade.totalMinor) { "Settlement amount cannot exceed the remaining balance" }
     }
 }

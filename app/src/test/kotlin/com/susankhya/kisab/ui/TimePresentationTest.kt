@@ -18,7 +18,8 @@ class TimePresentationTest {
     fun displaysStoredInstantInDeviceZoneWithoutUtcLiteral() {
         val stored = OffsetDateTime.parse("2024-01-01T12:00:00Z")
         val english = presentation.displayDateTime(Locale.ENGLISH, kathmandu, stored)
-        assertEquals("Jan 1, 2024, 5:45:00\u202FPM", english)
+        val normalizedEnglish = english.replace("\u202F", " ").replace("\u00A0", " ")
+        assertEquals("Jan 1, 2024, 5:45:00 PM", normalizedEnglish)
         assertFalse("UTC literal leaked into display: $english", english.contains("UTC"))
 
         val nepali = presentation.displayDateTime(Locale("ne", "NP"), kathmandu, stored)

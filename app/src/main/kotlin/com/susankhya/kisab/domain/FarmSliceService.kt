@@ -130,11 +130,43 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         store.saveFarm(farm.copy(parties = updatedParties.toMutableList()))
     }
 
-    fun addTrade(farmId: String, draft: TradeDraft): Trade {
+    fun addTrade(farmId: String, draft: TradeDraft): Trade =
+        addTradeWithInitialSettlement(farmId, draft, initialSettlementMinor = null)
+
+    /**
+     * Creates a trade and, optionally, its first settlement in one persisted
+     * state transition. Passing [initialSettlementMinor] (defaults to the full
+     * total when null is NOT passed; see [addTrade] for the no-payment form)
+     * records the money as of the trade's own [Trade.occurredAt], matching the
+     * simple M5-02 behavior of "paid at the time of this trade".
+     */
+    fun addTradeWithInitialSettlement(farmId: String, draft: TradeDraft, initialSettlementMinor: Long?): Trade {
         val farm = getFarm(farmId)
         val trade = draft.toTrade("trade-${UUID.randomUUID()}")
-        FarmStateValidator.validateTrade(farm, trade)
-        val updated = farm.copy(trades = (farm.trades + trade).toMutableList())
+        val openingSettlement = initialSettlementMinor?.takeIf { it > 0 }?.let { amount ->
+            Settlement(
+                id = "settlement-${UUID.randomUUID()}",
+                tradeId = trade.id,
+                amountMinor = amount,
+                occurredAt = trade.occurredAt,
+                note = ""
+            )
+        }
+        if (initialSettlementMinor != null && initialSettlementMinor < 0) {
+            throw IllegalArgumentException("Trade initial payment amount cannot be negative")
+        }
+        if (openingSettlement != null && initialSettlementMinor!! > trade.totalMinor) {
+            throw IllegalArgumentException("Trade initial payment cannot exceed the total")
+        }
+        val updated = farm.copy(
+            trades = (farm.trades + trade).toMutableList(),
+            settlements = if (openingSettlement != null) {
+                (farm.settlements + openingSettlement).toMutableList()
+            } else {
+                farm.settlements
+            }
+        )
+        FarmStateValidator.validateFarm(updated)
         store.saveFarm(updated)
         return trade
     }
@@ -144,16 +176,19 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         val index = farm.trades.indexOfFirst { it.id == tradeId }
         require(index >= 0) { "Trade not found: $tradeId" }
         val trade = draft.toTrade(tradeId)
-        FarmStateValidator.validateTrade(farm, trade)
         val updatedTrades = farm.trades.toMutableList()
         updatedTrades[index] = trade
         val updated = farm.copy(trades = updatedTrades)
+        FarmStateValidator.validateFarm(updated)
         store.saveFarm(updated)
         return trade
     }
 
     fun deleteTrade(farmId: String, tradeId: String) {
         val farm = getFarm(farmId)
+        require(farm.settlements.none { it.tradeId == tradeId }) {
+            "Trade cannot be deleted while payment records exist"
+        }
         val updatedTrades = farm.trades.filterNot { it.id == tradeId }
         require(updatedTrades.size < farm.trades.size) { "Trade not found: $tradeId" }
         store.saveFarm(farm.copy(trades = updatedTrades.toMutableList()))
@@ -162,6 +197,48 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
     fun trade(farmId: String, tradeId: String): Trade? = getFarm(farmId).trades.firstOrNull { it.id == tradeId }
 
     fun trades(farmId: String): List<Trade> = getFarm(farmId).tradesNewestFirst()
+
+    fun addSettlement(farmId: String, draft: SettlementDraft): Settlement {
+        val farm = getFarm(farmId)
+        require(farm.trades.any { it.id == draft.tradeId }) { "Settlement trade not found: ${draft.tradeId}" }
+        val settlement = draft.toSettlement("settlement-${UUID.randomUUID()}")
+        val updated = farm.copy(settlements = (farm.settlements + settlement).toMutableList())
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return settlement
+    }
+
+    fun updateSettlement(farmId: String, settlementId: String, draft: SettlementDraft): Settlement {
+        val farm = getFarm(farmId)
+        val index = farm.settlements.indexOfFirst { it.id == settlementId }
+        require(index >= 0) { "Settlement not found: $settlementId" }
+        val settlement = draft.toSettlement(settlementId)
+        val updatedSettlements = farm.settlements.toMutableList()
+        updatedSettlements[index] = settlement
+        val updated = farm.copy(settlements = updatedSettlements)
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return settlement
+    }
+
+    fun deleteSettlement(farmId: String, settlementId: String) {
+        val farm = getFarm(farmId)
+        val updatedSettlements = farm.settlements.filterNot { it.id == settlementId }
+        require(updatedSettlements.size < farm.settlements.size) { "Settlement not found: $settlementId" }
+        FarmStateValidator.validateFarm(farm.copy(settlements = updatedSettlements.toMutableList()))
+        store.saveFarm(farm.copy(settlements = updatedSettlements.toMutableList()))
+    }
+
+    fun settlement(farmId: String, settlementId: String): Settlement? =
+        getFarm(farmId).settlements.firstOrNull { it.id == settlementId }
+
+    fun settlements(farmId: String): List<Settlement> = getFarm(farmId).settlementsNewestFirst()
+
+    fun settlementsForTrade(farmId: String, tradeId: String): List<Settlement> =
+        getFarm(farmId).settlements.settlementsForTrade(tradeId)
+
+    fun tradePaymentSummary(farmId: String, trade: Trade): TradePaymentSummary =
+        getFarm(farmId).settlements.paymentSummaryFor(trade)
 
     fun parties(farmId: String): List<Party> {
         val farm = getFarm(farmId)
@@ -219,11 +296,12 @@ data class FarmState(
     val transactions: MutableList<FarmTransaction> = mutableListOf(),
     val parties: MutableList<Party> = mutableListOf(),
     val trades: MutableList<Trade> = mutableListOf(),
+    val settlements: MutableList<Settlement> = mutableListOf(),
     val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
 ) {
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 5
+        const val CURRENT_FARM_SCHEMA_VERSION = 6
     }
 }
 
@@ -239,6 +317,14 @@ fun FarmState.tradesNewestFirst(): List<Trade> =
     trades.withIndex()
         .sortedWith(
             compareByDescending<IndexedValue<Trade>> { it.value.occurredAt }
+                .thenByDescending { it.index }
+        )
+        .map { it.value }
+
+fun FarmState.settlementsNewestFirst(): List<Settlement> =
+    settlements.withIndex()
+        .sortedWith(
+            compareByDescending<IndexedValue<Settlement>> { it.value.occurredAt }
                 .thenByDescending { it.index }
         )
         .map { it.value }
