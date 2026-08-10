@@ -4,6 +4,8 @@ import android.content.Context
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntryKind
 import com.susankhya.kisab.domain.PartyRole
+import com.susankhya.kisab.domain.PaymentStatus
+import com.susankhya.kisab.domain.TradeType
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 
@@ -24,6 +26,17 @@ object FarmLabels {
         TransactionType.EXPENSE -> R.string.transaction_type_expense
     }
 
+    fun tradeTypeRes(type: TradeType): Int = when (type) {
+        TradeType.SALE -> R.string.trade_type_sale
+        TradeType.PURCHASE -> R.string.trade_type_purchase
+    }
+
+    fun paymentStatusRes(status: PaymentStatus): Int = when (status) {
+        PaymentStatus.PAID -> R.string.payment_status_paid
+        PaymentStatus.PARTIAL -> R.string.payment_status_partial
+        PaymentStatus.UNPAID -> R.string.payment_status_unpaid
+    }
+
     fun transactionCategoryRes(category: TransactionCategory): Int = when (category) {
         TransactionCategory.SALES -> R.string.transaction_category_sales
         TransactionCategory.SERVICES -> R.string.transaction_category_services
@@ -38,12 +51,17 @@ object FarmLabels {
     fun partyRoleRes(role: PartyRole): Int = when (role) {
         PartyRole.CUSTOMER -> R.string.party_role_customer
         PartyRole.SUPPLIER -> R.string.party_role_supplier
+        PartyRole.BOTH -> R.string.party_role_both
         PartyRole.OTHER -> R.string.party_role_other
     }
 
     fun entryKind(context: Context, kind: FarmEntryKind): String = context.getString(entryKindRes(kind))
 
     fun transactionType(context: Context, type: TransactionType): String = context.getString(transactionTypeRes(type))
+
+    fun tradeType(context: Context, type: TradeType): String = context.getString(tradeTypeRes(type))
+
+    fun paymentStatus(context: Context, status: PaymentStatus): String = context.getString(paymentStatusRes(status))
 
     fun transactionCategory(context: Context, category: TransactionCategory): String =
         context.getString(transactionCategoryRes(category))

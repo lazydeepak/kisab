@@ -40,10 +40,19 @@ import com.susankhya.kisab.domain.FarmState
 import com.susankhya.kisab.domain.FarmTotals
 import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.FarmTransactionDraft
+import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyDraft
 import com.susankhya.kisab.domain.PartyRole
+import com.susankhya.kisab.domain.PaymentStatus
+import com.susankhya.kisab.domain.Trade
+import com.susankhya.kisab.domain.TradeDraft
+import com.susankhya.kisab.domain.TradeType
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
+import com.susankhya.kisab.domain.compatibleWith
+import com.susankhya.kisab.domain.outstandingMinor
+import com.susankhya.kisab.domain.paymentStatus
+import com.susankhya.kisab.domain.paymentStatusOf
 import com.susankhya.kisab.domain.transactionsNewestFirst
 import com.susankhya.kisab.persistence.AndroidStorageAccessFrameworkBackupFileAdapter
 import com.susankhya.kisab.persistence.FarmBackupCodec
@@ -96,6 +105,30 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var savePartyButton: Button
     private lateinit var cancelPartyButton: Button
     private lateinit var deletePartyButton: Button
+
+    private lateinit var newSaleButton: Button
+    private lateinit var newPurchaseButton: Button
+    private lateinit var hisabSummaryContainer: LinearLayout
+    private lateinit var toReceiveText: TextView
+    private lateinit var toPayText: TextView
+    private lateinit var tradeEditorContainer: androidx.appcompat.widget.LinearLayoutCompat
+    private lateinit var tradeEditorTitle: TextView
+    private lateinit var tradePartySpinner: Spinner
+    private lateinit var tradeTotalInput: EditText
+    private lateinit var tradeStatusPaidRadio: RadioButton
+    private lateinit var tradeStatusPartialRadio: RadioButton
+    private lateinit var tradeStatusUnpaidRadio: RadioButton
+    private lateinit var tradePaidLabel: TextView
+    private lateinit var tradePaidInput: EditText
+    private lateinit var tradeDescriptionInput: EditText
+    private lateinit var tradeDateTimeText: TextView
+    private lateinit var changeTradeDateTimeButton: Button
+    private lateinit var tradeValidationMessageText: TextView
+    private lateinit var saveTradeButton: Button
+    private lateinit var cancelTradeButton: Button
+    private lateinit var deleteTradeButton: Button
+    private lateinit var tradesEmptyText: TextView
+    private lateinit var tradesContainer: LinearLayout
 
     private lateinit var settingsCurrencyText: TextView
     private lateinit var changeSettingsCurrencyButton: Button
@@ -156,7 +189,11 @@ class FarmActivity : AppCompatActivity() {
     private var editorBaseline: TransactionEditorState? = null
     private var toolsExpanded: Boolean = false
     private var syncTypeListenersSuppressed = false
+    private var syncTradeStatusListener = false
     private var editingPartyId: String? = null
+    private var tradeEditorState: TradeEditorState? = null
+    private var tradeEditorBaseline: TradeEditorState? = null
+    private var tradeParties: List<Party?> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -217,6 +254,12 @@ class FarmActivity : AppCompatActivity() {
                     } else {
                         closeEditor()
                     }
+                } else if (currentDestination == Destination.HISAB_KITAB && tradeEditorState != null) {
+                    if (isTradeEditorDirty()) {
+                        showDiscardDialog { closeTradeEditor() }
+                    } else {
+                        closeTradeEditor()
+                    }
                 } else if (currentDestination == Destination.HISAB_KITAB && editingPartyId != null) {
                     if (isPartyEditorDirty()) {
                         showDiscardDialog { closePartyEditor() }
@@ -237,6 +280,7 @@ class FarmActivity : AppCompatActivity() {
         render()
         showDestination(currentDestination)
         restoreEditorFrom(savedInstanceState)
+        restoreTradeEditorFrom(savedInstanceState)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -244,12 +288,19 @@ class FarmActivity : AppCompatActivity() {
         outState.putString(STATE_DESTINATION, currentDestination.name)
         outState.putString(STATE_LAST_PRIMARY_DESTINATION, lastPrimaryDestination.name)
         outState.putBoolean(STATE_TOOLS_EXPANDED, toolsExpanded)
-        val state = currentEditorState() ?: return
-        val baseline = editorBaseline
-        outState.putBoolean(STATE_EDITOR_OPEN, true)
-        writeEditorState(outState, STATE_EDITOR_PREFIX, state)
-        if (baseline != null) {
-            writeEditorState(outState, STATE_EDITOR_BASELINE_PREFIX, baseline)
+        val state = currentEditorState()
+        if (state != null) {
+            outState.putBoolean(STATE_EDITOR_OPEN, true)
+            writeEditorState(outState, STATE_EDITOR_PREFIX, state)
+            editorBaseline?.let { writeEditorState(outState, STATE_EDITOR_BASELINE_PREFIX, it) }
+        }
+        val tradeState = currentTradeEditorState()
+        if (tradeState != null) {
+            outState.putBoolean(STATE_TRADE_EDITOR_OPEN, true)
+            writeTradeEditorState(outState, STATE_TRADE_EDITOR_PREFIX, tradeState)
+            tradeEditorBaseline?.let {
+                writeTradeEditorState(outState, STATE_TRADE_EDITOR_BASELINE_PREFIX, it)
+            }
         }
     }
 
@@ -342,6 +393,30 @@ class FarmActivity : AppCompatActivity() {
         ).also { adapter ->
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
+
+        newSaleButton = findViewById(R.id.newSaleButton)
+        newPurchaseButton = findViewById(R.id.newPurchaseButton)
+        toReceiveText = findViewById(R.id.toReceiveText)
+        toPayText = findViewById(R.id.toPayText)
+        hisabSummaryContainer = findViewById(R.id.hisabSummaryContainer)
+        tradeEditorContainer = findViewById(R.id.tradeEditorContainer)
+        tradeEditorTitle = findViewById(R.id.tradeEditorTitle)
+        tradePartySpinner = findViewById(R.id.tradePartySpinner)
+        tradeTotalInput = findViewById(R.id.tradeTotalInput)
+        tradeStatusPaidRadio = findViewById(R.id.tradeStatusPaidRadio)
+        tradeStatusPartialRadio = findViewById(R.id.tradeStatusPartialRadio)
+        tradeStatusUnpaidRadio = findViewById(R.id.tradeStatusUnpaidRadio)
+        tradePaidLabel = findViewById(R.id.tradePaidLabel)
+        tradePaidInput = findViewById(R.id.tradePaidInput)
+        tradeDescriptionInput = findViewById(R.id.tradeDescriptionInput)
+        tradeDateTimeText = findViewById(R.id.tradeDateTimeText)
+        changeTradeDateTimeButton = findViewById(R.id.changeTradeDateTimeButton)
+        tradeValidationMessageText = findViewById(R.id.tradeValidationMessageText)
+        saveTradeButton = findViewById(R.id.saveTradeButton)
+        cancelTradeButton = findViewById(R.id.cancelTradeButton)
+        deleteTradeButton = findViewById(R.id.deleteTradeButton)
+        tradesEmptyText = findViewById(R.id.tradesEmptyText)
+        tradesContainer = findViewById(R.id.tradesContainer)
     }
 
     private fun wireListeners() {
@@ -356,10 +431,28 @@ class FarmActivity : AppCompatActivity() {
         navHisabItem.setOnClickListener { navigateTo(Destination.HISAB) }
         shellSettingsButton.setOnClickListener { navigateTo(Destination.SETTINGS) }
 
-        addPartyButton.setOnClickListener { openPartyEditor(null) }
+        addPartyButton.setOnClickListener {
+            confirmDiscardTradeIfNeeded { openPartyEditor(null) }
+        }
         savePartyButton.setOnClickListener { saveParty() }
         cancelPartyButton.setOnClickListener { closePartyEditor() }
         deletePartyButton.setOnClickListener { confirmDeleteParty() }
+
+        newSaleButton.setOnClickListener { openTradeEditorForNew(TradeType.SALE) }
+        newPurchaseButton.setOnClickListener { openTradeEditorForNew(TradeType.PURCHASE) }
+        saveTradeButton.setOnClickListener { saveTrade() }
+        cancelTradeButton.setOnClickListener { cancelTradeEditing() }
+        deleteTradeButton.setOnClickListener { confirmDeleteTrade() }
+        changeTradeDateTimeButton.setOnClickListener { showTradeDateTimePickers() }
+        tradeStatusPaidRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) onTradePaymentStatusChanged(PaymentStatus.PAID)
+        }
+        tradeStatusPartialRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) onTradePaymentStatusChanged(PaymentStatus.PARTIAL)
+        }
+        tradeStatusUnpaidRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) onTradePaymentStatusChanged(PaymentStatus.UNPAID)
+        }
 
         val languageRadios = listOf(
             languageFollowDeviceRadio to AppLanguage.FOLLOW_DEVICE,
@@ -398,7 +491,7 @@ class FarmActivity : AppCompatActivity() {
             render()
             return
         }
-        confirmDiscardIfNeeded { confirmDiscardPartyIfNeeded { showDestination(destination) } }
+        confirmDiscardIfNeeded { confirmDiscardTradeIfNeeded { confirmDiscardPartyIfNeeded { showDestination(destination) } } }
     }
 
     private fun showDestination(destination: Destination) {
@@ -409,8 +502,8 @@ class FarmActivity : AppCompatActivity() {
         hisabScreen.visibility = if (destination == Destination.HISAB) View.VISIBLE else View.GONE
         settingsScreen.visibility = if (destination == Destination.SETTINGS) View.VISIBLE else View.GONE
         updateShellTitle()
-        if (destination == Destination.SETTINGS) renderSettings()
-        if (destination == Destination.HISAB_KITAB) renderParties()
+if (destination == Destination.SETTINGS) renderSettings()
+        if (destination == Destination.HISAB_KITAB) renderHisabKitab()
     }
 
     private fun updateShellTitle() {
@@ -423,6 +516,410 @@ class FarmActivity : AppCompatActivity() {
             Destination.HISAB -> string(R.string.nav_hisab)
             Destination.SETTINGS -> string(R.string.nav_settings)
         }
+    }
+
+    // --- Hisab-Kitab: trades ------------------------------------------------
+
+    private fun renderHisabKitab() {
+        renderHisabSummary()
+        renderTrades()
+        renderParties()
+    }
+
+    private fun renderHisabSummary() {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        if (farm == null) {
+            hisabSummaryContainer.visibility = View.GONE
+            return
+        }
+        hisabSummaryContainer.visibility = View.VISIBLE
+        val currency = farm.currencyCode
+        val toReceive = farm.trades.filter { it.type == TradeType.SALE }.fold(0L) { acc, trade ->
+            Math.addExact(acc, trade.outstandingMinor())
+        }
+        val toPay = farm.trades.filter { it.type == TradeType.PURCHASE }.fold(0L) { acc, trade ->
+            Math.addExact(acc, trade.outstandingMinor())
+        }
+        toReceiveText.text = string(R.string.to_receive_summary_format, formatMoney(currency, toReceive))
+        toPayText.text = string(R.string.to_pay_summary_format, formatMoney(currency, toPay))
+    }
+
+    private fun renderTrades() {
+        val farmId = currentFarmId ?: run {
+            tradesEmptyText.visibility = View.VISIBLE
+            tradesContainer.removeAllViews()
+            return
+        }
+        val farm = service.loadFarm(farmId)
+        val currency = farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
+        val trades = service.trades(farmId)
+        tradesEmptyText.visibility = if (trades.isEmpty()) View.VISIBLE else View.GONE
+        tradesContainer.removeAllViews()
+        if (trades.isEmpty()) return
+        val inflater = LayoutInflater.from(this)
+        trades.forEach { trade ->
+            val row = inflater.inflate(R.layout.item_trade_row, tradesContainer, false) as TextView
+            row.setTag(trade.id)
+            val statusText = if (trade.paymentStatus() == PaymentStatus.PAID) {
+                string(R.string.trade_row_paid)
+            } else {
+                string(R.string.trade_row_status_due_format, formatMoney(currency, trade.outstandingMinor()))
+            }
+            row.text = string(
+                R.string.trade_row_format,
+                FarmLabels.tradeType(this, trade.type),
+                displayTradeCounterparty(trade),
+                formatMoney(currency, trade.totalMinor),
+                string(R.string.trade_row_time_format, statusText, displayTradeTime(trade))
+            )
+            row.contentDescription = row.text
+            row.setOnClickListener {
+                confirmDiscardPartyIfNeeded { openTradeEditorForTrade(trade) }
+            }
+            tradesContainer.addView(row)
+        }
+    }
+
+    private fun displayTradeCounterparty(trade: Trade): String {
+        val partyId = trade.partyId ?: return string(if (trade.type == TradeType.SALE) R.string.cash_sale_label else R.string.cash_purchase_label)
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        val party = farm?.parties?.firstOrNull { it.id == partyId }
+        return party?.name ?: string(if (trade.type == TradeType.SALE) R.string.cash_sale_label else R.string.cash_purchase_label)
+    }
+
+    private fun openTradeEditorForNew(type: TradeType) {
+        confirmDiscardIfNeeded {
+            confirmDiscardPartyIfNeeded {
+                val state = TradeEditorState.create(
+                    type = type,
+                    occurredAt = OffsetDateTime.now(deviceZone)
+                )
+                applyTradeEditorState(state, baseline = state)
+            }
+        }
+    }
+
+    private fun openTradeEditorForTrade(trade: Trade) {
+        confirmDiscardIfNeeded {
+            confirmDiscardPartyIfNeeded {
+                val state = TradeEditorState(
+                    mode = TradeEditorMode.EDIT,
+                    tradeId = trade.id,
+                    type = trade.type,
+                    partyId = trade.partyId,
+                    totalText = moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), trade.totalMinor),
+                    paidStatus = trade.paymentStatus(),
+                    paidText = moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), trade.paidMinor),
+                    description = trade.description,
+                    occurredAt = trade.occurredAt
+                )
+                applyTradeEditorState(state, baseline = state)
+            }
+        }
+    }
+
+    private fun applyTradeEditorState(state: TradeEditorState, baseline: TradeEditorState) {
+        tradeEditorState = state
+        tradeEditorBaseline = baseline
+        tradeParties = buildTradePartyChoices(state.type)
+        refreshTradePartySpinner(state.type, state.partyId)
+        tradeEditorTitle.text = string(tradeEditorTitleRes(state))
+        tradeTotalInput.setText(state.totalText)
+        syncTradeStatusListener = true
+        when (state.paidStatus) {
+            PaymentStatus.PAID -> tradeStatusPaidRadio.isChecked = true
+            PaymentStatus.PARTIAL -> tradeStatusPartialRadio.isChecked = true
+            PaymentStatus.UNPAID -> tradeStatusUnpaidRadio.isChecked = true
+        }
+        syncTradeStatusListener = false
+        state.paidStatus.let { updateTradePaymentVisibility(it) }
+        tradePaidInput.setText(state.paidText)
+        tradeDescriptionInput.setText(state.description)
+        updateTradeDateTimeDisplay()
+        saveTradeButton.text = string(tradeSaveActionRes(state))
+        deleteTradeButton.visibility = if (state.mode == TradeEditorMode.EDIT) View.VISIBLE else View.GONE
+        tradeValidationMessageText.visibility = View.GONE
+        tradeEditorContainer.visibility = View.VISIBLE
+        if (state.mode == TradeEditorMode.CREATE) tradeTotalInput.requestFocus()
+    }
+
+    private fun buildTradePartyChoices(type: TradeType): List<Party?> {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        val compatible = farm?.parties?.filter { it.role.compatibleWith(type) }?.sortedBy { it.name.lowercase() }.orEmpty()
+        return listOf(null) + compatible
+    }
+
+    private fun refreshTradePartySpinner(type: TradeType, selectedPartyId: String?) {
+        val options = tradeParties
+        val labels = listOf(string(R.string.trade_party_none)) + options.drop(1).map { it!!.name }
+        tradePartySpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            labels
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        val position = options.indexOfFirst { it?.id == selectedPartyId }.coerceAtLeast(0)
+        tradePartySpinner.setSelection(position)
+    }
+
+    private fun selectedTradePartyId(): String? =
+        tradeParties.getOrNull(tradePartySpinner.selectedItemPosition)?.id
+
+    private fun onTradePaymentStatusChanged(status: PaymentStatus) {
+        if (syncTradeStatusListener) return
+        val state = tradeEditorState ?: return
+        tradeEditorState = state.copy(paidStatus = status)
+        updateTradePaymentVisibility(status)
+    }
+
+    private fun updateTradePaymentVisibility(status: PaymentStatus) {
+        val partial = status == PaymentStatus.PARTIAL
+        tradePaidLabel.visibility = if (partial) View.VISIBLE else View.GONE
+        tradePaidInput.visibility = if (partial) View.VISIBLE else View.GONE
+    }
+
+    private fun selectedTradePaymentStatus(): PaymentStatus = when {
+        tradeStatusPartialRadio.isChecked -> PaymentStatus.PARTIAL
+        tradeStatusUnpaidRadio.isChecked -> PaymentStatus.UNPAID
+        else -> PaymentStatus.PAID
+    }
+
+    private fun isTradeEditorDirty(): Boolean {
+        val baseline = tradeEditorBaseline ?: return false
+        val current = currentTradeEditorState() ?: return false
+        return current != baseline
+    }
+
+    private fun currentTradeEditorState(): TradeEditorState? {
+        val state = tradeEditorState ?: return null
+        return state.copy(
+            partyId = selectedTradePartyId(),
+            totalText = tradeTotalInput.text?.toString().orEmpty(),
+            paidStatus = selectedTradePaymentStatus(),
+            paidText = tradePaidInput.text?.toString().orEmpty(),
+            description = tradeDescriptionInput.text?.toString().orEmpty()
+        )
+    }
+
+    private fun closeTradeEditor() {
+        tradeEditorState = null
+        tradeEditorBaseline = null
+        tradeParties = emptyList()
+        tradeEditorContainer.visibility = View.GONE
+        tradeValidationMessageText.visibility = View.GONE
+        tradeTotalInput.setText("")
+        tradePaidInput.setText("")
+        tradeDescriptionInput.setText("")
+    }
+
+    private fun confirmDiscardTradeIfNeeded(action: () -> Unit) {
+        if (tradeEditorState != null && isTradeEditorDirty()) {
+            showDiscardDialog {
+                closeTradeEditor()
+                action()
+            }
+        } else {
+            action()
+        }
+    }
+
+    private fun cancelTradeEditing() {
+        if (isTradeEditorDirty()) {
+            showDiscardDialog { closeTradeEditor() }
+        } else {
+            closeTradeEditor()
+        }
+    }
+
+    private fun saveTrade() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val state = currentTradeEditorState() ?: return
+        val total = when (val result = moneyInputParser.parse(presentationLocale, currentFarmCurrency(), state.totalText)) {
+            is MoneyInputResult.Valid -> result.amountMinor
+            MoneyInputResult.Missing -> return showTradeEditorError(FarmUiError.TRADE_TOTAL_REQUIRED, tradeTotalInput)
+            MoneyInputResult.NotPositive -> return showTradeEditorError(FarmUiError.AMOUNT_NOT_POSITIVE, tradeTotalInput)
+            MoneyInputResult.Invalid -> return showTradeEditorError(FarmUiError.AMOUNT_INVALID, tradeTotalInput)
+            MoneyInputResult.TooPrecise -> return showTradeEditorError(FarmUiError.AMOUNT_TOO_PRECISE, tradeTotalInput)
+            MoneyInputResult.TooLarge -> return showTradeEditorError(FarmUiError.AMOUNT_TOO_LARGE, tradeTotalInput)
+        }
+        val paid = when (state.paidStatus) {
+            PaymentStatus.PAID -> total
+            PaymentStatus.UNPAID -> 0L
+            PaymentStatus.PARTIAL -> {
+                when (val result = moneyInputParser.parse(presentationLocale, currentFarmCurrency(), state.paidText)) {
+                    is MoneyInputResult.Valid -> when {
+                        result.amountMinor <= 0 -> return showTradeEditorError(FarmUiError.TRADE_PAID_OUT_OF_RANGE, tradePaidInput)
+                        result.amountMinor >= total -> return showTradeEditorError(FarmUiError.TRADE_PAID_OUT_OF_RANGE, tradePaidInput)
+                        else -> result.amountMinor
+                    }
+                    else -> return showTradeEditorError(FarmUiError.TRADE_PAID_OUT_OF_RANGE, tradePaidInput)
+                }
+            }
+        }
+        val partyId = selectedTradePartyId()
+        if (paid < total && partyId == null) {
+            return showTradeEditorError(FarmUiError.TRADE_PARTY_REQUIRED, tradePartySpinner)
+        }
+        val occurredAt = state.occurredAt.atZoneSameInstant(deviceZone)
+            .toOffsetDateTime()
+            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        val draft = TradeDraft(
+            type = state.type,
+            partyId = partyId,
+            totalMinor = total,
+            paidMinor = paid,
+            description = state.description,
+            occurredAt = occurredAt
+        )
+        try {
+            if (state.mode == TradeEditorMode.CREATE) {
+                service.addTrade(farmId, draft)
+                showToast(R.string.toast_trade_created)
+            } else {
+                service.updateTrade(farmId, state.tradeId!!, draft)
+                showToast(R.string.toast_trade_updated)
+            }
+            closeTradeEditor()
+            renderHisabKitab()
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "save trade failed")
+        }
+    }
+
+    private fun confirmDeleteTrade() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val state = currentTradeEditorState() ?: return
+        if (state.mode != TradeEditorMode.EDIT) return
+        val tradeId = state.tradeId ?: return
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_delete_trade_title))
+            .setMessage(string(R.string.dialog_delete_trade_message))
+            .setPositiveButton(string(R.string.delete_trade_action)) { _, _ ->
+                try {
+                    service.deleteTrade(farmId, tradeId)
+                    closeTradeEditor()
+                    renderHisabKitab()
+                    showToast(R.string.toast_trade_deleted)
+                } catch (exception: Exception) {
+                    showUnexpectedFailure(exception, "delete trade failed")
+                }
+            }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .show()
+    }
+
+    private fun showTradeDateTimePickers() {
+        val zone = deviceZone
+        val current = tradeEditorState?.occurredAt?.atZoneSameInstant(zone) ?: ZonedDateTime.now(zone)
+        val datePicker = DatePickerDialog(
+            this,
+            { _, year, monthOfYear, dayOfMonth ->
+                val timePicker = TimePickerDialog(
+                    this,
+                    { _, hourOfDay, minute ->
+                        tradeEditorState = tradeEditorState?.copy(
+                            occurredAt = EditorDateTime.fromPickerValues(year, monthOfYear, dayOfMonth, hourOfDay, minute, zone)
+                        )
+                        updateTradeDateTimeDisplay()
+                    },
+                    current.hour,
+                    current.minute,
+                    DateFormat.is24HourFormat(this)
+                )
+                timePicker.show()
+            },
+            current.year,
+            current.monthValue - 1,
+            current.dayOfMonth
+        )
+        datePicker.show()
+    }
+
+    private fun updateTradeDateTimeDisplay() {
+        val occurredAt = tradeEditorState?.occurredAt ?: return
+        val now = OffsetDateTime.now()
+        tradeDateTimeText.text = if (timePresentation.isToday(deviceZone, occurredAt, now)) {
+            string(
+                R.string.today_time_format,
+                string(R.string.today_label),
+                timePresentation.shortTime(presentationLocale, deviceZone, occurredAt)
+            )
+        } else {
+            timePresentation.displayDateTime(presentationLocale, deviceZone, occurredAt)
+        }
+    }
+
+    private fun tradeEditorTitleRes(state: TradeEditorState): Int = when (state.mode) {
+        TradeEditorMode.CREATE -> if (state.type == TradeType.SALE) R.string.trade_editor_new_sale else R.string.trade_editor_new_purchase
+        TradeEditorMode.EDIT -> if (state.type == TradeType.SALE) R.string.trade_editor_edit_sale else R.string.trade_editor_edit_purchase
+    }
+
+    private fun tradeSaveActionRes(state: TradeEditorState): Int = when (state.mode) {
+        TradeEditorMode.CREATE -> if (state.type == TradeType.SALE) R.string.save_sale_action else R.string.save_purchase_action
+        TradeEditorMode.EDIT -> R.string.update_trade_action
+    }
+
+    private fun showTradeEditorError(error: FarmUiError, field: View) {
+        val message = string(error.resourceId)
+        tradeValidationMessageText.text = message
+        tradeValidationMessageText.visibility = View.VISIBLE
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        field.requestFocus()
+    }
+
+    private fun currentFarmCurrency(): String {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        return farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
+    }
+
+    private fun displayTradeTime(trade: Trade): String =
+        timePresentation.displayDateTime(presentationLocale, deviceZone, trade.occurredAt)
+
+    private fun restoreTradeEditorFrom(bundle: Bundle?) {
+        if (bundle == null) return
+        if (!bundle.getBoolean(STATE_TRADE_EDITOR_OPEN, false)) return
+        val state = readTradeEditorState(bundle, STATE_TRADE_EDITOR_PREFIX) ?: return
+        val baseline = readTradeEditorState(bundle, STATE_TRADE_EDITOR_BASELINE_PREFIX) ?: state
+        applyTradeEditorState(state, baseline = baseline)
+    }
+
+    private fun writeTradeEditorState(bundle: Bundle, prefix: String, state: TradeEditorState) {
+        bundle.putString(prefix + STATE_TRADE_EDITOR_MODE, state.mode.name)
+        bundle.putString(prefix + STATE_TRADE_EDITOR_TRADE_ID, state.tradeId)
+        bundle.putString(prefix + STATE_TRADE_EDITOR_TYPE, state.type.name)
+        bundle.putString(prefix + STATE_TRADE_EDITOR_PARTY_ID, state.partyId)
+        bundle.putString(prefix + STATE_TRADE_EDITOR_TOTAL, state.totalText)
+        bundle.putString(prefix + STATE_TRADE_EDITOR_PAID_STATUS, state.paidStatus.name)
+        bundle.putString(prefix + STATE_TRADE_EDITOR_PAID, state.paidText)
+        bundle.putString(prefix + STATE_TRADE_EDITOR_DESCRIPTION, state.description)
+        bundle.putString(prefix + STATE_TRADE_EDITOR_OCCURRED_AT, state.occurredAt.toInstant().toString())
+    }
+
+    private fun readTradeEditorState(bundle: Bundle, prefix: String): TradeEditorState? {
+        val mode = bundle.getString(prefix + STATE_TRADE_EDITOR_MODE)?.let {
+            runCatching { TradeEditorMode.valueOf(it) }.getOrNull()
+        } ?: return null
+        val type = bundle.getString(prefix + STATE_TRADE_EDITOR_TYPE)?.let {
+            runCatching { TradeType.valueOf(it) }.getOrNull()
+        } ?: return null
+        val paidStatus = bundle.getString(prefix + STATE_TRADE_EDITOR_PAID_STATUS)?.let {
+            runCatching { PaymentStatus.valueOf(it) }.getOrNull()
+        } ?: return null
+        val occurredAt = bundle.getString(prefix + STATE_TRADE_EDITOR_OCCURRED_AT)?.let {
+            runCatching { OffsetDateTime.parse(it) }.getOrNull()
+        } ?: return null
+        return TradeEditorState(
+            mode = mode,
+            tradeId = bundle.getString(prefix + STATE_TRADE_EDITOR_TRADE_ID),
+            type = type,
+            partyId = bundle.getString(prefix + STATE_TRADE_EDITOR_PARTY_ID),
+            totalText = bundle.getString(prefix + STATE_TRADE_EDITOR_TOTAL).orEmpty(),
+            paidStatus = paidStatus,
+            paidText = bundle.getString(prefix + STATE_TRADE_EDITOR_PAID).orEmpty(),
+            description = bundle.getString(prefix + STATE_TRADE_EDITOR_DESCRIPTION).orEmpty(),
+            occurredAt = occurredAt
+        )
     }
 
     // --- Parties ------------------------------------------------------------
@@ -452,10 +949,12 @@ class FarmActivity : AppCompatActivity() {
                 FarmLabels.partyRole(this, party.role)
             )
             row.setOnClickListener {
-                if (editingPartyId != null) {
-                    confirmDiscardPartyIfNeeded { openPartyEditor(party.id) }
-                } else {
-                    openPartyEditor(party.id)
+                confirmDiscardTradeIfNeeded {
+                    if (editingPartyId != null) {
+                        confirmDiscardPartyIfNeeded { openPartyEditor(party.id) }
+                    } else {
+                        openPartyEditor(party.id)
+                    }
                 }
             }
             partiesContainer.addView(row)
@@ -485,18 +984,29 @@ class FarmActivity : AppCompatActivity() {
             partyNameInput.requestFocus()
             return
         }
+        val role = selectedPartyRole()
+        val partyId = editingPartyId
+        if (partyId != null) {
+            val referencedTypes = service.trades(farmId).filter { it.partyId == partyId }.map { it.type }.distinct()
+            val incompatibleType = referencedTypes.firstOrNull { !role.compatibleWith(it) }
+            if (incompatibleType != null) {
+                showValidationMessage(FarmUiError.PARTY_ROLE_INCOMPATIBLE.resourceId)
+                partyRoleSpinner.requestFocus()
+                return
+            }
+        }
         val draft = PartyDraft(
             name = name,
-            role = selectedPartyRole(),
+            role = role,
             contact = partyContactInput.text?.toString()?.trim().orEmpty(),
             notes = partyNotesInput.text?.toString()?.trim().orEmpty()
         )
         try {
-            if (editingPartyId == null) {
+            if (partyId == null) {
                 service.addParty(farmId, draft)
                 showToast(R.string.toast_party_saved)
             } else {
-                service.updateParty(farmId, editingPartyId!!, draft)
+                service.updateParty(farmId, partyId, draft)
                 showToast(R.string.toast_party_saved)
             }
             closePartyEditor()
@@ -509,6 +1019,10 @@ class FarmActivity : AppCompatActivity() {
     private fun confirmDeleteParty() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val partyId = editingPartyId ?: return
+        if (service.trades(farmId).any { it.partyId == partyId }) {
+            showValidationMessage(FarmUiError.PARTY_HAS_TRADES.resourceId)
+            return
+        }
         AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_delete_party_title))
             .setMessage(string(R.string.dialog_delete_party_message))
@@ -969,7 +1483,7 @@ class FarmActivity : AppCompatActivity() {
         renderFarm(farm)
         updateShellTitle()
         if (currentDestination == Destination.SETTINGS) renderSettings()
-        if (currentDestination == Destination.HISAB_KITAB) renderParties()
+        if (currentDestination == Destination.HISAB_KITAB) renderHisabKitab()
     }
 
     private fun renderFarm(farm: FarmState) {
@@ -1281,5 +1795,17 @@ class FarmActivity : AppCompatActivity() {
         const val STATE_EDITOR_DESCRIPTION = "Description"
         const val STATE_EDITOR_OCCURRED_AT = "OccurredAt"
         const val STATE_TOOLS_EXPANDED = "toolsExpanded"
+        const val STATE_TRADE_EDITOR_OPEN = "tradeEditorOpen"
+        const val STATE_TRADE_EDITOR_PREFIX = "tradeEditor"
+        const val STATE_TRADE_EDITOR_BASELINE_PREFIX = "tradeEditorBaseline"
+        const val STATE_TRADE_EDITOR_MODE = "Mode"
+        const val STATE_TRADE_EDITOR_TRADE_ID = "TradeId"
+        const val STATE_TRADE_EDITOR_TYPE = "Type"
+        const val STATE_TRADE_EDITOR_PARTY_ID = "PartyId"
+        const val STATE_TRADE_EDITOR_TOTAL = "Total"
+        const val STATE_TRADE_EDITOR_PAID_STATUS = "PaidStatus"
+        const val STATE_TRADE_EDITOR_PAID = "Paid"
+        const val STATE_TRADE_EDITOR_DESCRIPTION = "Description"
+        const val STATE_TRADE_EDITOR_OCCURRED_AT = "OccurredAt"
     }
 }

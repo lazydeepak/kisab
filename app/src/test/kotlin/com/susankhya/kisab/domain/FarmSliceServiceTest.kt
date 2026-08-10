@@ -322,7 +322,7 @@ class FarmSliceServiceTest {
 
         val encoded = FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!)
         val reloaded = FarmPersistenceCodec.decode(encoded)
-        assertEquals(4, reloaded.schemaVersion)
+        assertEquals(5, reloaded.schemaVersion)
         assertEquals(1, reloaded.parties.size)
         assertEquals("Feed Store", reloaded.parties.single().name)
         assertEquals(PartyRole.SUPPLIER, reloaded.parties.single().role)
@@ -335,13 +335,419 @@ class FarmSliceServiceTest {
     }
 
     @Test
+    fun tradeCrudOrdersNewestFirstAndKeepsStableId() {
+        val farm = service.createFarm("Demo Farm")
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        val first = service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = party.id,
+                totalMinor = 30000,
+                paidMinor = 30000,
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        val second = service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = party.id,
+                totalMinor = 5000,
+                paidMinor = 2000,
+                occurredAt = "2024-02-01T12:00:00Z"
+            )
+        )
+
+        assertEquals(listOf(second.id, first.id), service.trades(farm.id).map { it.id })
+
+        val updated = service.updateTrade(
+            farm.id,
+            second.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = party.id,
+                totalMinor = 6000,
+                paidMinor = 6000,
+                occurredAt = "2024-02-01T12:00:00Z"
+            )
+        )
+        assertEquals(second.id, updated.id)
+        assertEquals(6000, service.trade(farm.id, second.id)!!.totalMinor)
+
+        service.deleteTrade(farm.id, first.id)
+        assertEquals(listOf(second.id), service.trades(farm.id).map { it.id })
+    }
+
+    @Test
+    fun addTradeRejectsInvalidAmounts() {
+        val farm = service.createFarm("Demo Farm")
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+
+        try {
+            service.addTrade(
+                farm.id,
+                TradeDraft(
+                    type = TradeType.SALE,
+                    partyId = party.id,
+                    totalMinor = 0,
+                    paidMinor = 0,
+                    occurredAt = "2024-01-01T12:00:00Z"
+                )
+            )
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Trade total must be positive", exception.message)
+        }
+
+        try {
+            service.addTrade(
+                farm.id,
+                TradeDraft(
+                    type = TradeType.SALE,
+                    partyId = party.id,
+                    totalMinor = 5000,
+                    paidMinor = -1,
+                    occurredAt = "2024-01-01T12:00:00Z"
+                )
+            )
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Trade paid amount must not be negative", exception.message)
+        }
+
+        try {
+            service.addTrade(
+                farm.id,
+                TradeDraft(
+                    type = TradeType.SALE,
+                    partyId = party.id,
+                    totalMinor = 5000,
+                    paidMinor = 6000,
+                    occurredAt = "2024-01-01T12:00:00Z"
+                )
+            )
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Trade paid amount cannot exceed the total", exception.message)
+        }
+
+        assertEquals(0, service.trades(farm.id).size)
+    }
+
+    @Test
+    fun unpaidOrPartialTradeRequiresParty() {
+        val farm = service.createFarm("Demo Farm")
+
+        try {
+            service.addTrade(
+                farm.id,
+                TradeDraft(
+                    type = TradeType.SALE,
+                    partyId = null,
+                    totalMinor = 5000,
+                    paidMinor = 2000,
+                    occurredAt = "2024-01-01T12:00:00Z"
+                )
+            )
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Partially paid or unpaid trades require a party", exception.message)
+        }
+    }
+
+    @Test
+    fun fullyPaidTradeDoesNotRequireParty() {
+        val farm = service.createFarm("Demo Farm")
+        val trade = service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = null,
+                totalMinor = 5000,
+                paidMinor = 5000,
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+
+        assertEquals(5000, trade.totalMinor)
+        assertEquals(1, service.trades(farm.id).size)
+    }
+
+    @Test
+    fun tradeRejectsMissingOrIncompatibleParty() {
+        val farm = service.createFarm("Demo Farm")
+        val supplier = service.addParty(farm.id, PartyDraft(name = "Feed Store", role = PartyRole.SUPPLIER))
+        val customer = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+
+        try {
+            service.addTrade(
+                farm.id,
+                TradeDraft(
+                    type = TradeType.PURCHASE,
+                    partyId = "missing",
+                    totalMinor = 5000,
+                    paidMinor = 0,
+                    occurredAt = "2024-01-01T12:00:00Z"
+                )
+            )
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Trade party not found: missing", exception.message)
+        }
+
+        try {
+            service.addTrade(
+                farm.id,
+                TradeDraft(
+                    type = TradeType.SALE,
+                    partyId = supplier.id,
+                    totalMinor = 5000,
+                    paidMinor = 5000,
+                    occurredAt = "2024-01-01T12:00:00Z"
+                )
+            )
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Trade party role is incompatible with the trade type", exception.message)
+        }
+
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.PURCHASE,
+                partyId = supplier.id,
+                totalMinor = 5000,
+                paidMinor = 5000,
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = customer.id,
+                totalMinor = 5000,
+                paidMinor = 5000,
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+    }
+
+    @Test
+    fun bothPartyRoleIsCompatibleWithBothTradeTypes() {
+        val farm = service.createFarm("Demo Farm")
+        val both = service.addParty(farm.id, PartyDraft(name = "Co-op", role = PartyRole.BOTH))
+
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = both.id,
+                totalMinor = 3000,
+                paidMinor = 3000,
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.PURCHASE,
+                partyId = both.id,
+                totalMinor = 2000,
+                paidMinor = 2000,
+                occurredAt = "2024-01-02T12:00:00Z"
+            )
+        )
+
+        assertEquals(2, service.trades(farm.id).size)
+    }
+
+    @Test
+    fun deletePartyBlockedWhenReferencedByTrade() {
+        val farm = service.createFarm("Demo Farm")
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = party.id,
+                totalMinor = 5000,
+                paidMinor = 0,
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+
+        try {
+            service.deleteParty(farm.id, party.id)
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Party cannot be deleted while sales or purchases reference it", exception.message)
+        }
+
+        assertEquals(1, service.parties(farm.id).size)
+    }
+
+    @Test
+    fun updatePartyRoleChangeBlockedByReferencedTrades() {
+        val farm = service.createFarm("Demo Farm")
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = party.id,
+                totalMinor = 5000,
+                paidMinor = 0,
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+
+        try {
+            service.updateParty(farm.id, party.id, PartyDraft(name = "Dairy", role = PartyRole.SUPPLIER))
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Party role cannot change while sales or purchases reference this party", exception.message)
+        }
+
+        val widened = service.updateParty(farm.id, party.id, PartyDraft(name = "Dairy Co-op", role = PartyRole.BOTH))
+        assertEquals(PartyRole.BOTH, widened.role)
+
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.PURCHASE,
+                partyId = party.id,
+                totalMinor = 5000,
+                paidMinor = 5000,
+                occurredAt = "2024-01-02T12:00:00Z"
+            )
+        )
+    }
+
+    @Test
+    fun schema4FarmMigratesWithEmptyTradesList() {
+        val schema4 = "4\u001Ffarm-s4\u001FFarm S4\u001FLIVESTOCK:Goat:2\u001FNPR\u001F\u001F"
+
+        val farm = FarmPersistenceCodec.decode(schema4)
+
+        assertEquals(5, farm.schemaVersion)
+        assertEquals(0, farm.trades.size)
+        assertEquals(0, farm.parties.size)
+    }
+
+    @Test
+    fun tradeRoundTripsThroughPersistenceAndBackup() {
+        val farm = service.createFarm("Demo Farm")
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER, contact = "9800000001"))
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = party.id,
+                totalMinor = 30000,
+                paidMinor = 10000,
+                description = "Milk sale batch 1",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+
+        val reloaded = FarmPersistenceCodec.decode(FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!))
+        assertEquals(5, reloaded.schemaVersion)
+        val trade = reloaded.trades.single()
+        assertEquals(TradeType.SALE, trade.type)
+        assertEquals(party.id, trade.partyId)
+        assertEquals(30000, trade.totalMinor)
+        assertEquals(10000, trade.paidMinor)
+        assertEquals("Milk sale batch 1", trade.description)
+
+        val envelope = FarmBackupCodec.decode(FarmBackupCodec.encode(service.loadFarm(farm.id)!!))
+        assertEquals(1, envelope.farm.trades.size)
+        assertEquals(TradeType.SALE, envelope.farm.trades.single().type)
+    }
+
+    @Test
+    fun tradesAreExcludedFromBalanceSummary() {
+        val farm = service.createFarm("Demo Farm")
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.INCOME,
+                category = TransactionCategory.SALES,
+                amountMinor = 1000,
+                description = "Egg sale",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.SALE,
+                partyId = party.id,
+                totalMinor = 30000,
+                paidMinor = 10000,
+                occurredAt = "2024-01-02T12:00:00Z"
+            )
+        )
+
+        val summary = service.summary(farm.id)
+        assertEquals(1, summary.transactionCount)
+        assertEquals(1000, summary.balanceMinor)
+    }
+
+    @Test
+    fun tradePaymentStatusAndOutstandingAreDerived() {
+        val farm = service.createFarm("Demo Farm")
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        val paid = service.addTrade(
+            farm.id,
+            TradeDraft(type = TradeType.SALE, partyId = party.id, totalMinor = 5000, paidMinor = 5000, occurredAt = "2024-01-01T12:00:00Z")
+        )
+        val partial = service.addTrade(
+            farm.id,
+            TradeDraft(type = TradeType.SALE, partyId = party.id, totalMinor = 5000, paidMinor = 2000, occurredAt = "2024-01-02T12:00:00Z")
+        )
+        val unpaid = service.addTrade(
+            farm.id,
+            TradeDraft(type = TradeType.SALE, partyId = party.id, totalMinor = 5000, paidMinor = 0, occurredAt = "2024-01-03T12:00:00Z")
+        )
+
+        assertEquals(PaymentStatus.PAID, paid.paymentStatus())
+        assertEquals(PaymentStatus.PARTIAL, partial.paymentStatus())
+        assertEquals(PaymentStatus.UNPAID, unpaid.paymentStatus())
+        assertEquals(0, paid.outstandingMinor())
+        assertEquals(3000, partial.outstandingMinor())
+        assertEquals(5000, unpaid.outstandingMinor())
+    }
+
+    @Test
+    fun schema4FarmWithTradesRoundTripByteStable() {
+        val farm = service.createFarm("Demo Farm")
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        val trade = service.addTrade(
+            farm.id,
+            TradeDraft(type = TradeType.SALE, partyId = party.id, totalMinor = 3000, paidMinor = 1000, occurredAt = "2024-01-01T12:00:00Z")
+        )
+        val persisted = service.loadFarm(farm.id)!!
+        val encoded = FarmPersistenceCodec.encode(persisted)
+        val reloaded = FarmPersistenceCodec.decode(encoded)
+
+        assertEquals(5, reloaded.schemaVersion)
+        assertEquals(1, reloaded.parties.size)
+        assertEquals(1, reloaded.trades.size)
+        assertEquals(trade.id, reloaded.trades.single().id)
+        assertEquals(party.id, reloaded.trades.single().partyId)
+    }
+
+    @Test
     fun schema3FarmMigratesWithEmptyPartiesList() {
         val schema3 = "3\u001Ffarm-s3\u001FFarm S3\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
             "tx-1\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z"
 
         val farm = FarmPersistenceCodec.decode(schema3)
 
-        assertEquals(4, farm.schemaVersion)
+        assertEquals(5, farm.schemaVersion)
         assertEquals("Farm S3", farm.name)
         assertEquals(1, farm.transactions.size)
         assertEquals(0, farm.parties.size)
@@ -405,7 +811,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema2)
 
-        assertEquals(4, farm.schemaVersion)
+        assertEquals(5, farm.schemaVersion)
         assertEquals("USD", farm.currencyCode)
         assertEquals(1, farm.transactions.size)
         assertEquals(1500, farm.transactions[0].amountMinor)
@@ -419,7 +825,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema2)
 
-        assertEquals(4, farm.schemaVersion)
+        assertEquals(5, farm.schemaVersion)
         assertEquals("NPR", farm.currencyCode)
         assertEquals(0, farm.transactions.size)
     }
@@ -860,8 +1266,8 @@ class FarmSliceServiceTest {
         val encoded = FarmBackupCodec.encode(persisted, exportedAt)
 
         val payload = Base64.getEncoder().encodeToString(
-            ("4\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
-                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z\u001F")
+            ("5\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
+                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z\u001F\u001F")
                 .toByteArray(StandardCharsets.UTF_8)
         )
         assertEquals("1\u001F2024-06-01T12:00:00Z\u001F$payload", encoded)
