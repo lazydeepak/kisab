@@ -123,7 +123,7 @@ The Hisab-Kitab destination shows, in order: **Recent sales and purchases** (new
 
 ### Boundary decisions (explicit exclusions)
 
-- **Home summary/balance excludes trades.** Trades do not touch `FarmSummary.balanceMinor`; to-receive/to-pay aggregation is a *future* hisab/khata feature and is not computed in this slice (only the per-trade "amount due" is shown inline). This keeps the financial definition stable and additive.
+- **Home summary/balance excludes trades.** Trades do not touch `FarmSummary.balanceMinor`. M5-02 computes derived outstanding totals (to-receive for SALE, to-pay for PURCHASE) and renders them in the Hisab-Kitab summary; *settlement history and per-party ledger aggregation* are the M5-03/M5-04 slices and are not computed here.
 - **No unpaid list, no partner ledger, no settlement/adjacency operations, no "settle up" on a partial payment.** Those are M5-03+/hisab slices; the model already supports them (paid/total is the settlement primitive) but the UI does not add screens for them.
 - **Payment status is a tri-state at save time only for PARTIAL entry.** The `paidText` for PARTIAL is the amount actually paid; `PaymentStatus.PAID` and `UNPAID` carry a derived paid amount (full/zero), so the amount-paid field is only shown for PARTIAL.
 - **Trade categories are not transactions categories.** Trades use farm parties and money only; linking a trade to a TransactionCategory or to actual cash transactions (a paid sale also appearing in the Income ledger) is deliberately **out of scope** to avoid double counting in the M1–M4 balance during this slice.
