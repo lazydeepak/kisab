@@ -193,4 +193,39 @@ class LocalizedResourceResolutionTest {
             assertNotEquals("English fallback for $key", englishText, nepaliText)
         }
     }
+
+    @Test
+    fun partyStringsResolveInBothLocales() {
+        val keys = listOf(
+            R.string.parties_section,
+            R.string.parties_empty,
+            R.string.add_party_action,
+            R.string.party_editor_title,
+            R.string.party_name_label,
+            R.string.party_name_hint,
+            R.string.party_role_label,
+            R.string.party_contact_label,
+            R.string.party_contact_hint,
+            R.string.party_notes_label,
+            R.string.party_notes_hint,
+            R.string.party_role_customer,
+            R.string.party_role_supplier,
+            R.string.party_role_other,
+            R.string.save_party_action,
+            R.string.error_party_name_required,
+            R.string.party_row_format,
+            R.string.dialog_delete_party_title,
+            R.string.dialog_delete_party_message,
+            R.string.delete_party_action,
+            R.string.toast_party_saved,
+            R.string.toast_party_deleted
+        )
+        for (key in keys) {
+            val englishText = english.getString(key)
+            val nepaliText = nepali.getString(key)
+            assertTrue("English text blank for $key", englishText.isNotBlank())
+            assertTrue("Nepali text blank for $key", nepaliText.isNotBlank())
+            assertNotEquals("English fallback for $key", englishText, nepaliText)
+        }
+    }
 }

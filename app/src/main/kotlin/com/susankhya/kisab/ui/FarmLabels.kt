@@ -3,6 +3,7 @@ package com.susankhya.kisab.ui
 import android.content.Context
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntryKind
+import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 
@@ -34,10 +35,18 @@ object FarmLabels {
         TransactionCategory.OTHER_EXPENSE -> R.string.transaction_category_other_expense
     }
 
+    fun partyRoleRes(role: PartyRole): Int = when (role) {
+        PartyRole.CUSTOMER -> R.string.party_role_customer
+        PartyRole.SUPPLIER -> R.string.party_role_supplier
+        PartyRole.OTHER -> R.string.party_role_other
+    }
+
     fun entryKind(context: Context, kind: FarmEntryKind): String = context.getString(entryKindRes(kind))
 
     fun transactionType(context: Context, type: TransactionType): String = context.getString(transactionTypeRes(type))
 
     fun transactionCategory(context: Context, category: TransactionCategory): String =
         context.getString(transactionCategoryRes(category))
+
+    fun partyRole(context: Context, role: PartyRole): String = context.getString(partyRoleRes(role))
 }

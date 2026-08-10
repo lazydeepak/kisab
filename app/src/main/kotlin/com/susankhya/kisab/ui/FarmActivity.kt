@@ -40,6 +40,8 @@ import com.susankhya.kisab.domain.FarmState
 import com.susankhya.kisab.domain.FarmTotals
 import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.FarmTransactionDraft
+import com.susankhya.kisab.domain.PartyDraft
+import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.domain.transactionsNewestFirst
@@ -82,6 +84,18 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var hisabKitabScreen: ScrollView
     private lateinit var hisabScreen: ScrollView
     private lateinit var settingsScreen: ScrollView
+
+    private lateinit var partiesEmptyText: TextView
+    private lateinit var partiesContainer: LinearLayout
+    private lateinit var addPartyButton: Button
+    private lateinit var partyEditorTitle: TextView
+    private lateinit var partyNameInput: EditText
+    private lateinit var partyRoleSpinner: Spinner
+    private lateinit var partyContactInput: EditText
+    private lateinit var partyNotesInput: EditText
+    private lateinit var savePartyButton: Button
+    private lateinit var cancelPartyButton: Button
+    private lateinit var deletePartyButton: Button
 
     private lateinit var settingsCurrencyText: TextView
     private lateinit var changeSettingsCurrencyButton: Button
@@ -142,6 +156,7 @@ class FarmActivity : AppCompatActivity() {
     private var editorBaseline: TransactionEditorState? = null
     private var toolsExpanded: Boolean = false
     private var syncTypeListenersSuppressed = false
+    private var editingPartyId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -202,6 +217,12 @@ class FarmActivity : AppCompatActivity() {
                     } else {
                         closeEditor()
                     }
+                } else if (currentDestination == Destination.HISAB_KITAB && editingPartyId != null) {
+                    if (isPartyEditorDirty()) {
+                        showDiscardDialog { closePartyEditor() }
+                    } else {
+                        closePartyEditor()
+                    }
                 } else if (currentDestination == Destination.SETTINGS) {
                     showDestination(lastPrimaryDestination)
                 } else if (currentDestination != Destination.HOME) {
@@ -251,6 +272,17 @@ class FarmActivity : AppCompatActivity() {
         hisabKitabScreen = findViewById(R.id.hisabKitabScreen)
         hisabScreen = findViewById(R.id.hisabScreen)
         settingsScreen = findViewById(R.id.settingsScreen)
+        partiesEmptyText = findViewById(R.id.partiesEmptyText)
+        partiesContainer = findViewById(R.id.partiesContainer)
+        addPartyButton = findViewById(R.id.addPartyButton)
+        partyEditorTitle = findViewById(R.id.partyEditorTitle)
+        partyNameInput = findViewById(R.id.partyNameInput)
+        partyRoleSpinner = findViewById(R.id.partyRoleSpinner)
+        partyContactInput = findViewById(R.id.partyContactInput)
+        partyNotesInput = findViewById(R.id.partyNotesInput)
+        savePartyButton = findViewById(R.id.savePartyButton)
+        cancelPartyButton = findViewById(R.id.cancelPartyButton)
+        deletePartyButton = findViewById(R.id.deletePartyButton)
         settingsCurrencyText = findViewById(R.id.settingsCurrencyText)
         changeSettingsCurrencyButton = findViewById(R.id.changeSettingsCurrencyButton)
         settingsCurrencyLockedText = findViewById(R.id.settingsCurrencyLockedText)
@@ -302,6 +334,14 @@ class FarmActivity : AppCompatActivity() {
         ).also { adapter ->
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
+
+        partyRoleSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            FarmOrdering.partyRoles.map { FarmLabels.partyRole(this, it) }
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
     }
 
     private fun wireListeners() {
@@ -315,6 +355,11 @@ class FarmActivity : AppCompatActivity() {
         navHisabKitabItem.setOnClickListener { navigateTo(Destination.HISAB_KITAB) }
         navHisabItem.setOnClickListener { navigateTo(Destination.HISAB) }
         shellSettingsButton.setOnClickListener { navigateTo(Destination.SETTINGS) }
+
+        addPartyButton.setOnClickListener { openPartyEditor(null) }
+        savePartyButton.setOnClickListener { saveParty() }
+        cancelPartyButton.setOnClickListener { closePartyEditor() }
+        deletePartyButton.setOnClickListener { confirmDeleteParty() }
 
         val languageRadios = listOf(
             languageFollowDeviceRadio to AppLanguage.FOLLOW_DEVICE,
@@ -353,7 +398,7 @@ class FarmActivity : AppCompatActivity() {
             render()
             return
         }
-        confirmDiscardIfNeeded { showDestination(destination) }
+        confirmDiscardIfNeeded { confirmDiscardPartyIfNeeded { showDestination(destination) } }
     }
 
     private fun showDestination(destination: Destination) {
@@ -365,6 +410,7 @@ class FarmActivity : AppCompatActivity() {
         settingsScreen.visibility = if (destination == Destination.SETTINGS) View.VISIBLE else View.GONE
         updateShellTitle()
         if (destination == Destination.SETTINGS) renderSettings()
+        if (destination == Destination.HISAB_KITAB) renderParties()
     }
 
     private fun updateShellTitle() {
@@ -378,6 +424,158 @@ class FarmActivity : AppCompatActivity() {
             Destination.SETTINGS -> string(R.string.nav_settings)
         }
     }
+
+    // --- Parties ------------------------------------------------------------
+
+    private fun renderParties() {
+        val farmId = currentFarmId ?: run {
+            partiesEmptyText.visibility = View.VISIBLE
+            partiesContainer.removeAllViews()
+            return
+        }
+        val parties = service.parties(farmId)
+        partiesEmptyText.visibility = if (parties.isEmpty()) View.VISIBLE else View.GONE
+        partiesContainer.removeAllViews()
+        if (parties.isEmpty()) return
+        val inflater = LayoutInflater.from(this)
+        parties.forEach { party ->
+            val row = inflater.inflate(R.layout.item_party_row, partiesContainer, false) as TextView
+            row.setTag(party.id)
+            row.text = string(
+                R.string.party_row_format,
+                party.name,
+                FarmLabels.partyRole(this, party.role)
+            )
+            row.contentDescription = string(
+                R.string.party_row_format,
+                party.name,
+                FarmLabels.partyRole(this, party.role)
+            )
+            row.setOnClickListener {
+                if (editingPartyId != null) {
+                    confirmDiscardPartyIfNeeded { openPartyEditor(party.id) }
+                } else {
+                    openPartyEditor(party.id)
+                }
+            }
+            partiesContainer.addView(row)
+        }
+    }
+
+    private fun openPartyEditor(partyId: String?) {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val party = partyId?.let { service.party(farmId, it) }
+        editingPartyId = partyId
+        partyEditorTitle.text = string(R.string.party_editor_title)
+        partyNameInput.setText(party?.name ?: "")
+        val roleIndex = FarmOrdering.partyRoles.indexOf(party?.role ?: PartyRole.CUSTOMER)
+            .coerceAtLeast(0)
+        partyRoleSpinner.setSelection(roleIndex)
+        partyContactInput.setText(party?.contact ?: "")
+        partyNotesInput.setText(party?.notes ?: "")
+        setPartyEditorVisible(true)
+        partyNameInput.requestFocus()
+    }
+
+    private fun saveParty() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val name = partyNameInput.text?.toString()?.trim().orEmpty()
+        if (name.isBlank()) {
+            showValidationMessage(FarmUiError.PARTY_NAME_REQUIRED.resourceId)
+            partyNameInput.requestFocus()
+            return
+        }
+        val draft = PartyDraft(
+            name = name,
+            role = selectedPartyRole(),
+            contact = partyContactInput.text?.toString()?.trim().orEmpty(),
+            notes = partyNotesInput.text?.toString()?.trim().orEmpty()
+        )
+        try {
+            if (editingPartyId == null) {
+                service.addParty(farmId, draft)
+                showToast(R.string.toast_party_saved)
+            } else {
+                service.updateParty(farmId, editingPartyId!!, draft)
+                showToast(R.string.toast_party_saved)
+            }
+            closePartyEditor()
+            renderParties()
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "save party failed")
+        }
+    }
+
+    private fun confirmDeleteParty() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val partyId = editingPartyId ?: return
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_delete_party_title))
+            .setMessage(string(R.string.dialog_delete_party_message))
+            .setPositiveButton(string(R.string.delete_party_action)) { _, _ ->
+                try {
+                    service.deleteParty(farmId, partyId)
+                    closePartyEditor()
+                    renderParties()
+                    showToast(R.string.toast_party_deleted)
+                } catch (exception: Exception) {
+                    showUnexpectedFailure(exception, "delete party failed")
+                }
+            }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .show()
+    }
+
+    private fun closePartyEditor() {
+        editingPartyId = null
+        setPartyEditorVisible(false)
+        renderParties()
+    }
+
+    private fun setPartyEditorVisible(visible: Boolean) {
+        val visibility = if (visible) View.VISIBLE else View.GONE
+        partyEditorTitle.visibility = visibility
+        partyNameInput.visibility = visibility
+        val roleLabel = findViewById<TextView>(R.id.partyRoleLabel)
+        roleLabel.visibility = visibility
+        partyRoleSpinner.visibility = visibility
+        partyContactInput.visibility = visibility
+        partyNotesInput.visibility = visibility
+        savePartyButton.visibility = visibility
+        cancelPartyButton.visibility = visibility
+        deletePartyButton.visibility = if (visible && editingPartyId != null) View.VISIBLE else View.GONE
+    }
+
+    private fun isPartyEditorDirty(): Boolean {
+        if (editingPartyId == null && partyNameInput.text?.toString()?.isBlank() != false &&
+            partyContactInput.text?.toString()?.isBlank() != false &&
+            partyNotesInput.text?.toString()?.isBlank() != false &&
+            selectedPartyRole() == PartyRole.CUSTOMER
+        ) {
+            return false
+        }
+        val farmId = currentFarmId ?: return false
+        val party = editingPartyId?.let { service.party(farmId, it) }
+        val baselineName = party?.name ?: ""
+        val baselineRole = party?.role ?: PartyRole.CUSTOMER
+        val baselineContact = party?.contact ?: ""
+        val baselineNotes = party?.notes ?: ""
+        return partyNameInput.text?.toString()?.trim().orEmpty() != baselineName ||
+            selectedPartyRole() != baselineRole ||
+            partyContactInput.text?.toString()?.trim().orEmpty() != baselineContact ||
+            partyNotesInput.text?.toString()?.trim().orEmpty() != baselineNotes
+    }
+
+    private fun confirmDiscardPartyIfNeeded(action: () -> Unit) {
+        if (isPartyEditorDirty()) {
+            showDiscardDialog(action)
+        } else {
+            action()
+        }
+    }
+
+    private fun selectedPartyRole(): PartyRole =
+        FarmOrdering.partyRoles[partyRoleSpinner.selectedItemPosition.coerceIn(0, FarmOrdering.partyRoles.size - 1)]
 
     private fun createFarm() {
         val name = farmNameInput.text?.toString()?.trim().orEmpty()
@@ -771,6 +969,7 @@ class FarmActivity : AppCompatActivity() {
         renderFarm(farm)
         updateShellTitle()
         if (currentDestination == Destination.SETTINGS) renderSettings()
+        if (currentDestination == Destination.HISAB_KITAB) renderParties()
     }
 
     private fun renderFarm(farm: FarmState) {

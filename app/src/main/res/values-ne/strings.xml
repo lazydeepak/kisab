@@ -118,6 +118,29 @@
     <string name="hisab_kitab_placeholder_title">हिसाब-किताब चाँडै आउँदैछ</string>
     <string name="hisab_kitab_placeholder_body">ग्राहक/पार्टी, हिसाब/खाता, र बिक्री तथा खरिदहरू भविष्यको अद्यावधिकमा यहाँ देखा पर्नेछन्।</string>
 
+    <string name="parties_section">पार्टीहरू</string>
+    <string name="parties_empty">अहिलेसम्म कुनै पार्टी छैन। तपाईंले व्यवहार गर्ने व्यक्ति र व्यवसायहरू थप्नुहोस्।</string>
+    <string name="add_party_action">पार्टी थप्नुहोस्</string>
+    <string name="party_editor_title">पार्टी</string>
+    <string name="party_name_label">नाम</string>
+    <string name="party_name_hint">व्यक्ति वा व्यवसायको नाम</string>
+    <string name="party_role_label">भूमिका</string>
+    <string name="party_contact_label">सम्पर्क</string>
+    <string name="party_contact_hint">फोन नम्बर वा अन्य सम्पर्क</string>
+    <string name="party_notes_label">टिप्पणी</string>
+    <string name="party_notes_hint">ऐच्छिक टिप्पणी</string>
+    <string name="party_role_customer">ग्राहक</string>
+    <string name="party_role_supplier">आपूर्तिकर्ता</string>
+    <string name="party_role_other">अन्य</string>
+    <string name="save_party_action">पार्टी बचत गर्नुहोस्</string>
+    <string name="error_party_name_required">पार्टीको नाम आवश्यक छ</string>
+    <string name="party_row_format">%1$s — %2$s</string>
+    <string name="dialog_delete_party_title">पार्टी मेटाउनुहोस्</string>
+    <string name="dialog_delete_party_message">के यो पार्टी मेटाउने? यो फिर्ता गर्न सकिँदैन।</string>
+    <string name="delete_party_action">मेटाउनुहोस्</string>
+    <string name="toast_party_saved">पार्टी बचत भयो</string>
+    <string name="toast_party_deleted">पार्टी मेटाइयो</string>
+
     <string name="hisab_placeholder_title">हिसाब चाँडै आउँदैछ</string>
     <string name="hisab_placeholder_body">किसानको हिसाब खोज र गणनाहरू भविष्यको अद्यावधिकमा यहाँ देखा पर्नेछन्।</string>
 

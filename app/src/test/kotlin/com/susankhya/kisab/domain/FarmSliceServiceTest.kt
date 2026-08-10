@@ -235,6 +235,119 @@ class FarmSliceServiceTest {
     }
 
     @Test
+    fun partyCrudPersistsAndOrdersByName() {
+        val farm = service.createFarm("Demo Farm")
+        val supplier = service.addParty(
+            farm.id,
+            PartyDraft(name = "Feed Store", role = PartyRole.SUPPLIER, contact = "9800000001")
+        )
+        val customer = service.addParty(
+            farm.id,
+            PartyDraft(name = "market buyer", role = PartyRole.CUSTOMER, notes = "Buys eggs weekly")
+        )
+
+        val ordered = service.parties(farm.id)
+        assertEquals(listOf(supplier.id, customer.id), ordered.map { it.id })
+
+        service.updateParty(
+            farm.id,
+            customer.id,
+            PartyDraft(name = "Market Buyer", role = PartyRole.CUSTOMER, contact = "9800000002", notes = "City market")
+        )
+        val updated = service.party(farm.id, customer.id)
+        assertEquals("Market Buyer", updated?.name)
+        assertEquals("9800000002", updated?.contact)
+        assertEquals("City market", updated?.notes)
+        assertEquals(customer.id, updated?.id)
+
+        service.deleteParty(farm.id, supplier.id)
+        assertNull(service.party(farm.id, supplier.id))
+        assertEquals(listOf(customer.id), service.parties(farm.id).map { it.id })
+    }
+
+    @Test
+    fun addPartyTrimsAndRequiresName() {
+        val farm = service.createFarm("Demo Farm")
+
+        val party = service.addParty(farm.id, PartyDraft(name = "  Ram  ", role = PartyRole.OTHER))
+        assertEquals("Ram", party.name)
+
+        try {
+            service.addParty(farm.id, PartyDraft(name = "   ", role = PartyRole.CUSTOMER))
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Party name is required", exception.message)
+        }
+        assertEquals(1, service.parties(farm.id).size)
+    }
+
+    @Test
+    fun updatePartyRejectsBlankNameAndMissingParty() {
+        val farm = service.createFarm("Demo Farm")
+        val party = service.addParty(farm.id, PartyDraft(name = "Ram", role = PartyRole.CUSTOMER))
+
+        try {
+            service.updateParty(farm.id, party.id, PartyDraft(name = " ", role = PartyRole.SUPPLIER))
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Party name is required", exception.message)
+        }
+
+        try {
+            service.updateParty(farm.id, "missing", PartyDraft(name = "Sita", role = PartyRole.CUSTOMER))
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Party not found: missing", exception.message)
+        }
+    }
+
+    @Test
+    fun deletePartyRejectsMissingParty() {
+        val farm = service.createFarm("Demo Farm")
+        try {
+            service.deleteParty(farm.id, "missing")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Party not found: missing", exception.message)
+        }
+    }
+
+    @Test
+    fun partyCrudRoundTripsThroughPersistenceAndBackup() {
+        val farm = service.createFarm("Demo Farm")
+        service.addParty(
+            farm.id,
+            PartyDraft(name = "Feed Store", role = PartyRole.SUPPLIER, contact = "9800000001", notes = "Corner shop")
+        )
+
+        val encoded = FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!)
+        val reloaded = FarmPersistenceCodec.decode(encoded)
+        assertEquals(4, reloaded.schemaVersion)
+        assertEquals(1, reloaded.parties.size)
+        assertEquals("Feed Store", reloaded.parties.single().name)
+        assertEquals(PartyRole.SUPPLIER, reloaded.parties.single().role)
+        assertEquals("9800000001", reloaded.parties.single().contact)
+        assertEquals("Corner shop", reloaded.parties.single().notes)
+
+        val envelope = FarmBackupCodec.decode(FarmBackupCodec.encode(service.loadFarm(farm.id)!!))
+        assertEquals(1, envelope.farm.parties.size)
+        assertEquals("Feed Store", envelope.farm.parties.single().name)
+    }
+
+    @Test
+    fun schema3FarmMigratesWithEmptyPartiesList() {
+        val schema3 = "3\u001Ffarm-s3\u001FFarm S3\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
+            "tx-1\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z"
+
+        val farm = FarmPersistenceCodec.decode(schema3)
+
+        assertEquals(4, farm.schemaVersion)
+        assertEquals("Farm S3", farm.name)
+        assertEquals(1, farm.transactions.size)
+        assertEquals(0, farm.parties.size)
+    }
+
+    @Test
     fun transactionIdsStayStableAcrossPersistenceAndUpdate() {
         val farm = service.createFarm("Demo Farm")
         val created = service.createTransaction(
@@ -292,7 +405,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema2)
 
-        assertEquals(3, farm.schemaVersion)
+        assertEquals(4, farm.schemaVersion)
         assertEquals("USD", farm.currencyCode)
         assertEquals(1, farm.transactions.size)
         assertEquals(1500, farm.transactions[0].amountMinor)
@@ -306,7 +419,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema2)
 
-        assertEquals(3, farm.schemaVersion)
+        assertEquals(4, farm.schemaVersion)
         assertEquals("NPR", farm.currencyCode)
         assertEquals(0, farm.transactions.size)
     }
@@ -747,8 +860,8 @@ class FarmSliceServiceTest {
         val encoded = FarmBackupCodec.encode(persisted, exportedAt)
 
         val payload = Base64.getEncoder().encodeToString(
-            ("3\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
-                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z")
+            ("4\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
+                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z\u001F")
                 .toByteArray(StandardCharsets.UTF_8)
         )
         assertEquals("1\u001F2024-06-01T12:00:00Z\u001F$payload", encoded)
