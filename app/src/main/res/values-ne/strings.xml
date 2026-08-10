@@ -107,4 +107,24 @@
     <string name="error_backup_too_large_or_unreadable">ब्याकअप धेरै ठूलो छ वा पढ्न सकिएन</string>
     <string name="error_current_farm_missing">पहिले फार्म सिर्जना गर्नुहोस्</string>
     <string name="error_unexpected">केही अप्रत्याशित त्रुटि भयो। फेरि प्रयास गर्नुहोस्।</string>
+
+    <string name="nav_home">गृह</string>
+    <string name="nav_hisab_kitab">हिसाब-किताब</string>
+    <string name="nav_hisab">हिसाब</string>
+    <string name="nav_settings">सेटिङहरू</string>
+
+    <string name="settings_action">सेटिङहरू</string>
+
+    <string name="hisab_kitab_placeholder_title">हिसाब-किताब चाँडै आउँदैछ</string>
+    <string name="hisab_kitab_placeholder_body">ग्राहक/पार्टी, हिसाब/खाता, र बिक्री तथा खरिदहरू भविष्यको अद्यावधिकमा यहाँ देखा पर्नेछन्।</string>
+
+    <string name="hisab_placeholder_title">हिसाब चाँडै आउँदैछ</string>
+    <string name="hisab_placeholder_body">किसानको हिसाब खोज र गणनाहरू भविष्यको अद्यावधिकमा यहाँ देखा पर्नेछन्।</string>
+
+    <string name="settings_farm_currency_section">फार्म मुद्रा</string>
+    <string name="settings_language_section">भाषा</string>
+    <string name="settings_no_farm_text">फार्मको मुद्रा सेट गर्न गृह ट्याबमा फार्म सिर्जना गर्नुहोस्।</string>
+    <string name="language_follow_device">उपकरणको भाषा अनुसरण गर्नुहोस्</string>
+    <string name="language_english">अङ्ग्रेजी</string>
+    <string name="language_nepali">नेपाली</string>
 </resources>

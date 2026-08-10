@@ -165,4 +165,32 @@ class LocalizedResourceResolutionTest {
             assertNotEquals("English fallback for $key", englishText, nepaliText)
         }
     }
+
+    @Test
+    fun shellNavigationStringsResolveInBothLocales() {
+        val keys = listOf(
+            R.string.nav_home,
+            R.string.nav_hisab_kitab,
+            R.string.nav_hisab,
+            R.string.nav_settings,
+            R.string.settings_action,
+            R.string.hisab_kitab_placeholder_title,
+            R.string.hisab_kitab_placeholder_body,
+            R.string.hisab_placeholder_title,
+            R.string.hisab_placeholder_body,
+            R.string.settings_farm_currency_section,
+            R.string.settings_language_section,
+            R.string.settings_no_farm_text,
+            R.string.language_follow_device,
+            R.string.language_english,
+            R.string.language_nepali
+        )
+        for (key in keys) {
+            val englishText = english.getString(key)
+            val nepaliText = nepali.getString(key)
+            assertTrue("English text blank for $key", englishText.isNotBlank())
+            assertTrue("Nepali text blank for $key", nepaliText.isNotBlank())
+            assertNotEquals("English fallback for $key", englishText, nepaliText)
+        }
+    }
 }
