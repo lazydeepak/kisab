@@ -242,7 +242,6 @@ class D002DateTimePickerEvaluationTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 1000,
-                currency = "NPR",
                 description = "old feed",
                 occurredAt = occurredAt
             )

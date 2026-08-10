@@ -224,7 +224,6 @@ class FarmBackupIntegrationTest {
                         type = TransactionType.EXPENSE,
                         category = TransactionCategory.FEED,
                         amountMinor = 1500,
-                        currency = "USD",
                         description = "Feed",
                         occurredAt = "2024-01-01T12:00:00Z"
                     )
@@ -251,7 +250,7 @@ class FarmBackupIntegrationTest {
                         R.string.farm_tools_summary_format,
                         "Restore Farm",
                         activity.formatCount(0),
-                        activity.formattedBalance("USD", -1500L)
+                        activity.formattedBalance("NPR", -1500L)
                 )
             }
             onView(withId(R.id.summaryText)).check(matches(withText(expectedSummary!!)))
@@ -285,7 +284,6 @@ class FarmBackupIntegrationTest {
             onView(withId(R.id.transactionAmountInput)).check(matches(withText("75")))
             onView(withId(R.id.transactionDescriptionInput)).check(matches(withText("Unsaved draft")))
             onView(withId(R.id.transactionTypeExpenseRadio)).check(matches(isChecked()))
-            onView(withId(R.id.transactionCurrencyText)).check(matches(withText("NPR")))
 
             scenario.onActivity { activity ->
                 val store = SharedPreferencesFarmStore(activity.applicationContext)
@@ -295,6 +293,7 @@ class FarmBackupIntegrationTest {
                 assertNotNull(original)
                 assertTrue("no transaction may be created by keep-editing", original!!.transactions.isEmpty())
                 assertTrue("replacement farm must not be saved", service.loadFarm("farm-restored") == null)
+                assertEquals("NPR", original.currencyCode)
                 val spinner = activity.findViewById<android.widget.Spinner>(R.id.transactionCategorySpinner)
                 assertEquals("category must stay FEED", 0, spinner.selectedItemPosition)
             }
@@ -481,7 +480,6 @@ class FarmBackupIntegrationTest {
                     type = TransactionType.EXPENSE,
                     category = TransactionCategory.FEED,
                     amountMinor = 2500,
-                    currency = "NPR",
                     description = "Restored Feed",
                     occurredAt = OffsetDateTime.parse("2024-02-01T12:00:00Z")
                 )
@@ -507,22 +505,19 @@ class FarmBackupIntegrationTest {
             // Add 3 pre-existing transactions (like v0.1.0 data)
             // Transaction 1: Milk sale (Income, SALES, 120050, USD, Aug 5)
             onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
-            onView(withId(R.id.transactionAmountInput)).perform(replaceText("120050"), closeSoftKeyboard())
-            onView(withId(R.id.transactionDescriptionInput)).perform(replaceText("Milk sale"), closeSoftKeyboard())
+            fillEditor(description = "Milk sale", amount = "120050")
             acceptDefaultDateTime()
             onView(withId(R.id.saveTransactionButton)).perform(click())
 
             // Transaction 2: Feed purchase (Expense, FEED, 45000, USD, Aug 1)
             onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
-            onView(withId(R.id.transactionAmountInput)).perform(replaceText("45000"), closeSoftKeyboard())
-            onView(withId(R.id.transactionDescriptionInput)).perform(replaceText("Feed purchase"), closeSoftKeyboard())
+            fillEditor(description = "Feed purchase", amount = "45000")
             acceptDefaultDateTime()
             onView(withId(R.id.saveTransactionButton)).perform(click())
 
             // Transaction 3: Egg sale (Income, SALES, 8000, USD, Aug 7)
             onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
-            onView(withId(R.id.transactionAmountInput)).perform(replaceText("8000"), closeSoftKeyboard())
-            onView(withId(R.id.transactionDescriptionInput)).perform(replaceText("Egg sale"), closeSoftKeyboard())
+            fillEditor(description = "Egg sale", amount = "8000")
             acceptDefaultDateTime()
             onView(withId(R.id.saveTransactionButton)).perform(click())
 

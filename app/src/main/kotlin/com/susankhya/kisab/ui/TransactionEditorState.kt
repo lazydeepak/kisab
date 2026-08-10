@@ -11,7 +11,8 @@ import java.time.OffsetDateTime
  * detection, recreation, save, delete) flows through this value. Dirty means
  * the current state differs from the immutable [baseline] captured when the
  * editor opened — never "any field is non-empty", because a freshly opened
- * editor already carries defaults (type, category, currency, current time).
+ * editor already carries defaults (type, category, current time). Currency is
+ * a farm-level setting (see [FarmState.currencyCode]); the editor never owns it.
  */
 enum class TransactionEditorMode {
     CREATE,
@@ -25,11 +26,10 @@ data class TransactionEditorState(
     val category: TransactionCategory,
     val amountText: String,
     val description: String,
-    val occurredAt: OffsetDateTime,
-    val currency: String
+    val occurredAt: OffsetDateTime
 ) {
     companion object {
-        fun create(type: TransactionType, currency: String, occurredAt: OffsetDateTime): TransactionEditorState =
+        fun create(type: TransactionType, occurredAt: OffsetDateTime): TransactionEditorState =
             TransactionEditorState(
                 mode = TransactionEditorMode.CREATE,
                 transactionId = null,
@@ -37,8 +37,7 @@ data class TransactionEditorState(
                 category = FarmOrdering.categoriesFor(type).first(),
                 amountText = "",
                 description = "",
-                occurredAt = occurredAt,
-                currency = currency
+                occurredAt = occurredAt
             )
     }
 }

@@ -110,7 +110,7 @@ class LocalizedResourceResolutionTest {
         val validationKeys = listOf(
             R.string.error_farm_name_required,
             R.string.error_currency_iso_three_letters,
-            R.string.error_transaction_currency_mismatch,
+            R.string.error_currency_locked,
             R.string.error_unexpected
         )
         val backupKeys = listOf(
@@ -152,6 +152,8 @@ class LocalizedResourceResolutionTest {
         val keys = listOf(
             R.string.currency_choice_dialog_title,
             R.string.currency_iso_hint,
+            R.string.farm_currency_label,
+            R.string.currency_locked_note,
             R.string.action_ok,
             R.string.action_cancel
         )

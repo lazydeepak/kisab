@@ -95,7 +95,6 @@ class FarmActivityLocalizationSmokeTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 1500,
-                currency = "USD",
                 description = "Feed",
                 occurredAt = "2024-01-01T12:00:00Z"
             )

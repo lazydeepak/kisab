@@ -27,7 +27,7 @@ class FarmSliceServiceTest {
 
     @Test
     fun createsFarmAddsEntryAndTransactionsAndSummarizesBalance() {
-        val farm = service.createFarm("Demo Farm")
+        val farm = service.createFarm("Demo Farm", currencyCode = "USD")
         service.addEntry(farm.id, FarmEntry(FarmEntryKind.LIVESTOCK, "Goat", 3))
         val expense = service.createTransaction(
             farm.id,
@@ -35,7 +35,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 5000,
-                currency = "USD",
                 description = "Feed purchase",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -46,7 +45,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 8000,
-                currency = "USD",
                 description = "Egg sale",
                 occurredAt = "2024-01-02T12:00:00Z"
             )
@@ -91,7 +89,7 @@ class FarmSliceServiceTest {
     }
 
     @Test
-    fun transactionsRequireDescriptionAmountCategoryAndCurrency() {
+    fun transactionsRequireDescriptionAmountAndCategory() {
         val farm = service.createFarm("Demo Farm")
 
         try {
@@ -101,7 +99,6 @@ class FarmSliceServiceTest {
                     type = TransactionType.EXPENSE,
                     category = TransactionCategory.FEED,
                     amountMinor = 0,
-                    currency = "USD",
                     description = "   ",
                     occurredAt = "2024-01-01T12:00:00Z"
                 )
@@ -115,27 +112,9 @@ class FarmSliceServiceTest {
             service.createTransaction(
                 farm.id,
                 FarmTransactionDraft(
-                    type = TransactionType.INCOME,
-                    category = TransactionCategory.SALES,
-                    amountMinor = 1000,
-                    currency = "US",
-                    description = "Sale",
-                    occurredAt = "2024-01-01T12:00:00Z"
-                )
-            )
-            fail("Expected IllegalArgumentException")
-        } catch (exception: IllegalArgumentException) {
-            assertEquals("Currency must be a 3-letter ISO code", exception.message)
-        }
-
-        try {
-            service.createTransaction(
-                farm.id,
-                FarmTransactionDraft(
                     type = TransactionType.EXPENSE,
                     category = TransactionCategory.SALES,
                     amountMinor = 1000,
-                    currency = "USD",
                     description = "Bad category",
                     occurredAt = "2024-01-01T12:00:00Z"
                 )
@@ -143,6 +122,18 @@ class FarmSliceServiceTest {
             fail("Expected IllegalArgumentException")
         } catch (exception: IllegalArgumentException) {
             assertEquals("Transaction category is invalid for the selected type", exception.message)
+        }
+    }
+
+    @Test
+    fun setFarmCurrencyRequiresThreeLetterIsoCode() {
+        val farm = service.createFarm("Demo Farm")
+
+        try {
+            service.setFarmCurrency(farm.id, "Dollar")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Farm currency must be a 3-letter ISO code", exception.message)
         }
     }
 
@@ -155,7 +146,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 1000,
-                currency = "USD",
                 description = "Seed sale",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -167,7 +157,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SERVICES,
                 amountMinor = 2500,
-                currency = "USD",
                 description = "Service fee",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -188,10 +177,9 @@ class FarmSliceServiceTest {
                 farm.id,
                 FarmTransactionDraft(
                     type = TransactionType.EXPENSE,
-                    category = TransactionCategory.FEED,
+                    category = TransactionCategory.SALES,
                     amountMinor = 1000,
-                    currency = "US",
-                    description = "Bad currency",
+                    description = "Bad category",
                     occurredAt = "2024-01-01T12:00:00Z"
                 )
             )
@@ -200,10 +188,30 @@ class FarmSliceServiceTest {
             val persistedFarm = service.loadFarm(farm.id)
             assertEquals(0, persistedFarm?.transactions?.size)
         }
+
+        try {
+            service.setFarmCurrency(farm.id, "Dollar")
+            fail("Expected IllegalArgumentException")
+        } catch (_: IllegalArgumentException) {
+            val persistedFarm = service.loadFarm(farm.id)
+            assertEquals("NPR", persistedFarm?.currencyCode)
+        }
     }
 
     @Test
-    fun summaryRejectsMixedCurrencyTransactions() {
+    fun farmCurrencyDefaultsToNprAndCanBeChangedBeforeFirstTransaction() {
+        val farm = service.createFarm("Demo Farm")
+        assertEquals("NPR", farm.currencyCode)
+
+        service.setFarmCurrency(farm.id, "USD")
+        assertEquals("USD", service.loadFarm(farm.id)?.currencyCode)
+
+        service.setFarmCurrency(farm.id, "EUR")
+        assertEquals("EUR", service.loadFarm(farm.id)?.currencyCode)
+    }
+
+    @Test
+    fun farmCurrencyLocksAfterFirstTransaction() {
         val farm = service.createFarm("Demo Farm")
         service.createTransaction(
             farm.id,
@@ -211,29 +219,19 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 1000,
-                currency = "USD",
                 description = "Sale",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
         )
-        service.createTransaction(
-            farm.id,
-            FarmTransactionDraft(
-                type = TransactionType.EXPENSE,
-                category = TransactionCategory.FEED,
-                amountMinor = 500,
-                currency = "EUR",
-                description = "Feed",
-                occurredAt = "2024-01-02T12:00:00Z"
-            )
-        )
 
         try {
-            service.summary(farm.id)
+            service.setFarmCurrency(farm.id, "USD")
             fail("Expected IllegalArgumentException")
         } catch (exception: IllegalArgumentException) {
-            assertEquals("Transactions use multiple currencies", exception.message)
+            assertEquals("Farm currency cannot change after transactions are recorded", exception.message)
         }
+
+        assertEquals("NPR", service.loadFarm(farm.id)?.currencyCode)
     }
 
     @Test
@@ -245,7 +243,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 1000,
-                currency = "USD",
                 description = "Seed sale",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -258,7 +255,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SERVICES,
                 amountMinor = 2500,
-                currency = "USD",
                 description = "Service fee",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -280,13 +276,47 @@ class FarmSliceServiceTest {
         assertEquals("tx-migrated-1", farm.transactions[1].id)
         assertEquals(TransactionType.EXPENSE, farm.transactions[0].type)
         assertEquals(TransactionType.INCOME, farm.transactions[1].type)
-        assertEquals("USD", farm.transactions[0].currency)
+        assertEquals("USD", farm.currencyCode)
         assertEquals("2024-01-01T00:00:00Z", farm.transactions[0].occurredAt.toInstant().toString())
     }
 
     @Test
     fun malformedPayloadsFailSafely() {
         assertNull(FarmPersistenceCodec.decodeOrNull("not-a-valid-payload"))
+    }
+
+    @Test
+    fun schema2FarmMigratesCurrencyToFarmLevel() {
+        val schema2 = "2\u001Ffarm-s2\u001FFarm S2\u001FLIVESTOCK:Goat:2\u001F" +
+            "tx-1\u001DEXPENSE\u001DFEED\u001D1500\u001DUSD\u001DFeed\u001D2024-01-01T12:00:00Z"
+
+        val farm = FarmPersistenceCodec.decode(schema2)
+
+        assertEquals(3, farm.schemaVersion)
+        assertEquals("USD", farm.currencyCode)
+        assertEquals(1, farm.transactions.size)
+        assertEquals(1500, farm.transactions[0].amountMinor)
+        assertEquals("Feed", farm.transactions[0].description)
+        assertTrue(farm.transactions[0].occurredAt.toString().startsWith("2024-01-01"))
+    }
+
+    @Test
+    fun schema2EmptyFarmDefaultsCurrencyToNpr() {
+        val schema2 = "2\u001Ffarm-s2e\u001FFarm S2 Empty\u001F\u001F"
+
+        val farm = FarmPersistenceCodec.decode(schema2)
+
+        assertEquals(3, farm.schemaVersion)
+        assertEquals("NPR", farm.currencyCode)
+        assertEquals(0, farm.transactions.size)
+    }
+
+    @Test
+    fun legacyFarmWithoutTransactionsDefaultsCurrencyToNpr() {
+        val farm = FarmPersistenceCodec.decode("farm-legacy-empty|Legacy Farm|LIVESTOCK:Goat:2|")
+
+        assertEquals("NPR", farm.currencyCode)
+        assertEquals(0, farm.transactions.size)
     }
 
     @Test
@@ -311,7 +341,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 1500,
-                currency = "USD",
                 description = "Feed",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -370,7 +399,6 @@ class FarmSliceServiceTest {
                     type = TransactionType.INCOME,
                     category = TransactionCategory.SALES,
                     amountMinor = 1500,
-                    currency = "USD",
                     description = "Sale",
                     occurredAt = java.time.OffsetDateTime.parse("2024-01-01T12:00:00Z")
                 ),
@@ -379,7 +407,6 @@ class FarmSliceServiceTest {
                     type = TransactionType.INCOME,
                     category = TransactionCategory.SALES,
                     amountMinor = 2500,
-                    currency = "USD",
                     description = "Another sale",
                     occurredAt = java.time.OffsetDateTime.parse("2024-01-02T12:00:00Z")
                 )
@@ -395,6 +422,7 @@ class FarmSliceServiceTest {
         val farm = FarmState(
             id = "farm-1",
             name = "Demo Farm",
+            currencyCode = "Dollar",
             entries = mutableListOf(FarmEntry(FarmEntryKind.LIVESTOCK, "Goat", 2)),
             transactions = mutableListOf(
                 FarmTransaction(
@@ -402,7 +430,6 @@ class FarmSliceServiceTest {
                     type = TransactionType.INCOME,
                     category = TransactionCategory.SALES,
                     amountMinor = 1500,
-                    currency = "USD",
                     description = "Sale",
                     occurredAt = java.time.OffsetDateTime.parse("2024-01-01T12:00:00Z")
                 ),
@@ -411,7 +438,6 @@ class FarmSliceServiceTest {
                     type = TransactionType.EXPENSE,
                     category = TransactionCategory.FEED,
                     amountMinor = 500,
-                    currency = "EUR",
                     description = "Feed",
                     occurredAt = java.time.OffsetDateTime.parse("2024-01-02T12:00:00Z")
                 )
@@ -442,7 +468,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 1000,
-                currency = "USD",
                 description = "Oldest",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -453,7 +478,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 2000,
-                currency = "USD",
                 description = "Newest",
                 occurredAt = "2024-01-03T12:00:00Z"
             )
@@ -464,7 +488,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SERVICES,
                 amountMinor = 3000,
-                currency = "USD",
                 description = "Middle",
                 occurredAt = "2024-01-02T12:00:00Z"
             )
@@ -485,7 +508,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 1000,
-                currency = "USD",
                 description = "First recorded",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -496,7 +518,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 2000,
-                currency = "USD",
                 description = "Second recorded",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -516,7 +537,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 1000,
-                currency = "USD",
                 description = "Older",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -527,7 +547,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 2000,
-                currency = "USD",
                 description = "Newer",
                 occurredAt = "2024-01-02T12:00:00Z"
             )
@@ -540,7 +559,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 1500,
-                currency = "USD",
                 description = "Older",
                 occurredAt = "2024-01-03T12:00:00Z"
             )
@@ -561,7 +579,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 1000,
-                currency = "USD",
                 description = "Older",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -572,7 +589,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 2000,
-                currency = "USD",
                 description = "Newer",
                 occurredAt = "2024-01-02T12:00:00Z"
             )
@@ -603,7 +619,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 1000,
-                currency = "USD",
                 description = "Older",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -614,7 +629,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 2000,
-                currency = "USD",
                 description = "Newer",
                 occurredAt = "2024-01-02T12:00:00Z"
             )
@@ -648,7 +662,6 @@ class FarmSliceServiceTest {
                     type = TransactionType.EXPENSE,
                     category = TransactionCategory.FEED,
                     amountMinor = 0,
-                    currency = "USD",
                     description = "Feed",
                     occurredAt = OffsetDateTime.parse("2024-01-01T12:00:00Z")
                 )
@@ -672,7 +685,6 @@ class FarmSliceServiceTest {
                     type = TransactionType.EXPENSE,
                     category = TransactionCategory.SALES,
                     amountMinor = 1000,
-                    currency = "USD",
                     description = "Bad category",
                     occurredAt = OffsetDateTime.parse("2024-01-01T12:00:00Z")
                 )
@@ -726,7 +738,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 1500,
-                currency = "USD",
                 description = "Feed",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -736,8 +747,8 @@ class FarmSliceServiceTest {
         val encoded = FarmBackupCodec.encode(persisted, exportedAt)
 
         val payload = Base64.getEncoder().encodeToString(
-            ("2\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001F" +
-                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DUSD\u001DFeed\u001D2024-01-01T12:00:00Z")
+            ("3\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
+                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z")
                 .toByteArray(StandardCharsets.UTF_8)
         )
         assertEquals("1\u001F2024-06-01T12:00:00Z\u001F$payload", encoded)
@@ -753,7 +764,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.TRANSPORT,
                 amountMinor = 15000,
-                currency = "NPR",
                 description = "Van hire to market",
                 occurredAt = "2026-08-09T05:00:00Z"
             )
@@ -787,7 +797,6 @@ class FarmSliceServiceTest {
                     type = TransactionType.INCOME,
                     category = TransactionCategory.TRANSPORT,
                     amountMinor = 1000,
-                    currency = "USD",
                     description = "Mismatch",
                     occurredAt = OffsetDateTime.parse("2024-01-01T12:00:00Z")
                 )
@@ -821,7 +830,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 120050,
-                currency = "USD",
                 description = "Milk sale",
                 occurredAt = "2026-08-05T05:48:00Z"
             )
@@ -832,7 +840,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 45000,
-                currency = "USD",
                 description = "Feed purchase",
                 occurredAt = "2026-08-01T12:15:00Z"
             )
@@ -843,7 +850,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 8000,
-                currency = "USD",
                 description = "Egg sale",
                 occurredAt = "2026-08-07T07:20:00Z"
             )
@@ -864,7 +870,6 @@ class FarmSliceServiceTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 15000,
-                currency = "USD",
                 description = "Post-upgrade milk sale",
                 occurredAt = "2026-08-08T05:15:00Z"
             )

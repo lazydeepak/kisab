@@ -53,7 +53,6 @@ class FarmPersistenceIntegrationTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 1500,
-                currency = "USD",
                 description = "Feed",
                 occurredAt = "2024-01-01T12:00:00Z"
             )
@@ -64,7 +63,6 @@ class FarmPersistenceIntegrationTest {
                 type = TransactionType.INCOME,
                 category = TransactionCategory.SALES,
                 amountMinor = 3000,
-                currency = "USD",
                 description = "Sale",
                 occurredAt = "2024-01-02T12:00:00Z"
             )
@@ -79,7 +77,7 @@ class FarmPersistenceIntegrationTest {
         assertEquals(1, reloaded?.entries?.size)
         assertEquals(2, reloaded?.transactions?.size)
         assertEquals(1500, summary.balanceMinor)
-        assertEquals("USD", summary.currencyCode)
+        assertEquals("NPR", summary.currencyCode)
     }
 
     @Test
