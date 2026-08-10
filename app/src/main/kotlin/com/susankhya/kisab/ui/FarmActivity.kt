@@ -1,14 +1,18 @@
 package com.susankhya.kisab.ui
 
 import android.app.DatePickerDialog
+import android.app.LocaleManager
 import android.app.TimePickerDialog
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.LocaleList
 import android.text.InputType
 import android.text.format.DateFormat
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import androidx.annotation.RequiresApi
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -25,7 +29,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.LinearLayoutCompat
+import androidx.core.os.LocaleListCompat
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntry
 import com.susankhya.kisab.domain.FarmEntryKind
@@ -41,6 +47,7 @@ import com.susankhya.kisab.persistence.AndroidStorageAccessFrameworkBackupFileAd
 import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.FarmBackupException
 import com.susankhya.kisab.persistence.FarmBackupFileAdapter
+import com.susankhya.kisab.persistence.SharedPreferencesAppLanguagePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -52,6 +59,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var store: SharedPreferencesFarmStore
     private lateinit var service: FarmSliceService
     internal lateinit var backupFileAdapter: FarmBackupFileAdapter
+
+    private enum class Destination { HOME, HISAB_KITAB, HISAB, SETTINGS }
 
     private val moneyFormatter = MoneyFormatter()
     private val moneyInputParser = MoneyInputParser(moneyFormatter)
@@ -65,6 +74,23 @@ class FarmActivity : AppCompatActivity() {
         get() = ZoneId.systemDefault()
 
     private lateinit var scrollView: ScrollView
+    private lateinit var shellTitle: TextView
+    private lateinit var shellSettingsButton: Button
+    private lateinit var navHomeItem: LinearLayout
+    private lateinit var navHisabKitabItem: LinearLayout
+    private lateinit var navHisabItem: LinearLayout
+    private lateinit var hisabKitabScreen: ScrollView
+    private lateinit var hisabScreen: ScrollView
+    private lateinit var settingsScreen: ScrollView
+
+    private lateinit var settingsCurrencyText: TextView
+    private lateinit var changeSettingsCurrencyButton: Button
+    private lateinit var settingsCurrencyLockedText: TextView
+    private lateinit var settingsNoFarmText: TextView
+    private lateinit var languageFollowDeviceRadio: RadioButton
+    private lateinit var languageEnglishRadio: RadioButton
+    private lateinit var languageNepaliRadio: RadioButton
+
     private lateinit var createFarmContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmDetailsContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmNameInput: EditText
@@ -95,9 +121,6 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var farmToolsContainer: LinearLayoutCompat
     private lateinit var summaryText: TextView
     private lateinit var entriesText: TextView
-    private lateinit var farmCurrencyText: TextView
-    private lateinit var changeFarmCurrencyButton: Button
-    private lateinit var farmCurrencyLockedText: TextView
     private lateinit var entryKindSpinner: Spinner
     private lateinit var entryLabelInput: EditText
     private lateinit var entryQuantityInput: EditText
@@ -107,10 +130,14 @@ class FarmActivity : AppCompatActivity() {
 
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
+    private lateinit var languagePreferences: AppLanguagePreferences
+    private var languageCheckSuppressed = false
 
     private var currentFarmId: String? = null
     private var pendingExportContent: String? = null
 
+    private var currentDestination: Destination = Destination.HOME
+    private var lastPrimaryDestination: Destination = Destination.HOME
     private var editorState: TransactionEditorState? = null
     private var editorBaseline: TransactionEditorState? = null
     private var toolsExpanded: Boolean = false
@@ -122,6 +149,7 @@ class FarmActivity : AppCompatActivity() {
         store = SharedPreferencesFarmStore(applicationContext)
         service = FarmSliceService(store)
         backupFileAdapter = AndroidStorageAccessFrameworkBackupFileAdapter(applicationContext)
+        languagePreferences = SharedPreferencesAppLanguagePreferences(applicationContext)
 
         createBackupDocumentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -163,7 +191,7 @@ class FarmActivity : AppCompatActivity() {
             }
         }
 
-        setContentView(R.layout.activity_farm)
+        setContentView(R.layout.activity_shell)
         bindViews()
         wireListeners()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -174,19 +202,26 @@ class FarmActivity : AppCompatActivity() {
                     } else {
                         closeEditor()
                     }
+                } else if (currentDestination == Destination.SETTINGS) {
+                    showDestination(lastPrimaryDestination)
+                } else if (currentDestination != Destination.HOME) {
+                    showDestination(Destination.HOME)
                 } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
+                    finish()
                 }
             }
         })
 
+        restoreDestinationFrom(savedInstanceState)
         render()
+        showDestination(currentDestination)
         restoreEditorFrom(savedInstanceState)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        outState.putString(STATE_DESTINATION, currentDestination.name)
+        outState.putString(STATE_LAST_PRIMARY_DESTINATION, lastPrimaryDestination.name)
         outState.putBoolean(STATE_TOOLS_EXPANDED, toolsExpanded)
         val state = currentEditorState() ?: return
         val baseline = editorBaseline
@@ -197,8 +232,32 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
+    private fun restoreDestinationFrom(bundle: Bundle?) {
+        val name = bundle?.getString(STATE_DESTINATION) ?: return
+        val saved = runCatching { Destination.valueOf(name) }.getOrNull()
+        if (saved != null) currentDestination = saved
+        val primaryName = bundle?.getString(STATE_LAST_PRIMARY_DESTINATION) ?: return
+        val primary = runCatching { Destination.valueOf(primaryName) }.getOrNull()
+        if (primary != null) lastPrimaryDestination = primary
+    }
+
     private fun bindViews() {
         scrollView = findViewById(R.id.scrollView)
+        shellTitle = findViewById(R.id.shellTitle)
+        shellSettingsButton = findViewById(R.id.shellSettingsButton)
+        navHomeItem = findViewById(R.id.navHomeItem)
+        navHisabKitabItem = findViewById(R.id.navHisabKitabItem)
+        navHisabItem = findViewById(R.id.navHisabItem)
+        hisabKitabScreen = findViewById(R.id.hisabKitabScreen)
+        hisabScreen = findViewById(R.id.hisabScreen)
+        settingsScreen = findViewById(R.id.settingsScreen)
+        settingsCurrencyText = findViewById(R.id.settingsCurrencyText)
+        changeSettingsCurrencyButton = findViewById(R.id.changeSettingsCurrencyButton)
+        settingsCurrencyLockedText = findViewById(R.id.settingsCurrencyLockedText)
+        settingsNoFarmText = findViewById(R.id.settingsNoFarmText)
+        languageFollowDeviceRadio = findViewById(R.id.languageFollowDeviceRadio)
+        languageEnglishRadio = findViewById(R.id.languageEnglishRadio)
+        languageNepaliRadio = findViewById(R.id.languageNepaliRadio)
         createFarmContainer = findViewById(R.id.createFarmContainer)
         farmDetailsContainer = findViewById(R.id.farmDetailsContainer)
         farmNameInput = findViewById(R.id.farmNameInput)
@@ -229,9 +288,6 @@ class FarmActivity : AppCompatActivity() {
         farmToolsContainer = findViewById(R.id.farmToolsContainer)
         summaryText = findViewById(R.id.summaryText)
         entriesText = findViewById(R.id.entriesText)
-        farmCurrencyText = findViewById(R.id.farmCurrencyText)
-        changeFarmCurrencyButton = findViewById(R.id.changeFarmCurrencyButton)
-        farmCurrencyLockedText = findViewById(R.id.farmCurrencyLockedText)
         entryKindSpinner = findViewById(R.id.entryKindSpinner)
         entryLabelInput = findViewById(R.id.entryLabelInput)
         entryQuantityInput = findViewById(R.id.entryQuantityInput)
@@ -253,6 +309,23 @@ class FarmActivity : AppCompatActivity() {
         addEntryButton.setOnClickListener { addEntry() }
         exportBackupButton.setOnClickListener { exportBackup() }
         importBackupButton.setOnClickListener { importBackup() }
+        changeSettingsCurrencyButton.setOnClickListener { showFarmCurrencyChooser() }
+
+        navHomeItem.setOnClickListener { navigateTo(Destination.HOME) }
+        navHisabKitabItem.setOnClickListener { navigateTo(Destination.HISAB_KITAB) }
+        navHisabItem.setOnClickListener { navigateTo(Destination.HISAB) }
+        shellSettingsButton.setOnClickListener { navigateTo(Destination.SETTINGS) }
+
+        val languageRadios = listOf(
+            languageFollowDeviceRadio to AppLanguage.FOLLOW_DEVICE,
+            languageEnglishRadio to AppLanguage.ENGLISH,
+            languageNepaliRadio to AppLanguage.NEPALI
+        )
+        languageRadios.forEach { (radio, language) ->
+            radio.setOnClickListener {
+                if (!languageCheckSuppressed) onLanguageSelected(language)
+            }
+        }
 
         recordIncomeButton.setOnClickListener {
             confirmDiscardIfNeeded { openEditorForNew(TransactionType.INCOME) }
@@ -270,8 +343,40 @@ class FarmActivity : AppCompatActivity() {
         cancelTransactionButton.setOnClickListener { cancelEditing() }
         deleteTransactionButton.setOnClickListener { deleteTransaction() }
         changeDateTimeButton.setOnClickListener { showDateTimePickers() }
-        changeFarmCurrencyButton.setOnClickListener { showFarmCurrencyChooser() }
         farmToolsToggleButton.setOnClickListener { toggleFarmTools() }
+    }
+
+    // --- Shell navigation ---------------------------------------------------
+
+    private fun navigateTo(destination: Destination) {
+        if (destination == currentDestination) {
+            render()
+            return
+        }
+        confirmDiscardIfNeeded { showDestination(destination) }
+    }
+
+    private fun showDestination(destination: Destination) {
+        currentDestination = destination
+        if (destination != Destination.SETTINGS) lastPrimaryDestination = destination
+        scrollView.visibility = if (destination == Destination.HOME) View.VISIBLE else View.GONE
+        hisabKitabScreen.visibility = if (destination == Destination.HISAB_KITAB) View.VISIBLE else View.GONE
+        hisabScreen.visibility = if (destination == Destination.HISAB) View.VISIBLE else View.GONE
+        settingsScreen.visibility = if (destination == Destination.SETTINGS) View.VISIBLE else View.GONE
+        updateShellTitle()
+        if (destination == Destination.SETTINGS) renderSettings()
+    }
+
+    private fun updateShellTitle() {
+        shellTitle.text = when (currentDestination) {
+            Destination.HOME -> {
+                val farm = currentFarmId?.let { service.loadFarm(it) }
+                farm?.name ?: string(R.string.app_name)
+            }
+            Destination.HISAB_KITAB -> string(R.string.nav_hisab_kitab)
+            Destination.HISAB -> string(R.string.nav_hisab)
+            Destination.SETTINGS -> string(R.string.nav_settings)
+        }
     }
 
     private fun createFarm() {
@@ -657,12 +762,15 @@ class FarmActivity : AppCompatActivity() {
             currentFarmId = null
             createFarmContainer.visibility = View.VISIBLE
             farmDetailsContainer.visibility = View.GONE
+            updateShellTitle()
             return
         }
         currentFarmId = farm.id
         createFarmContainer.visibility = View.GONE
         farmDetailsContainer.visibility = View.VISIBLE
         renderFarm(farm)
+        updateShellTitle()
+        if (currentDestination == Destination.SETTINGS) renderSettings()
     }
 
     private fun renderFarm(farm: FarmState) {
@@ -725,10 +833,6 @@ class FarmActivity : AppCompatActivity() {
             numberFormatter.format(presentationLocale, farm.entries.size),
             formatMoney(currency, totals.balanceMinor)
         )
-        val canChangeCurrency = farm.transactions.isEmpty()
-        farmCurrencyText.text = currency
-        changeFarmCurrencyButton.visibility = if (canChangeCurrency) View.VISIBLE else View.GONE
-        farmCurrencyLockedText.visibility = if (canChangeCurrency) View.GONE else View.VISIBLE
         entriesText.text = if (farm.entries.isEmpty()) {
             string(R.string.empty_entries)
         } else {
@@ -741,6 +845,50 @@ class FarmActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    private fun renderSettings() {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        val canChangeCurrency = farm != null && farm.transactions.isEmpty()
+        settingsNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
+        settingsCurrencyText.text = farm?.currencyCode ?: ""
+        settingsCurrencyText.visibility = if (farm == null) View.GONE else View.VISIBLE
+        changeSettingsCurrencyButton.visibility = if (canChangeCurrency) View.VISIBLE else View.GONE
+        settingsCurrencyLockedText.visibility =
+            if (farm != null && !canChangeCurrency) View.VISIBLE else View.GONE
+        syncLanguageSelection()
+    }
+
+    private fun onLanguageSelected(language: AppLanguage) {
+        if (languagePreferences.load() == language) return
+        languagePreferences.save(language)
+        applyAppLanguage(language)
+    }
+
+    private fun syncLanguageSelection() {
+        languageCheckSuppressed = true
+        val selected = languagePreferences.load()
+        languageFollowDeviceRadio.isChecked = selected == AppLanguage.FOLLOW_DEVICE
+        languageEnglishRadio.isChecked = selected == AppLanguage.ENGLISH
+        languageNepaliRadio.isChecked = selected == AppLanguage.NEPALI
+        languageCheckSuppressed = false
+    }
+
+    private fun applyAppLanguage(language: AppLanguage) {
+        val tag = language.languageTag
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            applySystemLocales(tag)
+        } else {
+            AppCompatDelegate.setApplicationLocales(
+                if (tag == null) LocaleListCompat.getEmptyLocaleList() else LocaleListCompat.forLanguageTags(tag)
+            )
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    private fun applySystemLocales(tag: String?) {
+        getSystemService(LocaleManager::class.java).applicationLocales =
+            if (tag == null) LocaleList.getEmptyLocaleList() else LocaleList.forLanguageTags(tag)
     }
 
     private fun toggleFarmTools() {
@@ -921,6 +1069,8 @@ class FarmActivity : AppCompatActivity() {
 
     private companion object {
         const val LOG_TAG = "FarmActivity"
+        const val STATE_DESTINATION = "destination"
+        const val STATE_LAST_PRIMARY_DESTINATION = "lastPrimaryDestination"
         const val STATE_EDITOR_PREFIX = "editor"
         const val STATE_EDITOR_BASELINE_PREFIX = "editorBaseline"
         const val STATE_EDITOR_OPEN = "editorOpen"

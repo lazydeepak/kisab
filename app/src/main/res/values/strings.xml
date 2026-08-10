@@ -111,4 +111,24 @@
     <string name="error_backup_too_large_or_unreadable">Backup is too large or unreadable</string>
     <string name="error_current_farm_missing">Create a farm first</string>
     <string name="error_unexpected">Something unexpected went wrong. Please try again.</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_hisab_kitab">Hisab-Kitab</string>
+    <string name="nav_hisab">Hisab</string>
+    <string name="nav_settings">Settings</string>
+
+    <string name="settings_action">Settings</string>
+
+    <string name="hisab_kitab_placeholder_title">Hisab-Kitab is coming soon</string>
+    <string name="hisab_kitab_placeholder_body">Parties, hisab/khata, and sales and purchases will appear here in a future update.</string>
+
+    <string name="hisab_placeholder_title">Hisab is coming soon</string>
+    <string name="hisab_placeholder_body">Farmer hisab lookups and calculations will appear here in a future update.</string>
+
+    <string name="settings_farm_currency_section">Farm currency</string>
+    <string name="settings_language_section">Language</string>
+    <string name="settings_no_farm_text">Create a farm on the Home tab to set its currency.</string>
+    <string name="language_follow_device">Follow the device language</string>
+    <string name="language_english">English</string>
+    <string name="language_nepali">Nepali</string>
 </resources>

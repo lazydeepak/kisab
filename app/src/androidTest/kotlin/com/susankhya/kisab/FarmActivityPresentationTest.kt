@@ -31,7 +31,9 @@ import com.susankhya.kisab.domain.FarmTransactionDraft
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.persistence.FarmBackupCodec
+import com.susankhya.kisab.persistence.SharedPreferencesAppLanguagePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
+import com.susankhya.kisab.ui.AppLanguage
 import com.susankhya.kisab.ui.FarmActivity
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -64,12 +66,14 @@ class FarmActivityPresentationTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
         SharedPreferencesFarmStore(context).clear()
+        SharedPreferencesAppLanguagePreferences(context).save(AppLanguage.FOLLOW_DEVICE)
         resetAppLocale()
     }
 
     @After
     fun tearDown() {
         resetAppLocale()
+        SharedPreferencesAppLanguagePreferences(context).save(AppLanguage.FOLLOW_DEVICE)
         SharedPreferencesFarmStore(context).clear()
     }
 
@@ -115,9 +119,9 @@ class FarmActivityPresentationTest {
         try {
             createFarm("NPR Farm")
 
-            openFarmTools()
-            onView(withId(R.id.farmCurrencyText)).check(matches(withText("NPR")))
-            onView(withId(R.id.farmToolsToggleButton)).perform(scrollTo(), click())
+            openSettings()
+            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("NPR")))
+            onView(withId(R.id.navHomeItem)).perform(click())
 
             openExpenseEditor()
             setOccurredAt(2024, 1, 1, 17, 45)
@@ -138,15 +142,16 @@ class FarmActivityPresentationTest {
         seedTransaction(amountMinor = 1500, currency = "USD", description = "Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            openFarmTools()
-            onView(withId(R.id.farmCurrencyText)).check(matches(withText("USD")))
-            onView(withId(R.id.changeFarmCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            onView(withId(R.id.farmCurrencyLockedText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            openSettings()
+            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("USD")))
+            onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.settingsCurrencyLockedText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             var money: String? = null
             scenario.onActivity { activity -> money = activity.formatMoney("USD", 1500) }
             assertTrue("Expected USD amount in recent row", recentRowText(scenario).contains(money!!))
 
+            onView(withId(R.id.navHomeItem)).perform(click())
             openExpenseEditor()
             setOccurredAt(2024, 1, 1, 17, 45)
             fillEditor(description = "More feed", amount = "10.00")
@@ -246,6 +251,47 @@ class FarmActivityPresentationTest {
         }
     }
 
+    @Test
+    fun languageSelectionAppliesNepaliAndPersists() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            onView(withId(R.id.shellSettingsButton)).perform(click())
+            onView(withId(R.id.languageNepaliRadio)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.languageNepaliRadio)).perform(scrollTo(), click())
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+            assertEquals(AppLanguage.NEPALI, SharedPreferencesAppLanguagePreferences(context).load())
+            scenario.onActivity { activity ->
+                assertEquals(
+                    "अङ्ग्रेजी",
+                    activity.findViewById<android.widget.RadioButton>(R.id.languageEnglishRadio).text.toString()
+                )
+                assertEquals(
+                    activity.getString(R.string.language_nepali),
+                    activity.findViewById<android.widget.RadioButton>(R.id.languageNepaliRadio).text.toString()
+                )
+            }
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test
+    fun languageFollowDeviceResetsToSystemLocale() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            onView(withId(R.id.shellSettingsButton)).perform(click())
+            onView(withId(R.id.languageNepaliRadio)).perform(scrollTo(), click())
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            onView(withId(R.id.languageFollowDeviceRadio)).perform(scrollTo(), click())
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+            assertEquals(AppLanguage.FOLLOW_DEVICE, SharedPreferencesAppLanguagePreferences(context).load())
+        } finally {
+            scenario.close()
+        }
+    }
+
     private fun createFarm(name: String) {
         onView(withId(R.id.farmNameInput)).perform(typeText(name), closeSoftKeyboard())
         onView(withId(R.id.createFarmButton)).perform(click())
@@ -320,8 +366,8 @@ class FarmActivityPresentationTest {
         )
     }
 
-    private fun openFarmTools() {
-        onView(withId(R.id.farmToolsToggleButton)).perform(scrollTo(), click())
+    private fun openSettings() {
+        onView(withId(R.id.shellSettingsButton)).perform(click())
     }
 
     private fun setAppLocale(locale: Locale) {
