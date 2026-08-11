@@ -693,20 +693,27 @@ class FarmActivityWorkflowTest {
 
             onView(withId(R.id.addPartyButton)).perform(scrollTo(), click())
             onView(withId(R.id.partyNameInput)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            scenario.onActivity { activity ->
+                val spinner = activity.findViewById<android.widget.Spinner>(R.id.partyRoleSpinner)
+                val labels: List<String> = (0 until spinner.count).map { spinner.getItemAtPosition(it) as String }
+                spinner.setSelection(labels.indexOf(activity.getString(R.string.party_role_supplier)))
+            }
             onView(withId(R.id.partyNameInput)).perform(replaceText("Feed Store"), closeSoftKeyboard())
-            onView(withId(R.id.partyContactInput)).perform(replaceText("9800000001"), closeSoftKeyboard())
+            onView(withId(R.id.partyContactInput)).perform(scrollTo(), replaceText("9800000001"), closeSoftKeyboard())
             onView(withId(R.id.savePartyButton)).perform(scrollTo(), click())
 
             onView(withId(R.id.partiesEmptyText)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.partyRow)).check(matches(withText(containsString("Feed Store"))))
 
             onView(withId(R.id.partyRow)).perform(click())
+            onView(withId(R.id.khataEditPartyButton)).perform(scrollTo(), click())
             onView(withId(R.id.partyNameInput)).check(matches(withText("Feed Store")))
             onView(withId(R.id.partyContactInput)).check(matches(withText("9800000001")))
             onView(withId(R.id.deletePartyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             onView(withId(R.id.partyNameInput)).perform(replaceText("Corner Feed"), closeSoftKeyboard())
             onView(withId(R.id.savePartyButton)).perform(scrollTo(), click())
+            onView(withId(R.id.closeKhataButton)).perform(scrollTo(), click())
             onView(withId(R.id.partyRow)).check(matches(withText(containsString("Corner Feed"))))
 
             scenario.onActivity { activity ->
@@ -745,6 +752,7 @@ class FarmActivityWorkflowTest {
         try {
             onView(withId(R.id.navHisabKitabItem)).perform(click())
             onView(withId(R.id.partyRow)).perform(click())
+            onView(withId(R.id.khataEditPartyButton)).perform(scrollTo(), click())
             onView(withId(R.id.deletePartyButton)).perform(scrollTo(), click())
             onView(withText(R.string.dialog_delete_party_title)).inRoot(isDialog()).check(matches(isDisplayed()))
             clickDialogAction(R.string.delete_party_action)
