@@ -7,7 +7,7 @@ import org.junit.Test
 class NumberFormatterTest {
 
     private val formatter = NumberFormatter()
-    private val ne = Locale("ne", "NP")
+    private val ne = Locale.forLanguageTag("ne-NP")
 
     @Test
     fun formatsSmallIntegersInEnglish() {

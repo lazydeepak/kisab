@@ -118,9 +118,6 @@
 
     <string name="settings_action">सेटिङहरू</string>
 
-    <string name="hisab_kitab_placeholder_title">हिसाब-किताब चाँडै आउँदैछ</string>
-    <string name="hisab_kitab_placeholder_body">ग्राहक/पार्टी, हिसाब/खाता, र बिक्री तथा खरिदहरू भविष्यको अद्यावधिकमा यहाँ देखा पर्नेछन्।</string>
-
     <string name="parties_section">पार्टीहरू</string>
     <string name="parties_empty">अहिलेसम्म कुनै पार्टी छैन। तपाईंले व्यवहार गर्ने व्यक्ति र व्यवसायहरू थप्नुहोस्।</string>
     <string name="add_party_action">पार्टी थप्नुहोस्</string>
@@ -208,8 +205,6 @@
     <string name="settlement_row_detail_format">%1$s\n%2$s</string>
     <string name="payments_received_label">प्राप्त भुक्तानीहरू</string>
     <string name="payments_made_label">गरिएका भुक्तानीहरू</string>
-    <string name="paid_summary_format">भुक्तानी: %1$s</string>
-    <string name="due_summary_format">बाँकी: %1$s</string>
     <string name="trade_paid_due_summary_format">भुक्तानी: %1$s · बाँकी: %2$s</string>
     <string name="settlement_trade_summary_format">%1$s · %2$s · %3$s</string>
     <string name="trade_has_payments_error">यो बिक्री/खरिदमा भुक्तानी रेकर्डहरू छन्। मेटाउनु अघि पहिले ती रेकर्डहरू हटाउनुहोस्।</string>

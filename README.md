@@ -2,10 +2,12 @@
 
 A standalone Android application repository that consumes `com.susankhya.foundation:foundation-session-android:0.1.1` from GitHub Packages.
 
+![Kisab ledger-and-sprout logo](docs/brand/kisab-logo.svg)
+
 ## Build and test
 
 Prerequisites:
-- JDK 21
+- JDK 17 or newer (CI uses JDK 21)
 - Android SDK with API 36 installed
 - a GitHub token with `read:packages` access for `https://maven.pkg.github.com/lazydeepak/susankhya-app-foundation`
 
@@ -18,13 +20,20 @@ export GITHUB_ACTOR=lazydeepak
 export GITHUB_TOKEN=<read:packages-token>
 ```
 
-Run the validation suite:
+Run the complete local CI-equivalent gate:
 
 ```bash
-./gradlew :app:testDebugUnitTest
-./gradlew :app:lintDebug
-./gradlew :app:assembleDebug
-./gradlew :app:dependencies --configuration debugRuntimeClasspath
+./gradlew :app:verifyLocal
+```
+
+It runs JVM tests, lint, debug assembly, and Android-test compilation, then writes machine-readable evidence to `app/build/reports/verification/local-ci-evidence.json`. GitHub CI runs the same task and retains that report with the debug APK.
+
+Before preparing a release tag, install `actionlint` and run the secret-free release preflight from a clean worktree:
+
+```bash
+scripts/release-preflight.sh
+# Once an annotated version tag exists locally:
+scripts/release-preflight.sh v0.2.0
 ```
 
 ## Milestone status
@@ -33,7 +42,8 @@ Run the validation suite:
 - Kisab M2 is complete. It hardens the transaction model with stable IDs, explicit transaction types and categories, minor-unit money with currency codes, explicit timestamps, validation, and create/edit/delete flows.
 - Kisab M3 is complete. It adds fully offline single-farm backup/restore using a versioned backup envelope, Android document picker integration, full pre-restore validation, and destructive overwrite confirmation.
 - Kisab `v0.1.0` is published and verified. The annotated tag points to a commit contained in `main`, and release workflow run `30750947492` produced the production-signed APK that passed tests, lint, tag/version validation, Android APK signature verification using v2 signing, and independent checksum verification. The GitHub release is published. See `docs/release/RELEASE_NOTES_0.1.0.md` for the full record.
-- Kisab M4 is the active milestone: **IN PROGRESS**. M4 turns the technically correct offline `v0.1.0` application into a product that Nepali farmers can understand and use with minimal developer assistance — Android string-resource and Nepali localization, Nepal-oriented currency/number/date/time presentation, first-run and daily-entry usability, and physical-device field validation. M4-00 is complete; M4-01 (all user-facing text resource-backed plus an initial Nepali `values-ne/` set) is complete; M4-02 (deterministic NPR/currency/number/date/time presentation with major-unit money entry, NPR defaults, and device-local time display) is complete; M4-03 (first-run and daily transaction-entry usability with an overview, inline editor, derived/locked currency, native date/time pickers, discard protection, and backup/editor reconciliation) is complete. M4-04 through M4-05 are not started. M4 does not add cloud, accounts, multi-farm, or payments. See `docs/milestones/M4_FIELD_VALIDATION_AND_NEPAL_USABILITY.md` for the full definition, `docs/validation/M4_01_LOCALIZATION_VALIDATION.md` for the M4-01 validation record, `docs/validation/M4_02_PRESENTATION_VALIDATION.md` for the M4-02 validation record, and `docs/validation/M4_03_DAILY_ENTRY_USABILITY_VALIDATION.md` for the M4-03 validation record.
+- Kisab M4 implementation and physical-device pilot work are complete; M4-05 release-candidate closeout remains deferred. M5-00 through M5-05, M6, and M6.1 are merged on `main`, covering the application shell, Parties, Trades, Settlements, Party Khata, farm financial overview, Party Hisab calculator, and branded navigation shell.
+- M6.2 adds a local CI-equivalent Gradle gate, machine-readable build evidence, workflow lint, API-36-hermetic GitHub CI, Android-test compilation in CI, and secret-free release preflight. It does not publish a release.
 
 ## Kisab M1 acceptance criteria
 - Launch a usable Android app from a launcher activity.
@@ -60,6 +70,7 @@ Run the validation suite:
 
 - Versioning and release policy: `docs/release/RELEASE_POLICY.md`.
 - Published and verified release record for `v0.1.0`: `docs/release/RELEASE_NOTES_0.1.0.md`.
+- Draft notes for the next candidate: `docs/release/RELEASE_NOTES_0.2.0.md`.
 
 Building a signed release locally requires four environment variables — `KISAB_KEYSTORE_PATH`, `KISAB_KEYSTORE_PASSWORD`, `KISAB_KEY_ALIAS`, and `KISAB_KEY_PASSWORD` — pointing at your release keystore. These are never committed or logged; `assembleRelease` fails clearly if any is missing. Debug builds do not require them.
 

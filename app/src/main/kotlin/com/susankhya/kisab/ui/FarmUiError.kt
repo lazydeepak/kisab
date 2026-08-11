@@ -12,7 +12,7 @@ import com.susankhya.kisab.persistence.FarmBackupException
  * reason — never by comparing English exception text. Unexpected internal
  * details are logged at the call site but only [UNEXPECTED] is displayed.
  */
-enum class FarmUiError(@StringRes val resourceId: Int) {
+enum class FarmUiError(@param:StringRes val resourceId: Int) {
     FARM_NAME_REQUIRED(R.string.error_farm_name_required),
     ENTRY_LABEL_REQUIRED(R.string.error_entry_label_required),
     ENTRY_QUANTITY_POSITIVE_WHOLE(R.string.error_entry_quantity_positive_whole),

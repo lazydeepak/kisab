@@ -7,7 +7,7 @@ import org.junit.Test
 class MoneyInputParserTest {
 
     private val parser = MoneyInputParser()
-    private val ne = Locale("ne", "NP")
+    private val ne = Locale.forLanguageTag("ne-NP")
 
     @Test
     fun parsesPlainMajorUnitAmounts() {
@@ -24,7 +24,7 @@ class MoneyInputParserTest {
 
     @Test
     fun groupingValidatesStandardAndIndianPatterns() {
-        val enNp = Locale("en", "NP")
+        val enNp = Locale.forLanguageTag("en-NP")
         val valid = mapOf(
             "1,234" to 123400L,
             "12,345" to 1234500L,
@@ -46,7 +46,7 @@ class MoneyInputParserTest {
 
     @Test
     fun malformedGroupingIsRejectedAcrossLocales() {
-        val enNp = Locale("en", "NP")
+        val enNp = Locale.forLanguageTag("en-NP")
         val invalid = listOf("1,2", "1,23", "12,34", "123,45", "1,234,56", "1,23,456,78", "1,2345", "1234,567", "12,34.56", "1,23.4")
         for (locale in listOf(Locale.US, enNp, ne)) {
             for (input in invalid) {

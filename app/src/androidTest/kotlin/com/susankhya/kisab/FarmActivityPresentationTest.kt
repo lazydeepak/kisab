@@ -114,7 +114,7 @@ class FarmActivityPresentationTest {
 
     @Test
     fun nepaliLocaleDefaultsToNprAndFormatsWithLocalizedDigits() {
-        setAppLocale(Locale("ne"))
+        setAppLocale(Locale.forLanguageTag("ne"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("NPR Farm")

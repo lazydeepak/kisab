@@ -24,7 +24,7 @@ class LocalizedResourceResolutionTest {
 
     private val appContext: Context = ApplicationProvider.getApplicationContext()
     private val english = appContext.withLocale(Locale.ENGLISH)
-    private val nepali = appContext.withLocale(Locale("ne"))
+    private val nepali = appContext.withLocale(Locale.forLanguageTag("ne"))
 
     @Test
     fun englishResolvesRepresentativeUiText() {
@@ -179,8 +179,6 @@ class LocalizedResourceResolutionTest {
             R.string.nav_hisab,
             R.string.nav_settings,
             R.string.settings_action,
-            R.string.hisab_kitab_placeholder_title,
-            R.string.hisab_kitab_placeholder_body,
             R.string.hisab_calculator_title,
             R.string.hisab_calculator_body,
             R.string.hisab_no_farm,

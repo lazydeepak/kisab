@@ -2,7 +2,7 @@
 
 Defines the Application Shell for Kisab: an intentional top app bar, a small set of destinations, bottom navigation, back-stack rules, and a Settings destination that takes over currency (from the temporary Farm Tools row) and adds language selection. M5-00 is the wrapper foundation for the Hisab-Kitab (M5-01+) and Hisab (future) feature work, and it removes the single-screen-growth problem before those features land.
 
-> **Status: IN PROGRESS** on `feature/m5-00-app-shell` (from validated M4-05 `main`). M4 is implementation-complete; release validation deferred. This document is the "deliberate UI/UX design conversation" that the charter requires before implementation.
+> **Status: COMPLETE.** The historical M5-00 shell was merged and later populated by M5-01 through M6; M6.1 added branded navigation polish. M4 implementation is complete while release-candidate validation remains deferred. This document preserves the original M5-00 design boundary.
 
 ## Implemented (current state)
 
