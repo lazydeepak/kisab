@@ -265,6 +265,18 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
     fun partyLedgerSummary(farmId: String, partyId: String): PartyLedgerSummary =
         getFarm(farmId).partyLedgerSummary(partyId)
 
+    /**
+     * M5-05: the derived Farm Financial Overview for the whole farm. Purely
+     * computed from the persisted facts on every call with a stable clock and
+     * zone; never persisted itself. See [FarmFinancialOverview].
+     */
+    fun farmFinancialOverview(
+        farmId: String,
+        preset: FinancialPeriodPreset,
+        now: java.time.OffsetDateTime,
+        zone: java.time.ZoneId
+    ): FarmFinancialOverview = getFarm(farmId).financialOverview(preset, now, zone)
+
     fun transactionsNewestFirst(farmId: String): List<FarmTransaction> =
         getFarm(farmId).transactionsNewestFirst()
 

@@ -235,6 +235,29 @@
     <string name="you_should_pay_format">You should pay %1$s</string>
     <string name="net_settled_label">Settled</string>
 
+    <string name="financial_overview_section">Financial overview</string>
+    <string name="overview_period_label">Period</string>
+    <string name="period_this_month">This month</string>
+    <string name="period_last_30_days">Last 30 days</string>
+    <string name="period_all_time">All time</string>
+    <string name="cash_activity_section">Cash activity</string>
+    <string name="trade_activity_section">Trade and payments</string>
+    <string name="current_position_section">Current position</string>
+    <string name="monthly_trend_section">Monthly trend</string>
+    <string name="overview_cash_net_format">Net: %1$s</string>
+    <string name="overview_sales_format">Sales: %1$s</string>
+    <string name="overview_purchases_format">Purchases: %1$s</string>
+    <string name="overview_payments_received_format">Payments received: %1$s</string>
+    <string name="overview_payments_made_format">Payments made: %1$s</string>
+    <string name="overview_receivable_format">Receivable: %1$s</string>
+    <string name="overview_payable_format">Payable: %1$s</string>
+    <string name="overview_position_as_of_format">As of: %1$s</string>
+    <string name="overview_cash_empty">No cash income or expenses in this period.</string>
+    <string name="overview_trade_empty">No sales, purchases, or payments in this period.</string>
+    <string name="overview_position_empty">No money owed or owing at the end of this period.</string>
+    <string name="overview_trend_empty">No monthly activity in this period yet.</string>
+    <string name="trend_row_format">%1$s | in %2$s | out %3$s | sales %4$s | purchases %5$s | received %6$s | paid %7$s</string>
+
     <string name="hisab_placeholder_title">Hisab is coming soon</string>
     <string name="hisab_placeholder_body">Farmer hisab lookups and calculations will appear here in a future update.</string>
 

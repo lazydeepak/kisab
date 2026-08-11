@@ -1,6 +1,7 @@
 package com.susankhya.kisab.ui
 
 import com.susankhya.kisab.domain.FarmEntryKind
+import com.susankhya.kisab.domain.FinancialPeriodPreset
 import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.TradeType
@@ -23,6 +24,12 @@ object FarmOrdering {
     val paymentStatuses: List<PaymentStatus> = listOf(PaymentStatus.PAID, PaymentStatus.PARTIAL, PaymentStatus.UNPAID)
 
     val transactionTypes: List<TransactionType> = listOf(TransactionType.INCOME, TransactionType.EXPENSE)
+
+    val financialPeriodPresets: List<FinancialPeriodPreset> = listOf(
+        FinancialPeriodPreset.THIS_MONTH,
+        FinancialPeriodPreset.LAST_30_DAYS,
+        FinancialPeriodPreset.ALL_TIME
+    )
 
     fun categoriesFor(type: TransactionType): List<TransactionCategory> = when (type) {
         TransactionType.INCOME -> listOf(

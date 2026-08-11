@@ -40,6 +40,7 @@ import com.susankhya.kisab.domain.FarmState
 import com.susankhya.kisab.domain.FarmTotals
 import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.FarmTransactionDraft
+import com.susankhya.kisab.domain.FinancialPeriodPreset
 import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyDraft
 import com.susankhya.kisab.domain.PartyLedgerEntryType
@@ -63,6 +64,7 @@ import com.susankhya.kisab.persistence.FarmBackupFileAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesAppLanguagePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import java.time.OffsetDateTime
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -127,6 +129,25 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var hisabSummaryContainer: LinearLayout
     private lateinit var toReceiveText: TextView
     private lateinit var toPayText: TextView
+    private lateinit var financialOverviewContainer: androidx.appcompat.widget.LinearLayoutCompat
+    private lateinit var overviewPeriodSpinner: Spinner
+    private lateinit var overviewCashIncomeText: TextView
+    private lateinit var overviewCashExpenseText: TextView
+    private lateinit var overviewCashNetText: TextView
+    private lateinit var overviewCashEmptyText: TextView
+    private lateinit var overviewSalesText: TextView
+    private lateinit var overviewPurchasesText: TextView
+    private lateinit var overviewPaymentsReceivedText: TextView
+    private lateinit var overviewPaymentsMadeText: TextView
+    private lateinit var overviewTradeEmptyText: TextView
+    private lateinit var overviewPositionAsOfText: TextView
+    private lateinit var overviewReceivableText: TextView
+    private lateinit var overviewPayableText: TextView
+    private lateinit var overviewNetPositionText: TextView
+    private lateinit var overviewPositionEmptyText: TextView
+    private lateinit var overviewTrendEmptyText: TextView
+    private lateinit var overviewTrendContainer: LinearLayout
+    private var overviewPeriodPreset: FinancialPeriodPreset = FinancialPeriodPreset.THIS_MONTH
     private lateinit var tradeEditorContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var tradeEditorTitle: TextView
     private lateinit var tradePartySpinner: Spinner
@@ -334,6 +355,7 @@ class FarmActivity : AppCompatActivity() {
         })
 
         restoreDestinationFrom(savedInstanceState)
+        restoreOverviewPeriodFrom(savedInstanceState)
         render()
         showDestination(currentDestination)
         restoreEditorFrom(savedInstanceState)
@@ -347,6 +369,7 @@ class FarmActivity : AppCompatActivity() {
         outState.putString(STATE_DESTINATION, currentDestination.name)
         outState.putString(STATE_LAST_PRIMARY_DESTINATION, lastPrimaryDestination.name)
         outState.putBoolean(STATE_TOOLS_EXPANDED, toolsExpanded)
+        outState.putString(STATE_OVERVIEW_PERIOD_PRESET, overviewPeriodPreset.name)
         val state = currentEditorState()
         if (state != null) {
             outState.putBoolean(STATE_EDITOR_OPEN, true)
@@ -382,6 +405,24 @@ class FarmActivity : AppCompatActivity() {
         val primaryName = bundle?.getString(STATE_LAST_PRIMARY_DESTINATION) ?: return
         val primary = runCatching { Destination.valueOf(primaryName) }.getOrNull()
         if (primary != null) lastPrimaryDestination = primary
+    }
+
+    /**
+     * Restores the selected financial-overview period across recreation. A
+     * missing, unknown, or otherwise unreadable value is a no-op, leaving the
+     * declaration default ([FinancialPeriodPreset.THIS_MONTH]) in place — the
+     * backward-compatible default. The preset field is set *before* the Spinner
+     * selection is synchronized so the selection listener (which re-renders
+     * only when the preset actually changes) does not render prematurely.
+     */
+    private fun restoreOverviewPeriodFrom(bundle: Bundle?) {
+        val name = bundle?.getString(STATE_OVERVIEW_PERIOD_PRESET) ?: return
+        val saved = runCatching { FinancialPeriodPreset.valueOf(name) }.getOrNull() ?: return
+        overviewPeriodPreset = saved
+        val position = FarmOrdering.financialPeriodPresets.indexOf(saved)
+        if (position >= 0) {
+            overviewPeriodSpinner.setSelection(position)
+        }
     }
 
     private fun bindViews() {
@@ -484,6 +525,32 @@ class FarmActivity : AppCompatActivity() {
         toReceiveText = findViewById(R.id.toReceiveText)
         toPayText = findViewById(R.id.toPayText)
         hisabSummaryContainer = findViewById(R.id.hisabSummaryContainer)
+        financialOverviewContainer = findViewById(R.id.financialOverviewContainer)
+        overviewPeriodSpinner = findViewById(R.id.overviewPeriodSpinner)
+        overviewCashIncomeText = findViewById(R.id.overviewCashIncomeText)
+        overviewCashExpenseText = findViewById(R.id.overviewCashExpenseText)
+        overviewCashNetText = findViewById(R.id.overviewCashNetText)
+        overviewCashEmptyText = findViewById(R.id.overviewCashEmptyText)
+        overviewSalesText = findViewById(R.id.overviewSalesText)
+        overviewPurchasesText = findViewById(R.id.overviewPurchasesText)
+        overviewPaymentsReceivedText = findViewById(R.id.overviewPaymentsReceivedText)
+        overviewPaymentsMadeText = findViewById(R.id.overviewPaymentsMadeText)
+        overviewTradeEmptyText = findViewById(R.id.overviewTradeEmptyText)
+        overviewPositionAsOfText = findViewById(R.id.overviewPositionAsOfText)
+        overviewReceivableText = findViewById(R.id.overviewReceivableText)
+        overviewPayableText = findViewById(R.id.overviewPayableText)
+        overviewNetPositionText = findViewById(R.id.overviewNetPositionText)
+        overviewPositionEmptyText = findViewById(R.id.overviewPositionEmptyText)
+        overviewTrendEmptyText = findViewById(R.id.overviewTrendEmptyText)
+        overviewTrendContainer = findViewById(R.id.overviewTrendContainer)
+
+        overviewPeriodSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            FarmOrdering.financialPeriodPresets.map { FarmLabels.financialPeriodPreset(this, it) }
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
         tradeEditorContainer = findViewById(R.id.tradeEditorContainer)
         tradeEditorTitle = findViewById(R.id.tradeEditorTitle)
         tradePartySpinner = findViewById(R.id.tradePartySpinner)
@@ -571,6 +638,17 @@ class FarmActivity : AppCompatActivity() {
 
         newSaleButton.setOnClickListener { openTradeEditorForNew(TradeType.SALE) }
         newPurchaseButton.setOnClickListener { openTradeEditorForNew(TradeType.PURCHASE) }
+        overviewPeriodSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val preset = FarmOrdering.financialPeriodPresets.getOrNull(position)
+                if (preset != null && preset != overviewPeriodPreset) {
+                    overviewPeriodPreset = preset
+                    renderFinancialOverview()
+                }
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
         saveTradeButton.setOnClickListener { saveTrade() }
         cancelTradeButton.setOnClickListener { cancelTradeEditing() }
         deleteTradeButton.setOnClickListener { confirmDeleteTrade() }
@@ -673,6 +751,7 @@ if (destination == Destination.SETTINGS) renderSettings()
         } else {
             updateHisabKitabChromeVisibility(false)
             renderHisabSummary()
+            renderFinancialOverview()
             renderTrades()
             renderParties()
         }
@@ -694,6 +773,97 @@ if (destination == Destination.SETTINGS) renderSettings()
         }
         toReceiveText.text = string(R.string.to_receive_summary_format, formatMoney(currency, toReceive))
         toPayText.text = string(R.string.to_pay_summary_format, formatMoney(currency, toPay))
+    }
+
+    private fun renderFinancialOverview() {
+        val farmId = currentFarmId
+        if (farmId == null) {
+            financialOverviewContainer.visibility = View.GONE
+            return
+        }
+        financialOverviewContainer.visibility = View.VISIBLE
+        val overview = try {
+            service.farmFinancialOverview(farmId, overviewPeriodPreset, OffsetDateTime.now(deviceZone), deviceZone)
+        } catch (exception: ArithmeticException) {
+            Log.e(LOG_TAG, "financial overview overflow", exception)
+            showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
+            return
+        }
+        val currency = currentFarmCurrency()
+        val cash = overview.cashTotals
+        val trade = overview.tradeTotals
+        val position = overview.currentPosition
+        val hasCash = cash.incomeMinor > 0 || cash.expenseMinor > 0
+        val hasTrade = trade.grossSalesMinor > 0 || trade.grossPurchasesMinor > 0 ||
+            trade.paymentsReceivedMinor > 0 || trade.paymentsMadeMinor > 0
+        val hasPosition = position.receivableMinor > 0 || position.payableMinor > 0
+
+        overviewCashIncomeText.text = string(R.string.overview_income_format, formatMoney(currency, cash.incomeMinor))
+        overviewCashExpenseText.text = string(R.string.overview_expenses_format, formatMoney(currency, cash.expenseMinor))
+        overviewCashNetText.text = string(R.string.overview_cash_net_format, formatMoney(currency, cash.netMinor))
+        overviewCashIncomeText.visibility = if (hasCash) View.VISIBLE else View.GONE
+        overviewCashExpenseText.visibility = if (hasCash) View.VISIBLE else View.GONE
+        overviewCashNetText.visibility = if (hasCash) View.VISIBLE else View.GONE
+        overviewCashEmptyText.visibility = if (hasCash) View.GONE else View.VISIBLE
+
+        overviewSalesText.text = string(R.string.overview_sales_format, formatMoney(currency, trade.grossSalesMinor))
+        overviewPurchasesText.text = string(R.string.overview_purchases_format, formatMoney(currency, trade.grossPurchasesMinor))
+        overviewPaymentsReceivedText.text = string(
+            R.string.overview_payments_received_format, formatMoney(currency, trade.paymentsReceivedMinor)
+        )
+        overviewPaymentsMadeText.text = string(R.string.overview_payments_made_format, formatMoney(currency, trade.paymentsMadeMinor))
+        overviewSalesText.visibility = if (hasTrade) View.VISIBLE else View.GONE
+        overviewPurchasesText.visibility = if (hasTrade) View.VISIBLE else View.GONE
+        overviewPaymentsReceivedText.visibility = if (hasTrade) View.VISIBLE else View.GONE
+        overviewPaymentsMadeText.visibility = if (hasTrade) View.VISIBLE else View.GONE
+        overviewTradeEmptyText.visibility = if (hasTrade) View.GONE else View.VISIBLE
+
+        // The position counts facts strictly before endExclusive; show the last
+        // *included* instant so "As of" never presents the excluded boundary as
+        // included. MEDIUM format drops sub-seconds, so this reads as the final
+        // second of the period (e.g. "…11:59:59 PM" for a month boundary).
+        overviewPositionAsOfText.text = string(
+            R.string.overview_position_as_of_format,
+            timePresentation.displayDateTime(
+                presentationLocale,
+                deviceZone,
+                overview.period.endExclusive.minusNanos(1)
+            )
+        )
+        overviewReceivableText.text = string(
+            R.string.overview_receivable_format, formatMoney(currency, position.receivableMinor)
+        )
+        overviewPayableText.text = string(R.string.overview_payable_format, formatMoney(currency, position.payableMinor))
+        overviewNetPositionText.text = string(R.string.net_position_format, formatMoney(currency, position.netMinor))
+        overviewPositionAsOfText.visibility = if (hasPosition) View.VISIBLE else View.GONE
+        overviewReceivableText.visibility = if (hasPosition) View.VISIBLE else View.GONE
+        overviewPayableText.visibility = if (hasPosition) View.VISIBLE else View.GONE
+        overviewNetPositionText.visibility = if (hasPosition) View.VISIBLE else View.GONE
+        overviewPositionEmptyText.visibility = if (hasPosition) View.GONE else View.VISIBLE
+
+        overviewTrendContainer.removeAllViews()
+        val rows = overview.monthlyTrend
+        overviewTrendEmptyText.visibility = if (rows.isEmpty()) View.VISIBLE else View.GONE
+        overviewTrendContainer.visibility = if (rows.isEmpty()) View.GONE else View.VISIBLE
+        if (rows.isEmpty()) return
+        rows.forEach { row ->
+            val line = TextView(this)
+            val monthLabel = YearMonth.of(row.year, row.month)
+                .atDay(1)
+                .format(DateTimeFormatter.ofPattern("MMM yyyy").withLocale(presentationLocale))
+            line.text = string(
+                R.string.trend_row_format,
+                monthLabel,
+                formatMoney(currency, row.cashIncomeMinor),
+                formatMoney(currency, row.cashExpenseMinor),
+                formatMoney(currency, row.salesMinor),
+                formatMoney(currency, row.purchasesMinor),
+                formatMoney(currency, row.paymentsReceivedMinor),
+                formatMoney(currency, row.paymentsMadeMinor)
+            )
+            line.setPadding(0, dp(4), 0, dp(4))
+            overviewTrendContainer.addView(line)
+        }
     }
 
     private fun renderTrades() {
@@ -1748,6 +1918,7 @@ if (destination == Destination.SETTINGS) renderSettings()
         newSaleButton.visibility = chromeVisibility
         newPurchaseButton.visibility = chromeVisibility
         hisabSummaryContainer.visibility = chromeVisibility
+        financialOverviewContainer.visibility = chromeVisibility
         tradesSectionLabel.visibility = chromeVisibility
         tradesEmptyText.visibility = chromeVisibility
         tradesContainer.visibility = chromeVisibility
@@ -2561,6 +2732,7 @@ if (destination == Destination.SETTINGS) renderSettings()
         const val STATE_TRADE_EDITOR_OCCURRED_AT = "OccurredAt"
         const val STATE_SETTLEMENT_TARGET_TRADE_ID = "settlementTargetTradeId"
         const val STATE_KHATA_PARTY_ID = "khataPartyId"
+        const val STATE_OVERVIEW_PERIOD_PRESET = "overviewPeriodPreset"
         const val STATE_SETTLEMENT_EDITOR_OPEN = "settlementEditorOpen"
         const val STATE_SETTLEMENT_EDITOR_PREFIX = "settlementEditor"
         const val STATE_SETTLEMENT_EDITOR_BASELINE_PREFIX = "settlementEditorBaseline"
