@@ -22,7 +22,7 @@ class TimePresentationTest {
         assertEquals("Jan 1, 2024, 5:45:00 PM", normalizedEnglish)
         assertFalse("UTC literal leaked into display: $english", english.contains("UTC"))
 
-        val nepali = presentation.displayDateTime(Locale("ne", "NP"), kathmandu, stored)
+        val nepali = presentation.displayDateTime(Locale.forLanguageTag("ne-NP"), kathmandu, stored)
         assertEquals("2024 जनवरी 1, 17:45:00", nepali)
         assertFalse("UTC literal leaked into display: $nepali", nepali.contains("UTC"))
     }

@@ -7,7 +7,7 @@ import org.junit.Test
 class MoneyFormatterTest {
 
     private val formatter = MoneyFormatter()
-    private val ne = Locale("ne", "NP")
+    private val ne = Locale.forLanguageTag("ne-NP")
 
     @Test
     fun fractionDigitsFollowCurrencyDefinition() {

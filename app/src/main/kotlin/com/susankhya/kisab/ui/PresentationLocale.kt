@@ -11,8 +11,8 @@ import java.util.Locale
  * of the presentation locale.
  */
 object PresentationLocale {
-    val ENGLISH: Locale = Locale("en", "NP")
-    val NEPALI: Locale = Locale("ne", "NP")
+    val ENGLISH: Locale = Locale.forLanguageTag("en-NP")
+    val NEPALI: Locale = Locale.forLanguageTag("ne-NP")
 
     fun presentationLocale(appLocale: Locale): Locale = when (appLocale.language) {
         "ne" -> NEPALI

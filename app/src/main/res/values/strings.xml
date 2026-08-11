@@ -122,9 +122,6 @@
 
     <string name="settings_action">Settings</string>
 
-    <string name="hisab_kitab_placeholder_title">Hisab-Kitab is coming soon</string>
-    <string name="hisab_kitab_placeholder_body">Parties, hisab/khata, and sales and purchases will appear here in a future update.</string>
-
     <string name="parties_section">Parties</string>
     <string name="parties_empty">No parties yet. Add the people and businesses you deal with.</string>
     <string name="add_party_action">Add party</string>
@@ -212,8 +209,6 @@
     <string name="settlement_row_detail_format">%1$s\n%2$s</string>
     <string name="payments_received_label">Payments received</string>
     <string name="payments_made_label">Payments made</string>
-    <string name="paid_summary_format">Paid: %1$s</string>
-    <string name="due_summary_format">Due: %1$s</string>
     <string name="trade_paid_due_summary_format">Paid: %1$s · Due: %2$s</string>
     <string name="settlement_trade_summary_format">%1$s · %2$s · %3$s</string>
     <string name="trade_has_payments_error">This sale/purchase has payment records. Remove those payment records first before deleting it.</string>

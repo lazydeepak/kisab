@@ -112,7 +112,7 @@ class FarmActivityLocalizationSmokeTest {
 
     @Test
     fun cleanFirstRunScreenRendersInNepali() {
-        setAppLocale(Locale("ne"))
+        setAppLocale(Locale.forLanguageTag("ne"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         onView(withId(R.id.farmNameInput)).check(matches(isDisplayed()))
         scenario.onActivity { activity ->
@@ -142,7 +142,7 @@ class FarmActivityLocalizationSmokeTest {
 
     @Test
     fun populatedFarmScreenRendersInNepali() {
-        setAppLocale(Locale("ne"))
+        setAppLocale(Locale.forLanguageTag("ne"))
         seedFarm()
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         scenario.onActivity { activity ->
