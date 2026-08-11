@@ -252,6 +252,19 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
 
     fun party(farmId: String, partyId: String): Party? = getFarm(farmId).parties.firstOrNull { it.id == partyId }
 
+    /**
+     * M5-04: the derived Party Khata projection for one party. Purely computed
+     * from the persisted Party → Trade → Settlement facts on every call; never
+     * persisted itself. Throws when the party does not exist rather than
+     * fabricating one.
+     */
+    fun partyLedger(farmId: String, partyId: String): PartyLedger =
+        getFarm(farmId).partyLedger(partyId)
+
+    /** The Party's derived current position only (see [partyLedger]). */
+    fun partyLedgerSummary(farmId: String, partyId: String): PartyLedgerSummary =
+        getFarm(farmId).partyLedgerSummary(partyId)
+
     fun transactionsNewestFirst(farmId: String): List<FarmTransaction> =
         getFarm(farmId).transactionsNewestFirst()
 
