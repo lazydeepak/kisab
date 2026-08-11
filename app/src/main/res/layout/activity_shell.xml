@@ -1289,6 +1289,8 @@
                 android:orientation="vertical"
                 android:padding="24dp">
 
+                <include layout="@layout/view_kisan_calculator_toolbox" />
+
                 <TextView
                     android:id="@+id/hisabCalculatorTitle"
                     android:layout_width="match_parent"

@@ -4,6 +4,8 @@ import android.content.Context
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntryKind
 import com.susankhya.kisab.domain.FinancialPeriodPreset
+import com.susankhya.kisab.domain.ArithmeticOperation
+import com.susankhya.kisab.domain.LandUnit
 import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.TradeType
@@ -62,6 +64,25 @@ object FarmLabels {
         FinancialPeriodPreset.ALL_TIME -> R.string.period_all_time
     }
 
+    fun arithmeticOperationRes(operation: ArithmeticOperation): Int = when (operation) {
+        ArithmeticOperation.ADD -> R.string.arithmetic_add
+        ArithmeticOperation.SUBTRACT -> R.string.arithmetic_subtract
+        ArithmeticOperation.MULTIPLY -> R.string.arithmetic_multiply
+        ArithmeticOperation.DIVIDE -> R.string.arithmetic_divide
+        ArithmeticOperation.PERCENT_OF -> R.string.arithmetic_percent_of
+    }
+
+    fun landUnitRes(unit: LandUnit): Int = when (unit) {
+        LandUnit.SQUARE_METRE -> R.string.land_unit_square_metre
+        LandUnit.ROPANI -> R.string.land_unit_ropani
+        LandUnit.AANA -> R.string.land_unit_aana
+        LandUnit.PAISA -> R.string.land_unit_paisa
+        LandUnit.DAAM -> R.string.land_unit_daam
+        LandUnit.BIGHA -> R.string.land_unit_bigha
+        LandUnit.KATTHA -> R.string.land_unit_kattha
+        LandUnit.DHUR -> R.string.land_unit_dhur
+    }
+
     fun entryKind(context: Context, kind: FarmEntryKind): String = context.getString(entryKindRes(kind))
 
     fun transactionType(context: Context, type: TransactionType): String = context.getString(transactionTypeRes(type))
@@ -77,4 +98,9 @@ object FarmLabels {
 
     fun financialPeriodPreset(context: Context, preset: FinancialPeriodPreset): String =
         context.getString(financialPeriodPresetRes(preset))
+
+    fun arithmeticOperation(context: Context, operation: ArithmeticOperation): String =
+        context.getString(arithmeticOperationRes(operation))
+
+    fun landUnit(context: Context, unit: LandUnit): String = context.getString(landUnitRes(unit))
 }

@@ -625,6 +625,27 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
+    fun kisanArithmeticWorksWithoutCreatingAFarm() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.kisanCalculatorToolbox))
+                .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.arithmeticFirstInput))
+                .perform(scrollTo(), replaceText("10"), closeSoftKeyboard())
+            onView(withId(R.id.arithmeticSecondInput))
+                .perform(scrollTo(), replaceText("2.5"), closeSoftKeyboard())
+            onView(withId(R.id.calculateArithmeticButton)).perform(scrollTo(), click())
+            onView(withId(R.id.arithmeticResultText))
+                .check(matches(allOf(withEffectiveVisibility(Visibility.VISIBLE), withText(containsString("12.5")))))
+            onView(withId(R.id.hisabNoFarmText))
+                .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test
     fun backFromSettingsRestoresPriorPrimaryDestination() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {

@@ -43,6 +43,9 @@ import com.susankhya.kisab.domain.FarmTotals
 import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.FarmTransactionDraft
 import com.susankhya.kisab.domain.FinancialPeriodPreset
+import com.susankhya.kisab.domain.ArithmeticOperation
+import com.susankhya.kisab.domain.KisanCalculators
+import com.susankhya.kisab.domain.LandUnit
 import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyDraft
 import com.susankhya.kisab.domain.PartyLedgerEntryType
@@ -70,6 +73,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.math.BigDecimal
 import java.util.Locale
 
 class FarmActivity : AppCompatActivity() {
@@ -82,6 +86,7 @@ class FarmActivity : AppCompatActivity() {
     private val moneyFormatter = MoneyFormatter()
     private val moneyInputParser = MoneyInputParser(moneyFormatter)
     private val numberFormatter = NumberFormatter()
+    private val decimalValueFormatter = DecimalValueFormatter()
     private val timePresentation = TimePresentation()
 
     private val presentationLocale: java.util.Locale
@@ -116,6 +121,25 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var hisabToPayText: TextView
     private lateinit var hisabNetText: TextView
     private lateinit var hisabPositionEmptyText: TextView
+    private lateinit var arithmeticFirstInput: EditText
+    private lateinit var arithmeticOperationSpinner: Spinner
+    private lateinit var arithmeticSecondInput: EditText
+    private lateinit var calculateArithmeticButton: Button
+    private lateinit var arithmeticResultText: TextView
+    private lateinit var profitCostInput: EditText
+    private lateinit var profitRevenueInput: EditText
+    private lateinit var calculateProfitButton: Button
+    private lateinit var profitResultText: TextView
+    private lateinit var interestPrincipalInput: EditText
+    private lateinit var interestRateInput: EditText
+    private lateinit var interestMonthsInput: EditText
+    private lateinit var calculateInterestButton: Button
+    private lateinit var interestResultText: TextView
+    private lateinit var landValueInput: EditText
+    private lateinit var landFromUnitSpinner: Spinner
+    private lateinit var landToUnitSpinner: Spinner
+    private lateinit var convertLandButton: Button
+    private lateinit var landResultText: TextView
     private var hisabPartyChoices: List<Party> = emptyList()
     private var hisabSelectedPartyId: String? = null
     private var hisabPeriodPreset: FinancialPeriodPreset = FinancialPeriodPreset.THIS_MONTH
@@ -488,6 +512,43 @@ class FarmActivity : AppCompatActivity() {
         hisabToPayText = findViewById(R.id.hisabToPayText)
         hisabNetText = findViewById(R.id.hisabNetText)
         hisabPositionEmptyText = findViewById(R.id.hisabPositionEmptyText)
+        arithmeticFirstInput = findViewById(R.id.arithmeticFirstInput)
+        arithmeticOperationSpinner = findViewById(R.id.arithmeticOperationSpinner)
+        arithmeticSecondInput = findViewById(R.id.arithmeticSecondInput)
+        calculateArithmeticButton = findViewById(R.id.calculateArithmeticButton)
+        arithmeticResultText = findViewById(R.id.arithmeticResultText)
+        profitCostInput = findViewById(R.id.profitCostInput)
+        profitRevenueInput = findViewById(R.id.profitRevenueInput)
+        calculateProfitButton = findViewById(R.id.calculateProfitButton)
+        profitResultText = findViewById(R.id.profitResultText)
+        interestPrincipalInput = findViewById(R.id.interestPrincipalInput)
+        interestRateInput = findViewById(R.id.interestRateInput)
+        interestMonthsInput = findViewById(R.id.interestMonthsInput)
+        calculateInterestButton = findViewById(R.id.calculateInterestButton)
+        interestResultText = findViewById(R.id.interestResultText)
+        landValueInput = findViewById(R.id.landValueInput)
+        landFromUnitSpinner = findViewById(R.id.landFromUnitSpinner)
+        landToUnitSpinner = findViewById(R.id.landToUnitSpinner)
+        convertLandButton = findViewById(R.id.convertLandButton)
+        landResultText = findViewById(R.id.landResultText)
+
+        arithmeticOperationSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            ArithmeticOperation.values().map { FarmLabels.arithmeticOperation(this, it) }
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val landLabels = LandUnit.values().map { FarmLabels.landUnit(this, it) }
+        landFromUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            landLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        landToUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            landLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        landToUnitSpinner.setSelection(LandUnit.values().indexOf(LandUnit.SQUARE_METRE))
 
         hisabPeriodSpinner.adapter = ArrayAdapter(
             this,
@@ -667,6 +728,10 @@ class FarmActivity : AppCompatActivity() {
         navHisabKitabItem.setOnClickListener { navigateTo(Destination.HISAB_KITAB) }
         navHisabItem.setOnClickListener { navigateTo(Destination.HISAB) }
         shellMenuButton.setOnClickListener { showShellMenu() }
+        calculateArithmeticButton.setOnClickListener { calculateArithmetic() }
+        calculateProfitButton.setOnClickListener { calculateProfit() }
+        calculateInterestButton.setOnClickListener { calculateInterest() }
+        convertLandButton.setOnClickListener { convertLand() }
 
         hisabPartySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -838,6 +903,101 @@ class FarmActivity : AppCompatActivity() {
         navHomeItem.isSelected = currentDestination == Destination.HOME
         navHisabKitabItem.isSelected = currentDestination == Destination.HISAB_KITAB
         navHisabItem.isSelected = currentDestination == Destination.HISAB
+    }
+
+    private fun calculateArithmetic() {
+        val first = calculatorValue(arithmeticFirstInput, allowNegative = true) ?: return
+        val second = calculatorValue(arithmeticSecondInput, allowNegative = true) ?: return
+        val operation = ArithmeticOperation.values().getOrNull(arithmeticOperationSpinner.selectedItemPosition)
+            ?: return
+        if (operation == ArithmeticOperation.DIVIDE && second.signum() == 0) {
+            arithmeticSecondInput.error = string(R.string.calculator_divide_zero_error)
+            return
+        }
+        val result = KisanCalculators.arithmetic(first, second, operation)
+        showCalculatorResult(
+            arithmeticResultText,
+            string(R.string.result_format, formatCalculatorValue(result))
+        )
+    }
+
+    private fun calculateProfit() {
+        val cost = calculatorValue(profitCostInput) ?: return
+        val revenue = calculatorValue(profitRevenueInput) ?: return
+        val result = KisanCalculators.profit(cost, revenue)
+        val label = when (result.amount.signum()) {
+            1 -> string(R.string.profit_label)
+            -1 -> string(R.string.loss_label)
+            else -> string(R.string.no_profit_loss_label)
+        }
+        showCalculatorResult(
+            profitResultText,
+            string(
+                R.string.profit_result_format,
+                label,
+                formatCalculatorValue(result.amount.abs()),
+                formatCalculatorPercent(result.marginPercent),
+                formatCalculatorPercent(result.markupPercent)
+            )
+        )
+    }
+
+    private fun calculateInterest() {
+        val principal = calculatorValue(interestPrincipalInput) ?: return
+        val rate = calculatorValue(interestRateInput) ?: return
+        val months = calculatorValue(interestMonthsInput) ?: return
+        val result = KisanCalculators.simpleInterest(principal, rate, months)
+        showCalculatorResult(
+            interestResultText,
+            string(
+                R.string.interest_result_format,
+                formatCalculatorValue(result.interest),
+                formatCalculatorValue(result.total)
+            )
+        )
+    }
+
+    private fun convertLand() {
+        val value = calculatorValue(landValueInput) ?: return
+        val units = LandUnit.values()
+        val from = units.getOrNull(landFromUnitSpinner.selectedItemPosition) ?: return
+        val to = units.getOrNull(landToUnitSpinner.selectedItemPosition) ?: return
+        val result = KisanCalculators.convertLand(value, from, to)
+        showCalculatorResult(
+            landResultText,
+            string(
+                R.string.land_result_format,
+                formatCalculatorValue(value),
+                FarmLabels.landUnit(this, from),
+                formatCalculatorValue(result),
+                FarmLabels.landUnit(this, to)
+            )
+        )
+    }
+
+    private fun calculatorValue(input: EditText, allowNegative: Boolean = false): BigDecimal? {
+        input.error = null
+        val value = decimalValueFormatter.parse(presentationLocale, input.text.toString())
+        if (value == null || (!allowNegative && value.signum() < 0)) {
+            input.error = string(
+                if (allowNegative) R.string.calculator_number_error else R.string.calculator_input_error
+            )
+            input.requestFocus()
+            return null
+        }
+        return value
+    }
+
+    private fun formatCalculatorValue(value: BigDecimal): String =
+        decimalValueFormatter.format(presentationLocale, value)
+
+    private fun formatCalculatorPercent(value: BigDecimal?): String = value?.let {
+        string(R.string.percent_value_format, formatCalculatorValue(it))
+    } ?: string(R.string.not_available_short)
+
+    private fun showCalculatorResult(target: TextView, result: String) {
+        target.text = result
+        target.visibility = View.VISIBLE
     }
 
     private fun renderHisabCalculator() {

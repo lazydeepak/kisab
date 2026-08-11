@@ -1,6 +1,8 @@
 package com.susankhya.kisab
 
 import com.susankhya.kisab.domain.FarmEntryKind
+import com.susankhya.kisab.domain.ArithmeticOperation
+import com.susankhya.kisab.domain.LandUnit
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.ui.FarmLabels
@@ -43,6 +45,22 @@ class FarmLabelsMappingTest {
     fun everyFinancialPeriodPresetHasADistinctMapping() {
         val values = com.susankhya.kisab.domain.FinancialPeriodPreset.values()
         val resourceIds = values.map { FarmLabels.financialPeriodPresetRes(it) }
+        assertTrue(resourceIds.all { it != 0 })
+        assertEquals(values.size, resourceIds.toSet().size)
+    }
+
+    @Test
+    fun everyArithmeticOperationHasADistinctMapping() {
+        val values = ArithmeticOperation.values()
+        val resourceIds = values.map { FarmLabels.arithmeticOperationRes(it) }
+        assertTrue(resourceIds.all { it != 0 })
+        assertEquals(values.size, resourceIds.toSet().size)
+    }
+
+    @Test
+    fun everyLandUnitHasADistinctMapping() {
+        val values = LandUnit.values()
+        val resourceIds = values.map { FarmLabels.landUnitRes(it) }
         assertTrue(resourceIds.all { it != 0 })
         assertEquals(values.size, resourceIds.toSet().size)
     }
