@@ -117,6 +117,8 @@
     <string name="nav_hisab_kitab">Hisab-Kitab</string>
     <string name="nav_hisab">Hisab</string>
     <string name="nav_settings">Settings</string>
+    <string name="kisab_logo_content_description">Kisab logo</string>
+    <string name="shell_menu_content_description">More options</string>
 
     <string name="settings_action">Settings</string>
 

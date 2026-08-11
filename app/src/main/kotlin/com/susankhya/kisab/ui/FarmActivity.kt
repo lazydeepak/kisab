@@ -16,7 +16,9 @@ import androidx.annotation.RequiresApi
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.ScrollView
@@ -90,7 +92,7 @@ class FarmActivity : AppCompatActivity() {
 
     private lateinit var scrollView: ScrollView
     private lateinit var shellTitle: TextView
-    private lateinit var shellSettingsButton: Button
+    private lateinit var shellMenuButton: ImageButton
     private lateinit var navHomeItem: LinearLayout
     private lateinit var navHisabKitabItem: LinearLayout
     private lateinit var navHisabItem: LinearLayout
@@ -463,7 +465,7 @@ class FarmActivity : AppCompatActivity() {
     private fun bindViews() {
         scrollView = findViewById(R.id.scrollView)
         shellTitle = findViewById(R.id.shellTitle)
-        shellSettingsButton = findViewById(R.id.shellSettingsButton)
+        shellMenuButton = findViewById(R.id.shellMenuButton)
         navHomeItem = findViewById(R.id.navHomeItem)
         navHisabKitabItem = findViewById(R.id.navHisabKitabItem)
         navHisabItem = findViewById(R.id.navHisabItem)
@@ -664,7 +666,7 @@ class FarmActivity : AppCompatActivity() {
         navHomeItem.setOnClickListener { navigateTo(Destination.HOME) }
         navHisabKitabItem.setOnClickListener { navigateTo(Destination.HISAB_KITAB) }
         navHisabItem.setOnClickListener { navigateTo(Destination.HISAB) }
-        shellSettingsButton.setOnClickListener { navigateTo(Destination.SETTINGS) }
+        shellMenuButton.setOnClickListener { showShellMenu() }
 
         hisabPartySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -810,9 +812,32 @@ class FarmActivity : AppCompatActivity() {
         hisabScreen.visibility = if (destination == Destination.HISAB) View.VISIBLE else View.GONE
         settingsScreen.visibility = if (destination == Destination.SETTINGS) View.VISIBLE else View.GONE
         updateShellTitle()
-if (destination == Destination.SETTINGS) renderSettings()
+        updateShellNavigationState()
+        if (destination == Destination.SETTINGS) renderSettings()
         if (destination == Destination.HISAB_KITAB) renderHisabKitab()
         if (destination == Destination.HISAB) renderHisabCalculator()
+    }
+
+    private fun showShellMenu() {
+        PopupMenu(this, shellMenuButton).apply {
+            inflate(R.menu.menu_shell_overflow)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.menuSettings -> {
+                        navigateTo(Destination.SETTINGS)
+                        true
+                    }
+                    else -> false
+                }
+            }
+            show()
+        }
+    }
+
+    private fun updateShellNavigationState() {
+        navHomeItem.isSelected = currentDestination == Destination.HOME
+        navHisabKitabItem.isSelected = currentDestination == Destination.HISAB_KITAB
+        navHisabItem.isSelected = currentDestination == Destination.HISAB
     }
 
     private fun renderHisabCalculator() {

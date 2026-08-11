@@ -1,4 +1,7 @@
 <resources>
     <color name="shellAppBarBackground">#2e7d32</color>
     <color name="bottomNavBackground">#f1f8e9</color>
+    <color name="bottomNavContent">#53645A</color>
+    <color name="bottomNavSelectedContent">#1B5E20</color>
+    <color name="bottomNavSelectedBackground">#C8E6C9</color>
 </resources>

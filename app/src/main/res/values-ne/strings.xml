@@ -113,6 +113,8 @@
     <string name="nav_hisab_kitab">हिसाब-किताब</string>
     <string name="nav_hisab">हिसाब</string>
     <string name="nav_settings">सेटिङहरू</string>
+    <string name="kisab_logo_content_description">किसाबको लोगो</string>
+    <string name="shell_menu_content_description">थप विकल्पहरू</string>
 
     <string name="settings_action">सेटिङहरू</string>
 

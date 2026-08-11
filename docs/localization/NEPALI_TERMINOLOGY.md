@@ -141,6 +141,8 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | No farm for Hisab | Create or restore a farm to calculate Party Hisab. | पार्टी हिसाब गणना गर्न फार्म बनाउनुहोस् वा पुनर्स्थापना गर्नुहोस्। | — | Hisab empty state when no farm is open | Provisional | M6 | Pending |
 | No parties for Hisab | Add a customer or supplier in Hisab-Kitab to calculate their Hisab. | हिसाब गणना गर्न हिसाब-किताबमा ग्राहक वा आपूर्तिकर्ता थप्नुहोस्। | — | Hisab empty state when the farm has no parties | Provisional | M6 | Pending |
 | Nothing due with Party | Nothing is due between you and this party at the period end. | अवधिको अन्त्यमा तपाईं र यस पार्टीबीच कुनै रकम बाँकी छैन। | — | Party Hisab zero-position guidance | Provisional | M6 | Pending |
+| Kisab logo | Kisab logo | किसाबको लोगो (Kisabko logo) | किसाब चिन्ह | Accessibility description for the branded ledger-and-sprout mark | Provisional | M6.1 | Pending |
+| More options | More options | थप विकल्पहरू (thap wikalpaharu) | मेनु | Accessibility description for the top-app-bar overflow menu | Provisional | M6.1 | Pending |
 
 ## Rules
 
