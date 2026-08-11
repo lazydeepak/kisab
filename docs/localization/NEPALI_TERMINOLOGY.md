@@ -110,6 +110,14 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Payments received | Payments received | प्राप्त भुक्तानीहरू (prapat bhuktani-haru) | — | History heading for a sale's money received | Provisional | M5-03 | Pending |
 | Payments made | Payments made | गरिएका भुक्तानीहरू (garieka bhuktani-haru) | — | History heading for a purchase's money paid | Provisional | M5-03 | Pending |
 | No payments recorded yet | No payments recorded yet | अहिलेसम्म कुनै भुक्तानी रेकर्ड छैन (ahilesamma kunai bhuktani record chaina) | — | Empty state for a trade with no payment records | Provisional | M5-03 | Pending |
+| Khata | Khata / Party Khata | खाता (khata) | पार्टीको हिसाबकिताब | Per-party ledger screen on the Hisab-Kitab destination | Provisional | M5-04 | Pending |
+| Net position | Net position | कुल स्थिति (kul sthiti) | खुद स्थिति | Informational to-receive minus to-pay for a party | Provisional | M5-04 | Pending |
+| You should receive | You should receive … | तपाईंले … प्राप्त गर्नुपर्ने (tapaile … prapat garnuparne) | — | Positive party balance: money owed to the farmer | Provisional | M5-04 | Pending |
+| You should pay | You should pay … | तपाईंले … तिर्नुपर्ने (tapaile … tirnuparne) | — | Negative party balance: money the farmer owes | Provisional | M5-04 | Pending |
+| Settled | Settled | मिलान भयो (milan bhayo) | बराबर भयो | Zero party/net balance | Provisional | M5-04 | Pending |
+| Payment received | Payment received | भुक्तानी प्राप्त भयो (bhuktani prapat bhayo) | — | Khata row: a payment received from a customer (sale settlement) | Provisional | M5-04 | Pending |
+| Payment made | Payment made | भुक्तानी गरियो (bhuktani gariyo) | — | Khata row: a payment made to a supplier (purchase settlement) | Provisional | M5-04 | Pending |
+| Balance after | Balance after | पछि (pachhi) / पछिको बाँकी | — | Khata running balance after a row's event | Provisional | M5-04 | Pending |
 
 ## Rules
 

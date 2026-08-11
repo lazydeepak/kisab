@@ -42,6 +42,7 @@ import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.FarmTransactionDraft
 import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyDraft
+import com.susankhya.kisab.domain.PartyLedgerEntryType
 import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
@@ -98,6 +99,20 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var partiesEmptyText: TextView
     private lateinit var partiesContainer: LinearLayout
     private lateinit var addPartyButton: Button
+    private lateinit var tradesSectionLabel: TextView
+    private lateinit var partiesSectionLabel: TextView
+    private lateinit var partyKhataContainer: androidx.appcompat.widget.LinearLayoutCompat
+    private lateinit var partyKhataTitle: TextView
+    private lateinit var partyKhataRoleText: TextView
+    private lateinit var partyKhataToReceiveText: TextView
+    private lateinit var partyKhataToPayText: TextView
+    private lateinit var partyKhataNetText: TextView
+    private lateinit var khataNewSaleButton: Button
+    private lateinit var khataNewPurchaseButton: Button
+    private lateinit var khataEditPartyButton: Button
+    private lateinit var closeKhataButton: Button
+    private lateinit var khataEmptyText: TextView
+    private lateinit var khataEntriesContainer: LinearLayout
     private lateinit var partyEditorTitle: TextView
     private lateinit var partyNameInput: EditText
     private lateinit var partyRoleSpinner: Spinner
@@ -223,6 +238,7 @@ class FarmActivity : AppCompatActivity() {
     private var settlementEditorState: SettlementEditorState? = null
     private var settlementEditorBaseline: SettlementEditorState? = null
     private var settlementTargetTradeId: String? = null
+    private var khataPartyId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -305,6 +321,8 @@ class FarmActivity : AppCompatActivity() {
                     } else {
                         closePartyEditor()
                     }
+                } else if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+                    closePartyKhata()
                 } else if (currentDestination == Destination.SETTINGS) {
                     showDestination(lastPrimaryDestination)
                 } else if (currentDestination != Destination.HOME) {
@@ -321,6 +339,7 @@ class FarmActivity : AppCompatActivity() {
         restoreEditorFrom(savedInstanceState)
         restoreTradeEditorFrom(savedInstanceState)
         restoreSettlementEditorFrom(savedInstanceState)
+        restoreKhataFrom(savedInstanceState)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -353,6 +372,7 @@ class FarmActivity : AppCompatActivity() {
                 }
             }
         }
+        khataPartyId?.let { outState.putString(STATE_KHATA_PARTY_ID, it) }
     }
 
     private fun restoreDestinationFrom(bundle: Bundle?) {
@@ -377,6 +397,20 @@ class FarmActivity : AppCompatActivity() {
         partiesEmptyText = findViewById(R.id.partiesEmptyText)
         partiesContainer = findViewById(R.id.partiesContainer)
         addPartyButton = findViewById(R.id.addPartyButton)
+        tradesSectionLabel = findViewById(R.id.tradesSectionLabel)
+        partiesSectionLabel = findViewById(R.id.partiesSectionLabel)
+        partyKhataContainer = findViewById(R.id.partyKhataContainer)
+        partyKhataTitle = findViewById(R.id.partyKhataTitle)
+        partyKhataRoleText = findViewById(R.id.partyKhataRoleText)
+        partyKhataToReceiveText = findViewById(R.id.partyKhataToReceiveText)
+        partyKhataToPayText = findViewById(R.id.partyKhataToPayText)
+        partyKhataNetText = findViewById(R.id.partyKhataNetText)
+        khataNewSaleButton = findViewById(R.id.khataNewSaleButton)
+        khataNewPurchaseButton = findViewById(R.id.khataNewPurchaseButton)
+        khataEditPartyButton = findViewById(R.id.khataEditPartyButton)
+        closeKhataButton = findViewById(R.id.closeKhataButton)
+        khataEmptyText = findViewById(R.id.khataEmptyText)
+        khataEntriesContainer = findViewById(R.id.khataEntriesContainer)
         partyEditorTitle = findViewById(R.id.partyEditorTitle)
         partyNameInput = findViewById(R.id.partyNameInput)
         partyRoleSpinner = findViewById(R.id.partyRoleSpinner)
@@ -514,6 +548,26 @@ class FarmActivity : AppCompatActivity() {
         savePartyButton.setOnClickListener { saveParty() }
         cancelPartyButton.setOnClickListener { closePartyEditor() }
         deletePartyButton.setOnClickListener { confirmDeleteParty() }
+        closeKhataButton.setOnClickListener { closePartyKhata() }
+        khataEditPartyButton.setOnClickListener {
+            val partyId = khataPartyId ?: return@setOnClickListener
+            partyKhataContainer.visibility = View.GONE
+            openPartyEditor(partyId)
+        }
+        khataNewSaleButton.setOnClickListener {
+            val partyId = khataPartyId ?: return@setOnClickListener
+            confirmDiscardSettlementIfNeeded {
+                partyKhataContainer.visibility = View.GONE
+                openTradeEditorForNew(TradeType.SALE, preselectedPartyId = partyId)
+            }
+        }
+        khataNewPurchaseButton.setOnClickListener {
+            val partyId = khataPartyId ?: return@setOnClickListener
+            confirmDiscardSettlementIfNeeded {
+                partyKhataContainer.visibility = View.GONE
+                openTradeEditorForNew(TradeType.PURCHASE, preselectedPartyId = partyId)
+            }
+        }
 
         newSaleButton.setOnClickListener { openTradeEditorForNew(TradeType.SALE) }
         newPurchaseButton.setOnClickListener { openTradeEditorForNew(TradeType.PURCHASE) }
@@ -586,6 +640,9 @@ class FarmActivity : AppCompatActivity() {
 
     private fun showDestination(destination: Destination) {
         currentDestination = destination
+        if (destination != Destination.HISAB_KITAB && khataPartyId != null) {
+            closePartyKhata()
+        }
         if (destination != Destination.SETTINGS) lastPrimaryDestination = destination
         scrollView.visibility = if (destination == Destination.HOME) View.VISIBLE else View.GONE
         hisabKitabScreen.visibility = if (destination == Destination.HISAB_KITAB) View.VISIBLE else View.GONE
@@ -611,9 +668,14 @@ if (destination == Destination.SETTINGS) renderSettings()
     // --- Hisab-Kitab: trades ------------------------------------------------
 
     private fun renderHisabKitab() {
-        renderHisabSummary()
-        renderTrades()
-        renderParties()
+        if (khataPartyId != null) {
+            refreshKhataView()
+        } else {
+            updateHisabKitabChromeVisibility(false)
+            renderHisabSummary()
+            renderTrades()
+            renderParties()
+        }
     }
 
     private fun renderHisabSummary() {
@@ -679,13 +741,13 @@ if (destination == Destination.SETTINGS) renderSettings()
         return party?.name ?: string(if (trade.type == TradeType.SALE) R.string.cash_sale_label else R.string.cash_purchase_label)
     }
 
-    private fun openTradeEditorForNew(type: TradeType) {
+    private fun openTradeEditorForNew(type: TradeType, preselectedPartyId: String? = null) {
         confirmDiscardIfNeeded {
             confirmDiscardPartyIfNeeded {
                 val state = TradeEditorState.create(
                     type = type,
                     occurredAt = OffsetDateTime.now(deviceZone)
-                )
+                ).copy(partyId = preselectedPartyId)
                 applyTradeEditorState(state, baseline = state)
             }
         }
@@ -832,6 +894,14 @@ if (destination == Destination.SETTINGS) renderSettings()
         tradeTotalInput.setText("")
         tradePaidInput.setText("")
         tradeDescriptionInput.setText("")
+        if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+            refreshKhataView()
+        }
+    }
+
+    private fun refreshKhataView() {
+        updateHisabKitabChromeVisibility(true)
+        renderPartyKhata()
     }
 
     private fun confirmDiscardTradeIfNeeded(action: () -> Unit) {
@@ -1250,6 +1320,10 @@ if (destination == Destination.SETTINGS) renderSettings()
             tradeEditorContainer.visibility = View.VISIBLE
             tradeEditorState?.let { refreshTradeEditorPaymentSection(it) }
         }
+        if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null && tradeEditorState == null) {
+            refreshKhataView()
+            return
+        }
         renderHisabKitab()
     }
 
@@ -1465,13 +1539,7 @@ if (destination == Destination.SETTINGS) renderSettings()
                 FarmLabels.partyRole(this, party.role)
             )
             row.setOnClickListener {
-                confirmDiscardTradeIfNeeded {
-                    if (editingPartyId != null) {
-                        confirmDiscardPartyIfNeeded { openPartyEditor(party.id) }
-                    } else {
-                        openPartyEditor(party.id)
-                    }
-                }
+                openPartyKhataFor(party.id)
             }
             partiesContainer.addView(row)
         }
@@ -1526,7 +1594,11 @@ if (destination == Destination.SETTINGS) renderSettings()
                 showToast(R.string.toast_party_saved)
             }
             closePartyEditor()
-            renderParties()
+            if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+                refreshKhataView()
+            } else {
+                renderParties()
+            }
         } catch (exception: Exception) {
             showUnexpectedFailure(exception, "save party failed")
         }
@@ -1559,7 +1631,171 @@ if (destination == Destination.SETTINGS) renderSettings()
     private fun closePartyEditor() {
         editingPartyId = null
         setPartyEditorVisible(false)
-        renderParties()
+        if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+            refreshKhataView()
+        } else {
+            renderParties()
+        }
+    }
+
+    // --- Party Khata (M5-04) -----------------------------------------------
+
+    private fun openPartyKhataFor(partyId: String) {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        if (service.party(farmId, partyId) == null) {
+            showMissingFarmMessage()
+            return
+        }
+        confirmDiscardTradeIfNeeded {
+            confirmDiscardSettlementIfNeeded {
+                if (editingPartyId != null) {
+                    confirmDiscardPartyIfNeeded { showPartyKhata(partyId) }
+                } else {
+                    showPartyKhata(partyId)
+                }
+            }
+        }
+    }
+
+    private fun showPartyKhata(partyId: String) {
+        khataPartyId = partyId
+        updateHisabKitabChromeVisibility(true)
+        renderPartyKhata()
+    }
+
+    private fun renderPartyKhata() {
+        val farmId = currentFarmId ?: run {
+            closePartyKhata()
+            return
+        }
+        val partyId = khataPartyId ?: return
+        val party = service.party(farmId, partyId)
+        if (party == null) {
+            closePartyKhata()
+            return
+        }
+        val ledger = service.partyLedger(farmId, partyId)
+        val currency = currentFarmCurrency()
+        partyKhataTitle.text = party.name
+        partyKhataRoleText.text = FarmLabels.partyRole(this, party.role)
+        partyKhataToReceiveText.text = string(
+            R.string.to_receive_summary_format,
+            formatMoney(currency, ledger.summary.toReceiveMinor)
+        )
+        partyKhataToPayText.text = string(
+            R.string.to_pay_summary_format,
+            formatMoney(currency, ledger.summary.toPayMinor)
+        )
+        partyKhataNetText.text = string(
+            R.string.net_position_format,
+            partyBalanceSemantics(currency, ledger.summary.netMinor)
+        )
+
+        khataNewSaleButton.visibility =
+            if (party.role.compatibleWith(TradeType.SALE)) View.VISIBLE else View.GONE
+        khataNewPurchaseButton.visibility =
+            if (party.role.compatibleWith(TradeType.PURCHASE)) View.VISIBLE else View.GONE
+
+        val entries = ledger.entries
+        khataEmptyText.visibility = if (entries.isEmpty()) View.VISIBLE else View.GONE
+        khataEntriesContainer.removeAllViews()
+        if (entries.isEmpty()) return
+
+        val inflater = LayoutInflater.from(this)
+        entries.asReversed().forEach { entry ->
+            val row = inflater.inflate(R.layout.item_ledger_entry_row, khataEntriesContainer, false) as TextView
+            row.setTag(entry.sourceId)
+            val header = when (entry.sourceType) {
+                PartyLedgerEntryType.SALE -> FarmLabels.tradeType(this, TradeType.SALE)
+                PartyLedgerEntryType.PURCHASE -> FarmLabels.tradeType(this, TradeType.PURCHASE)
+                PartyLedgerEntryType.PAYMENT_RECEIVED -> string(R.string.payment_received_label)
+                PartyLedgerEntryType.PAYMENT_MADE -> string(R.string.payment_made_label)
+            }
+            val detail = buildString {
+                append(string(R.string.ledger_entry_header_format, header, formatMoney(currency, entry.amountMinor)))
+                append("\n").append(
+                    string(
+                        R.string.ledger_entry_balance_after_format,
+                        partyBalanceSemantics(currency, entry.runningBalanceMinor)
+                    )
+                )
+                if (entry.description.isNotBlank()) append("\n").append(entry.description)
+                append("\n").append(
+                    timePresentation.displayDateTime(presentationLocale, deviceZone, entry.occurredAt)
+                )
+            }
+            row.text = detail
+            row.contentDescription = detail
+            row.setOnClickListener {
+                when (entry.sourceType) {
+                    PartyLedgerEntryType.SALE, PartyLedgerEntryType.PURCHASE -> openTradeFromKhata(entry.tradeId)
+                    PartyLedgerEntryType.PAYMENT_RECEIVED, PartyLedgerEntryType.PAYMENT_MADE ->
+                        openSettlementFromKhata(entry.sourceId, entry.tradeId)
+                }
+            }
+            khataEntriesContainer.addView(row)
+        }
+    }
+
+    private fun closePartyKhata() {
+        khataPartyId = null
+        updateHisabKitabChromeVisibility(false)
+        renderHisabKitab()
+    }
+
+    private fun updateHisabKitabChromeVisibility(khataActive: Boolean) {
+        val chromeVisibility = if (khataActive) View.GONE else View.VISIBLE
+        newSaleButton.visibility = chromeVisibility
+        newPurchaseButton.visibility = chromeVisibility
+        hisabSummaryContainer.visibility = chromeVisibility
+        tradesSectionLabel.visibility = chromeVisibility
+        tradesEmptyText.visibility = chromeVisibility
+        tradesContainer.visibility = chromeVisibility
+        partiesSectionLabel.visibility = chromeVisibility
+        partiesEmptyText.visibility = chromeVisibility
+        partiesContainer.visibility = chromeVisibility
+        addPartyButton.visibility = chromeVisibility
+        partyKhataContainer.visibility = if (khataActive) View.VISIBLE else View.GONE
+    }
+
+    private fun partyBalanceSemantics(currency: String, balanceMinor: Long): String = when {
+        balanceMinor > 0 -> string(R.string.you_should_receive_format, formatMoney(currency, balanceMinor))
+        balanceMinor < 0 -> string(R.string.you_should_pay_format, formatMoney(currency, kotlin.math.abs(balanceMinor)))
+        else -> string(R.string.net_settled_label)
+    }
+
+    private fun openTradeFromKhata(tradeId: String) {
+        val farmId = currentFarmId ?: return
+        val trade = service.trade(farmId, tradeId) ?: return
+        partyKhataContainer.visibility = View.GONE
+        openTradeEditorForTrade(trade)
+    }
+
+    private fun openSettlementFromKhata(settlementId: String, tradeId: String) {
+        val farmId = currentFarmId ?: return
+        val settlement = service.settlement(farmId, settlementId) ?: return
+        if (service.trade(farmId, tradeId) == null) return
+        settlementTargetTradeId = tradeId
+        partyKhataContainer.visibility = View.GONE
+        tradeEditorContainer.visibility = View.GONE
+        settlementEditorContainer.visibility = View.VISIBLE
+        settlementEditorState = null
+        settlementEditorBaseline = null
+        editSettlementForm(settlement)
+    }
+
+    private fun restoreKhataFrom(bundle: Bundle?) {
+        if (bundle == null) return
+        val partyId = bundle.getString(STATE_KHATA_PARTY_ID) ?: return
+        val farmId = currentFarmId ?: return
+        if (service.party(farmId, partyId) == null) return
+        khataPartyId = partyId
+        updateHisabKitabChromeVisibility(true)
+        val layeredEditor = tradeEditorState != null || settlementTargetTradeId != null || editingPartyId != null
+        if (layeredEditor) {
+            partyKhataContainer.visibility = View.GONE
+        }
+        renderPartyKhata()
     }
 
     private fun setPartyEditorVisible(visible: Boolean) {
@@ -2324,6 +2560,7 @@ if (destination == Destination.SETTINGS) renderSettings()
         const val STATE_TRADE_EDITOR_DESCRIPTION = "Description"
         const val STATE_TRADE_EDITOR_OCCURRED_AT = "OccurredAt"
         const val STATE_SETTLEMENT_TARGET_TRADE_ID = "settlementTargetTradeId"
+        const val STATE_KHATA_PARTY_ID = "khataPartyId"
         const val STATE_SETTLEMENT_EDITOR_OPEN = "settlementEditorOpen"
         const val STATE_SETTLEMENT_EDITOR_PREFIX = "settlementEditor"
         const val STATE_SETTLEMENT_EDITOR_BASELINE_PREFIX = "settlementEditorBaseline"

@@ -219,6 +219,18 @@
     <string name="toast_settlement_updated">भुक्तानी अद्यावधिक भयो</string>
     <string name="toast_settlement_deleted">भुक्तानी मेटियो</string>
 
+    <string name="edit_party_action">पार्टी सम्पादन गर्नुहोस्</string>
+    <string name="payment_received_label">भुक्तानी प्राप्त भयो</string>
+    <string name="payment_made_label">भुक्तानी गरियो</string>
+    <string name="party_khata_history_label">खाता</string>
+    <string name="party_khata_empty">यस पार्टीसँग अहिलेसम्म कुनै हिसाब-किताब रेकर्ड छैन।\nखाता सुरु गर्न बिक्री वा खरिद रेकर्ड गर्नुहोस्।</string>
+    <string name="ledger_entry_header_format">%1$s — %2$s</string>
+    <string name="ledger_entry_balance_after_format">पछि: %1$s</string>
+    <string name="net_position_format">कुल स्थिति: %1$s</string>
+    <string name="you_should_receive_format">तपाईंले %1$s प्राप्त गर्नुपर्ने।</string>
+    <string name="you_should_pay_format">तपाईंले %1$s तिर्नुपर्ने।</string>
+    <string name="net_settled_label">मिलान भयो</string>
+
     <string name="hisab_placeholder_title">हिसाब चाँडै आउँदैछ</string>
     <string name="hisab_placeholder_body">किसानको हिसाब खोज र गणनाहरू भविष्यको अद्यावधिकमा यहाँ देखा पर्नेछन्।</string>
 

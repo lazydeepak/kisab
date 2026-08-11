@@ -223,6 +223,18 @@
     <string name="toast_settlement_updated">Payment updated</string>
     <string name="toast_settlement_deleted">Payment deleted</string>
 
+    <string name="edit_party_action">Edit party</string>
+    <string name="payment_received_label">Payment received</string>
+    <string name="payment_made_label">Payment made</string>
+    <string name="party_khata_history_label">Khata</string>
+    <string name="party_khata_empty">No Hisab-Kitab records for this party yet.\nRecord a sale or purchase to start the Khata.</string>
+    <string name="ledger_entry_header_format">%1$s — %2$s</string>
+    <string name="ledger_entry_balance_after_format">After: %1$s</string>
+    <string name="net_position_format">Net position: %1$s</string>
+    <string name="you_should_receive_format">You should receive %1$s</string>
+    <string name="you_should_pay_format">You should pay %1$s</string>
+    <string name="net_settled_label">Settled</string>
+
     <string name="hisab_placeholder_title">Hisab is coming soon</string>
     <string name="hisab_placeholder_body">Farmer hisab lookups and calculations will appear here in a future update.</string>
 
