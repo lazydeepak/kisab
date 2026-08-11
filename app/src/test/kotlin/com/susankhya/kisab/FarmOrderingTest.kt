@@ -2,6 +2,7 @@ package com.susankhya.kisab
 
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
+import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.ui.FarmOrdering
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -79,6 +80,20 @@ class FarmOrderingTest {
                 com.susankhya.kisab.domain.FinancialPeriodPreset.ALL_TIME
             ),
             FarmOrdering.financialPeriodPresets
+        )
+    }
+
+    @Test
+    fun everyFarmPlanningCalculatorIsPresentOnceInProductOrder() {
+        assertEquals(
+            listOf(
+                FarmPlanningCalculator.SEED,
+                FarmPlanningCalculator.FERTILIZER,
+                FarmPlanningCalculator.FEED,
+                FarmPlanningCalculator.MILK,
+                FarmPlanningCalculator.CROP_YIELD
+            ),
+            FarmOrdering.farmPlanningCalculators
         )
     }
 }

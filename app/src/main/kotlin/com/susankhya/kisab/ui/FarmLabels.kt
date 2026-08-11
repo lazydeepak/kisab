@@ -3,6 +3,7 @@ package com.susankhya.kisab.ui
 import android.content.Context
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntryKind
+import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.domain.FinancialPeriodPreset
 import com.susankhya.kisab.domain.ArithmeticOperation
 import com.susankhya.kisab.domain.LandUnit
@@ -83,6 +84,14 @@ object FarmLabels {
         LandUnit.DHUR -> R.string.land_unit_dhur
     }
 
+    fun farmPlanningCalculatorRes(calculator: FarmPlanningCalculator): Int = when (calculator) {
+        FarmPlanningCalculator.SEED -> R.string.farm_planning_calculator_seed
+        FarmPlanningCalculator.FERTILIZER -> R.string.farm_planning_calculator_fertilizer
+        FarmPlanningCalculator.FEED -> R.string.farm_planning_calculator_feed
+        FarmPlanningCalculator.MILK -> R.string.farm_planning_calculator_milk
+        FarmPlanningCalculator.CROP_YIELD -> R.string.farm_planning_calculator_crop_yield
+    }
+
     fun entryKind(context: Context, kind: FarmEntryKind): String = context.getString(entryKindRes(kind))
 
     fun transactionType(context: Context, type: TransactionType): String = context.getString(transactionTypeRes(type))
@@ -103,4 +112,7 @@ object FarmLabels {
         context.getString(arithmeticOperationRes(operation))
 
     fun landUnit(context: Context, unit: LandUnit): String = context.getString(landUnitRes(unit))
+
+    fun farmPlanningCalculator(context: Context, calculator: FarmPlanningCalculator): String =
+        context.getString(farmPlanningCalculatorRes(calculator))
 }

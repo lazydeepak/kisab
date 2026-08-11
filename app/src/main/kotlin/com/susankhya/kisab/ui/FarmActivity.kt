@@ -43,6 +43,7 @@ import com.susankhya.kisab.domain.FarmTotals
 import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.FarmTransactionDraft
 import com.susankhya.kisab.domain.FinancialPeriodPreset
+import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.domain.ArithmeticOperation
 import com.susankhya.kisab.domain.KisanCalculators
 import com.susankhya.kisab.domain.LandUnit
@@ -140,6 +141,47 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var landToUnitSpinner: Spinner
     private lateinit var convertLandButton: Button
     private lateinit var landResultText: TextView
+
+    // Farm Planning
+    private lateinit var farmPlanningCalculatorSpinner: Spinner
+    private lateinit var seedCalculatorContainer: LinearLayout
+    private lateinit var seedAreaInput: EditText
+    private lateinit var seedLandUnitSpinner: Spinner
+    private lateinit var seedRateInput: EditText
+    private lateinit var seedPriceInput: EditText
+    private lateinit var calculateSeedButton: Button
+    private lateinit var seedResultText: TextView
+    private lateinit var fertilizerCalculatorContainer: LinearLayout
+    private lateinit var fertilizerAreaInput: EditText
+    private lateinit var fertilizerLandUnitSpinner: Spinner
+    private lateinit var fertilizerRateInput: EditText
+    private lateinit var fertilizerPriceInput: EditText
+    private lateinit var calculateFertilizerButton: Button
+    private lateinit var fertilizerResultText: TextView
+    private lateinit var feedCalculatorContainer: LinearLayout
+    private lateinit var feedAnimalCountInput: EditText
+    private lateinit var feedKgPerAnimalInput: EditText
+    private lateinit var feedDaysInput: EditText
+    private lateinit var feedPriceInput: EditText
+    private lateinit var calculateFeedButton: Button
+    private lateinit var feedResultText: TextView
+    private lateinit var milkCalculatorContainer: LinearLayout
+    private lateinit var milkAnimalCountInput: EditText
+    private lateinit var milkLitresPerAnimalInput: EditText
+    private lateinit var milkDaysInput: EditText
+    private lateinit var milkPriceInput: EditText
+    private lateinit var calculateMilkButton: Button
+    private lateinit var milkResultText: TextView
+    private lateinit var cropYieldCalculatorContainer: LinearLayout
+    private lateinit var cropYieldAreaInput: EditText
+    private lateinit var cropYieldLandUnitSpinner: Spinner
+    private lateinit var cropYieldRateInput: EditText
+    private lateinit var cropYieldPriceInput: EditText
+    private lateinit var calculateCropYieldButton: Button
+    private lateinit var cropYieldResultText: TextView
+    private var farmPlanningCalculator: FarmPlanningCalculator = FarmPlanningCalculator.SEED
+    private var farmPlanningSelectionSuppressed = false
+
     private var hisabPartyChoices: List<Party> = emptyList()
     private var hisabSelectedPartyId: String? = null
     private var hisabPeriodPreset: FinancialPeriodPreset = FinancialPeriodPreset.THIS_MONTH
@@ -404,6 +446,7 @@ class FarmActivity : AppCompatActivity() {
         restoreDestinationFrom(savedInstanceState)
         restoreOverviewPeriodFrom(savedInstanceState)
         restoreHisabSelectionFrom(savedInstanceState)
+        restoreFarmPlanningFrom(savedInstanceState)
         render()
         showDestination(currentDestination)
         restoreEditorFrom(savedInstanceState)
@@ -420,6 +463,7 @@ class FarmActivity : AppCompatActivity() {
         outState.putString(STATE_OVERVIEW_PERIOD_PRESET, overviewPeriodPreset.name)
         outState.putString(STATE_HISAB_PARTY_ID, hisabSelectedPartyId)
         outState.putString(STATE_HISAB_PERIOD_PRESET, hisabPeriodPreset.name)
+        outState.putString(STATE_FARM_PLANNING_CALCULATOR, farmPlanningCalculator.name)
         val state = currentEditorState()
         if (state != null) {
             outState.putBoolean(STATE_EDITOR_OPEN, true)
@@ -486,6 +530,12 @@ class FarmActivity : AppCompatActivity() {
         if (periodPosition >= 0) hisabPeriodSpinner.setSelection(periodPosition)
     }
 
+    private fun restoreFarmPlanningFrom(bundle: Bundle?) {
+        val name = bundle?.getString(STATE_FARM_PLANNING_CALCULATOR) ?: return
+        val saved = runCatching { FarmPlanningCalculator.valueOf(name) }.getOrNull() ?: return
+        farmPlanningCalculator = saved
+    }
+
     private fun bindViews() {
         scrollView = findViewById(R.id.scrollView)
         shellTitle = findViewById(R.id.shellTitle)
@@ -532,6 +582,44 @@ class FarmActivity : AppCompatActivity() {
         convertLandButton = findViewById(R.id.convertLandButton)
         landResultText = findViewById(R.id.landResultText)
 
+        // Farm Planning
+        farmPlanningCalculatorSpinner = findViewById(R.id.farmPlanningCalculatorSpinner)
+        seedCalculatorContainer = findViewById(R.id.seedCalculatorContainer)
+        seedAreaInput = findViewById(R.id.seedAreaInput)
+        seedLandUnitSpinner = findViewById(R.id.seedLandUnitSpinner)
+        seedRateInput = findViewById(R.id.seedRateInput)
+        seedPriceInput = findViewById(R.id.seedPriceInput)
+        calculateSeedButton = findViewById(R.id.calculateSeedButton)
+        seedResultText = findViewById(R.id.seedResultText)
+        fertilizerCalculatorContainer = findViewById(R.id.fertilizerCalculatorContainer)
+        fertilizerAreaInput = findViewById(R.id.fertilizerAreaInput)
+        fertilizerLandUnitSpinner = findViewById(R.id.fertilizerLandUnitSpinner)
+        fertilizerRateInput = findViewById(R.id.fertilizerRateInput)
+        fertilizerPriceInput = findViewById(R.id.fertilizerPriceInput)
+        calculateFertilizerButton = findViewById(R.id.calculateFertilizerButton)
+        fertilizerResultText = findViewById(R.id.fertilizerResultText)
+        feedCalculatorContainer = findViewById(R.id.feedCalculatorContainer)
+        feedAnimalCountInput = findViewById(R.id.feedAnimalCountInput)
+        feedKgPerAnimalInput = findViewById(R.id.feedKgPerAnimalInput)
+        feedDaysInput = findViewById(R.id.feedDaysInput)
+        feedPriceInput = findViewById(R.id.feedPriceInput)
+        calculateFeedButton = findViewById(R.id.calculateFeedButton)
+        feedResultText = findViewById(R.id.feedResultText)
+        milkCalculatorContainer = findViewById(R.id.milkCalculatorContainer)
+        milkAnimalCountInput = findViewById(R.id.milkAnimalCountInput)
+        milkLitresPerAnimalInput = findViewById(R.id.milkLitresPerAnimalInput)
+        milkDaysInput = findViewById(R.id.milkDaysInput)
+        milkPriceInput = findViewById(R.id.milkPriceInput)
+        calculateMilkButton = findViewById(R.id.calculateMilkButton)
+        milkResultText = findViewById(R.id.milkResultText)
+        cropYieldCalculatorContainer = findViewById(R.id.cropYieldCalculatorContainer)
+        cropYieldAreaInput = findViewById(R.id.cropYieldAreaInput)
+        cropYieldLandUnitSpinner = findViewById(R.id.cropYieldLandUnitSpinner)
+        cropYieldRateInput = findViewById(R.id.cropYieldRateInput)
+        cropYieldPriceInput = findViewById(R.id.cropYieldPriceInput)
+        calculateCropYieldButton = findViewById(R.id.calculateCropYieldButton)
+        cropYieldResultText = findViewById(R.id.cropYieldResultText)
+
         arithmeticOperationSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
@@ -549,6 +637,43 @@ class FarmActivity : AppCompatActivity() {
             landLabels
         ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         landToUnitSpinner.setSelection(LandUnit.values().indexOf(LandUnit.SQUARE_METRE))
+
+        // Farm Planning spinners
+        val calculatorLabels = FarmOrdering.farmPlanningCalculators.map { FarmLabels.farmPlanningCalculator(this, it) }
+        farmPlanningCalculatorSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            calculatorLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        farmPlanningCalculatorSpinner.setSelection(FarmOrdering.farmPlanningCalculators.indexOf(farmPlanningCalculator))
+        farmPlanningCalculatorSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val calculator = FarmOrdering.farmPlanningCalculators.getOrNull(position)
+                if (calculator != null && calculator != farmPlanningCalculator && !farmPlanningSelectionSuppressed) {
+                    farmPlanningCalculator = calculator
+                    renderFarmPlanning()
+                }
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
+        seedLandUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            landLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        seedLandUnitSpinner.setSelection(LandUnit.values().indexOf(LandUnit.SQUARE_METRE))
+        fertilizerLandUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            landLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        fertilizerLandUnitSpinner.setSelection(LandUnit.values().indexOf(LandUnit.SQUARE_METRE))
+        cropYieldLandUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            landLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        cropYieldLandUnitSpinner.setSelection(LandUnit.values().indexOf(LandUnit.SQUARE_METRE))
 
         hisabPeriodSpinner.adapter = ArrayAdapter(
             this,
@@ -732,6 +857,11 @@ class FarmActivity : AppCompatActivity() {
         calculateProfitButton.setOnClickListener { calculateProfit() }
         calculateInterestButton.setOnClickListener { calculateInterest() }
         convertLandButton.setOnClickListener { convertLand() }
+        calculateSeedButton.setOnClickListener { calculateSeed() }
+        calculateFertilizerButton.setOnClickListener { calculateFertilizer() }
+        calculateFeedButton.setOnClickListener { calculateFeed() }
+        calculateMilkButton.setOnClickListener { calculateMilk() }
+        calculateCropYieldButton.setOnClickListener { calculateCropYield() }
 
         hisabPartySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -975,6 +1105,117 @@ class FarmActivity : AppCompatActivity() {
         )
     }
 
+    private fun calculateSeed() {
+        val area = calculatorValue(seedAreaInput) ?: return
+        val rate = calculatorValue(seedRateInput) ?: return
+        val price = calculatorValue(seedPriceInput) ?: return
+        LandUnit.values().getOrNull(seedLandUnitSpinner.selectedItemPosition) ?: return
+        val result = KisanCalculators.seedQuantityAndCost(area, rate, price)
+        showCalculatorResult(
+            seedResultText,
+            string(
+                R.string.seed_result_format,
+                formatCalculatorValue(result.quantityKg),
+                formatCalculatorValue(result.totalCost)
+            )
+        )
+    }
+
+    private fun calculateFertilizer() {
+        val area = calculatorValue(fertilizerAreaInput) ?: return
+        val rate = calculatorValue(fertilizerRateInput) ?: return
+        val price = calculatorValue(fertilizerPriceInput) ?: return
+        LandUnit.values().getOrNull(fertilizerLandUnitSpinner.selectedItemPosition) ?: return
+        val result = KisanCalculators.fertilizerQuantityAndCost(area, rate, price)
+        showCalculatorResult(
+            fertilizerResultText,
+            string(
+                R.string.fertilizer_result_format,
+                formatCalculatorValue(result.quantityKg),
+                formatCalculatorValue(result.totalCost)
+            )
+        )
+    }
+
+    private fun calculateFeed() {
+        feedAnimalCountInput.error = null
+        val animalCount = decimalValueFormatter.parseNonNegativeWhole(
+            presentationLocale,
+            feedAnimalCountInput.text.toString()
+        )
+        if (animalCount == null) {
+            feedAnimalCountInput.error = string(R.string.calculator_input_error)
+            feedAnimalCountInput.requestFocus()
+            return
+        }
+        val rate = calculatorValue(feedKgPerAnimalInput) ?: return
+        val days = calculatorValue(feedDaysInput) ?: return
+        val price = calculatorValue(feedPriceInput) ?: return
+        val result = KisanCalculators.feedRequirementAndCost(animalCount, rate, days, price)
+        showCalculatorResult(
+            feedResultText,
+            string(
+                R.string.feed_result_format,
+                formatCalculatorValue(result.totalKg),
+                formatCalculatorValue(result.totalCost)
+            )
+        )
+    }
+
+    private fun calculateMilk() {
+        milkAnimalCountInput.error = null
+        val animalCount = decimalValueFormatter.parseNonNegativeWhole(
+            presentationLocale,
+            milkAnimalCountInput.text.toString()
+        )
+        if (animalCount == null) {
+            milkAnimalCountInput.error = string(R.string.calculator_input_error)
+            milkAnimalCountInput.requestFocus()
+            return
+        }
+        val rate = calculatorValue(milkLitresPerAnimalInput) ?: return
+        val days = calculatorValue(milkDaysInput) ?: return
+        val price = calculatorValue(milkPriceInput) ?: return
+        val result = KisanCalculators.milkProductionAndRevenue(animalCount, rate, days, price)
+        showCalculatorResult(
+            milkResultText,
+            string(
+                R.string.milk_result_format,
+                formatCalculatorValue(result.totalLitres),
+                formatCalculatorValue(result.revenue)
+            )
+        )
+    }
+
+    private fun calculateCropYield() {
+        val area = calculatorValue(cropYieldAreaInput) ?: return
+        val rate = calculatorValue(cropYieldRateInput) ?: return
+        val price = calculatorValue(cropYieldPriceInput) ?: return
+        LandUnit.values().getOrNull(cropYieldLandUnitSpinner.selectedItemPosition) ?: return
+        val result = KisanCalculators.cropYieldAndRevenue(area, rate, price)
+        showCalculatorResult(
+            cropYieldResultText,
+            string(
+                R.string.crop_yield_result_format,
+                formatCalculatorValue(result.totalKg),
+                formatCalculatorValue(result.revenue)
+            )
+        )
+    }
+
+    private fun renderFarmPlanning() {
+        farmPlanningSelectionSuppressed = true
+        farmPlanningCalculatorSpinner.setSelection(FarmOrdering.farmPlanningCalculators.indexOf(farmPlanningCalculator))
+        farmPlanningSelectionSuppressed = false
+
+        seedCalculatorContainer.visibility = if (farmPlanningCalculator == FarmPlanningCalculator.SEED) View.VISIBLE else View.GONE
+        fertilizerCalculatorContainer.visibility = if (farmPlanningCalculator == FarmPlanningCalculator.FERTILIZER) View.VISIBLE else View.GONE
+        feedCalculatorContainer.visibility = if (farmPlanningCalculator == FarmPlanningCalculator.FEED) View.VISIBLE else View.GONE
+        milkCalculatorContainer.visibility = if (farmPlanningCalculator == FarmPlanningCalculator.MILK) View.VISIBLE else View.GONE
+        cropYieldCalculatorContainer.visibility = if (farmPlanningCalculator == FarmPlanningCalculator.CROP_YIELD) View.VISIBLE else View.GONE
+
+    }
+
     private fun calculatorValue(input: EditText, allowNegative: Boolean = false): BigDecimal? {
         input.error = null
         val value = decimalValueFormatter.parse(presentationLocale, input.text.toString())
@@ -1001,6 +1242,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun renderHisabCalculator() {
+        renderFarmPlanning()
         val farmId = currentFarmId
         if (farmId == null) {
             hisabNoFarmText.visibility = View.VISIBLE
@@ -3122,5 +3364,6 @@ class FarmActivity : AppCompatActivity() {
         const val STATE_SETTLEMENT_EDITOR_AMOUNT = "Amount"
         const val STATE_SETTLEMENT_EDITOR_NOTE = "Note"
         const val STATE_SETTLEMENT_EDITOR_OCCURRED_AT = "OccurredAt"
+        const val STATE_FARM_PLANNING_CALCULATOR = "farmPlanningCalculator"
     }
 }

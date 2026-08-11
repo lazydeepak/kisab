@@ -153,6 +153,13 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Principal | Principal | साँवा रकम (sanwa rakam) | मूलधन | Starting loan amount for simple-interest calculation | Provisional | M6.3 | Pending |
 | Nepali land converter | Nepali land converter | नेपाली जग्गा रूपान्तरण (nepali jagga rupantaran) | जग्गा हिसाब | Hill, Terai, and square-metre land-unit conversion | Provisional | M6.3 | Pending |
 | Square metre | Square metre | वर्ग मिटर (warga mitar) | — | Metric base unit for land conversion | Provisional | M6.3 | Pending |
+| Farm planning | Farm planning | फार्म योजना (farm yojana) | खेती योजना | Temporary input calculations using farmer-provided rates | Provisional | M6.4 | Pending |
+| Seed rate | Seed rate | बिउ दर (biu dar) | बीउ दर | Kilograms of seed entered per selected land unit | Provisional | M6.4 | Pending |
+| Fertilizer rate | Fertilizer rate | खाद दर (khad dar) | मल दर | Kilograms of fertilizer entered per selected land unit | Provisional | M6.4 | Pending |
+| Feed requirement | Feed requirement | खाना आवश्यकता (khana awashyakata) | दाना आवश्यकता | Total animal feed calculated for a period | Provisional | M6.4 | Pending |
+| Milk production | Milk production | दुध उत्पादन (dudh utpadan) | दूध उत्पादन | Total litres calculated for milking animals and days | Provisional | M6.4 | Pending |
+| Crop yield | Crop yield | बाली उपज (bali upaj) | उत्पादन | Expected kilograms calculated from area and farmer-entered yield rate | Provisional | M6.4 | Pending |
+| Revenue | Revenue | राजस्व (rajaswa) | आम्दानी | Quantity multiplied by farmer-entered selling price | Provisional | M6.4 | Pending |
 
 ## Rules
 

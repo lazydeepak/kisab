@@ -210,13 +210,21 @@ class LocalizedResourceResolutionTest {
     @Test
     fun calculatorLabelsResolveInEnglishAndNepali() {
         val resourceIds = ArithmeticOperation.values().map(FarmLabels::arithmeticOperationRes) +
-            LandUnit.values().map(FarmLabels::landUnitRes) + listOf(
+            LandUnit.values().map(FarmLabels::landUnitRes) +
+            com.susankhya.kisab.domain.FarmPlanningCalculator.values()
+                .map(FarmLabels::farmPlanningCalculatorRes) + listOf(
                 R.string.kisan_tools_title,
                 R.string.kisan_tools_body,
                 R.string.profit_title,
                 R.string.interest_title,
                 R.string.land_converter_title,
-                R.string.calculator_input_error
+                R.string.calculator_input_error,
+                R.string.farm_planning_title,
+                R.string.seed_result_format,
+                R.string.fertilizer_result_format,
+                R.string.feed_result_format,
+                R.string.milk_result_format,
+                R.string.crop_yield_result_format
             )
         for (resourceId in resourceIds) {
             val englishText = english.getString(resourceId)

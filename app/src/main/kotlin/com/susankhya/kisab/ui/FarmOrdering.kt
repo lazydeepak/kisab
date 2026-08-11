@@ -1,6 +1,7 @@
 package com.susankhya.kisab.ui
 
 import com.susankhya.kisab.domain.FarmEntryKind
+import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.domain.FinancialPeriodPreset
 import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.PaymentStatus
@@ -29,6 +30,14 @@ object FarmOrdering {
         FinancialPeriodPreset.THIS_MONTH,
         FinancialPeriodPreset.LAST_30_DAYS,
         FinancialPeriodPreset.ALL_TIME
+    )
+
+    val farmPlanningCalculators: List<FarmPlanningCalculator> = listOf(
+        FarmPlanningCalculator.SEED,
+        FarmPlanningCalculator.FERTILIZER,
+        FarmPlanningCalculator.FEED,
+        FarmPlanningCalculator.MILK,
+        FarmPlanningCalculator.CROP_YIELD
     )
 
     fun categoriesFor(type: TransactionType): List<TransactionCategory> = when (type) {
