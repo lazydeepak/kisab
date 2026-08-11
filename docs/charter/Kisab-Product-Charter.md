@@ -30,6 +30,7 @@ A smallholder or farm operator who needs to record a farm, one or more livestock
 - **M6** — Farmer Hisab calculators: non-persisted per-party/per-period reconciliation of sales, purchases, payments, and period-end receivable/payable position over the existing Party → Trade → Settlement facts. **Status: COMPLETE** (see `docs/milestones/M6_FARMER_HISAB_CALCULATORS.md`).
 - **M6.1** — App Shell and Navigation Polish: original Kisab SVG/vector logo, branded top app bar and Settings overflow menu, icon-and-label bottom navigation with explicit selected states, accessibility labels, and recreation-safe shell behavior. **Status: COMPLETE** (see `docs/milestones/M6_1_APP_SHELL_NAVIGATION_POLISH.md`).
 - **M6.2** — Build and Delivery Hardening: local CI-equivalent Gradle gate, machine-readable APK evidence, API-36-hermetic GitHub CI, workflow lint, Android-test compilation in CI, and secret-free release preflight. **Status: COMPLETE** (see `docs/milestones/M6_2_BUILD_DELIVERY_HARDENING.md`).
+- **M6.3** — Kisan Calculator Toolbox: always-available offline money arithmetic, profit/loss and margin, simple-interest, and Nepali land-unit conversion tools alongside the existing Party Hisab calculator, with no persistence or accounting side effects. **Status: COMPLETE** (see `docs/milestones/M6_3_KISAN_CALCULATOR_TOOLBOX.md`).
 
 ## Product boundary
 Kisab owns farm concepts, user journeys, offline persistence strategy, and product-specific presentation. It reuses the shared foundation only for technical concerns such as secure session persistence.

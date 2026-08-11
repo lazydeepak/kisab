@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.susankhya.kisab.domain.FarmEntryKind
+import com.susankhya.kisab.domain.ArithmeticOperation
+import com.susankhya.kisab.domain.LandUnit
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.ui.FarmLabels
@@ -202,6 +204,26 @@ class LocalizedResourceResolutionTest {
             assertTrue("English text blank for $key", englishText.isNotBlank())
             assertTrue("Nepali text blank for $key", nepaliText.isNotBlank())
             assertNotEquals("English fallback for $key", englishText, nepaliText)
+        }
+    }
+
+    @Test
+    fun calculatorLabelsResolveInEnglishAndNepali() {
+        val resourceIds = ArithmeticOperation.values().map(FarmLabels::arithmeticOperationRes) +
+            LandUnit.values().map(FarmLabels::landUnitRes) + listOf(
+                R.string.kisan_tools_title,
+                R.string.kisan_tools_body,
+                R.string.profit_title,
+                R.string.interest_title,
+                R.string.land_converter_title,
+                R.string.calculator_input_error
+            )
+        for (resourceId in resourceIds) {
+            val englishText = english.getString(resourceId)
+            val nepaliText = nepali.getString(resourceId)
+            assertTrue("English text blank for $resourceId", englishText.isNotBlank())
+            assertTrue("Nepali text blank for $resourceId", nepaliText.isNotBlank())
+            assertNotEquals("English fallback for $resourceId", englishText, nepaliText)
         }
     }
 

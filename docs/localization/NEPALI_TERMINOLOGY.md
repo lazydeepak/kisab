@@ -143,6 +143,16 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Nothing due with Party | Nothing is due between you and this party at the period end. | अवधिको अन्त्यमा तपाईं र यस पार्टीबीच कुनै रकम बाँकी छैन। | — | Party Hisab zero-position guidance | Provisional | M6 | Pending |
 | Kisab logo | Kisab logo | किसाबको लोगो (Kisabko logo) | किसाब चिन्ह | Accessibility description for the branded ledger-and-sprout mark | Provisional | M6.1 | Pending |
 | More options | More options | थप विकल्पहरू (thap wikalpaharu) | मेनु | Accessibility description for the top-app-bar overflow menu | Provisional | M6.1 | Pending |
+| Kisan calculator tools | Kisan calculator tools | किसान गणना उपकरणहरू (kisan ganana upakaranharu) | किसान टुल्स | Offline calculator toolbox heading | Provisional | M6.3 | Pending |
+| Money arithmetic | Money arithmetic | रकम गणना (rakam ganana) | हिसाब गर्ने | General addition, subtraction, multiplication, division, and percentage section | Provisional | M6.3 | Pending |
+| Profit | Profit | नाफा (nafa) | — | Positive sale amount minus total cost | Provisional | M6.3 | Pending |
+| Loss | Loss | घाटा (ghata) | नोक्सानी | Negative sale amount minus total cost, displayed as an absolute loss amount | Provisional | M6.3 | Pending |
+| Margin | Margin | मार्जिन (marjin) | बिक्री नाफा प्रतिशत | Profit as a percentage of sale amount | Provisional | M6.3 | Pending |
+| Markup | Markup | मार्कअप (markup) | लागत नाफा प्रतिशत | Profit as a percentage of total cost | Provisional | M6.3 | Pending |
+| Simple interest | Simple interest | साधारण ब्याज (sadharan byaj) | — | Non-compounding interest over principal, annual rate, and months | Provisional | M6.3 | Pending |
+| Principal | Principal | साँवा रकम (sanwa rakam) | मूलधन | Starting loan amount for simple-interest calculation | Provisional | M6.3 | Pending |
+| Nepali land converter | Nepali land converter | नेपाली जग्गा रूपान्तरण (nepali jagga rupantaran) | जग्गा हिसाब | Hill, Terai, and square-metre land-unit conversion | Provisional | M6.3 | Pending |
+| Square metre | Square metre | वर्ग मिटर (warga mitar) | — | Metric base unit for land conversion | Provisional | M6.3 | Pending |
 
 ## Rules
 

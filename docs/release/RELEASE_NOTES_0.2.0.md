@@ -12,6 +12,7 @@
 - Receivable/payable summaries and chronological per-party Khata ledger.
 - Farm-wide financial overview with period activity, position, and monthly trends.
 - Party Hisab calculator for period sales, purchases, payments, and period-end position.
+- Offline Kisan tools for money arithmetic, profit/loss and margin, simple interest, and Nepali Hill/Terai land-unit conversion.
 - Versioned offline backup/restore remains compatible through schema v6.
 
 ## Build and delivery changes
@@ -29,6 +30,6 @@
 
 ## Known limitations before release
 
-- Manual/device validation remains outstanding for the M5 financial flows, M6 Party Hisab interactions, and M6.1 small-screen/TalkBack presentation.
+- Manual/device validation remains outstanding for the M5 financial flows, M6 Party Hisab interactions, M6.1 small-screen/TalkBack presentation, and M6.3 calculator keyboard/long-result behavior.
 - Home cash transactions and Trade Settlements remain deliberately separate to prevent accidental double counting.
 - The release workflow requires an annotated `v0.2.0` tag contained in `main`, protected-environment approval, and the existing production signing secrets. It creates a draft release only.
