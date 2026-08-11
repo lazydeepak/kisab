@@ -19,6 +19,7 @@
 
 - Android Gradle Plugin 9.3 with built-in Kotlin, Gradle 9.6.1, compileSdk/targetSdk 36, and Build Tools 36.
 - `:app:verifyLocal` runs unit tests, lint, debug assembly, and Android-test compilation and writes JSON evidence with the debug APK SHA-256.
+- Hisab now includes temporary farm-planning calculators for seed, fertilizer, feed, milk, and crop yield using farmer-entered rates and prices; results are not saved and do not change accounting records.
 - GitHub CI runs the local-equivalent gate on an explicitly installed API 36 SDK, lints workflows, and uploads verification artifacts.
 - Secret-free local release preflight validates source gates, release metadata, worktree cleanliness, and optional annotated-tag containment before any signing workflow is started.
 
@@ -30,6 +31,6 @@
 
 ## Known limitations before release
 
-- Manual/device validation remains outstanding for the M5 financial flows, M6 Party Hisab interactions, M6.1 small-screen/TalkBack presentation, and M6.3 calculator keyboard/long-result behavior.
+- Manual/device validation remains outstanding for the M5 financial flows, M6 Party Hisab interactions, M6.1 small-screen/TalkBack presentation, and the M6.3 calculator keyboard patterns. M6.4 calculator functions (keyboard, selector, small-screen, long-result, Nepali rendering, and persistence isolation) were verified on an API-36 physical device and an API-26 emulator (see `docs/milestones/M6_4_FARM_INPUT_CALCULATORS.md`).
 - Home cash transactions and Trade Settlements remain deliberately separate to prevent accidental double counting.
 - The release workflow requires an annotated `v0.2.0` tag contained in `main`, protected-environment approval, and the existing production signing secrets. It creates a draft release only.

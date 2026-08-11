@@ -1291,6 +1291,8 @@
 
                 <include layout="@layout/view_kisan_calculator_toolbox" />
 
+                <include layout="@layout/view_farm_planning" />
+
                 <TextView
                     android:id="@+id/hisabCalculatorTitle"
                     android:layout_width="match_parent"

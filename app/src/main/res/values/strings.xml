@@ -313,6 +313,50 @@
     <string name="calculator_number_error">Enter a valid number.</string>
     <string name="calculator_divide_zero_error">Cannot divide by zero.</string>
 
+    <string name="farm_planning_title">Farm planning</string>
+    <string name="farm_planning_body">Practical input calculators for seed, fertilizer, feed, milk, and crop yield. Results are not saved and do not change your farm records.</string>
+    <string name="farm_planning_calculator_label">Calculator</string>
+
+    <string name="seed_title">Seed quantity and cost</string>
+    <string name="seed_body">Enter the area, seed rate per land unit, and price per kilogram.</string>
+    <string name="seed_rate_hint">Seed rate (kg per land unit)</string>
+
+    <string name="fertilizer_title">Fertilizer quantity and cost</string>
+    <string name="fertilizer_body">Enter the area, fertilizer rate per land unit, and price per kilogram.</string>
+    <string name="fertilizer_rate_hint">Fertilizer rate (kg per land unit)</string>
+
+    <string name="feed_title">Feed requirement and cost</string>
+    <string name="feed_body">Enter the number of animals, daily feed per animal, number of days, and price per kilogram.</string>
+
+    <string name="milk_title">Milk production and revenue</string>
+    <string name="milk_body">Enter the number of milking animals, daily milk per animal, number of days, and price per litre.</string>
+
+    <string name="crop_yield_title">Crop yield and revenue</string>
+    <string name="crop_yield_body">Enter the area, expected yield per land unit, and price per kilogram.</string>
+    <string name="expected_yield_rate_hint">Expected yield (kg per land unit)</string>
+
+    <string name="price_per_kg_hint">Price per kilogram</string>
+    <string name="price_per_litre_hint">Price per litre</string>
+    <string name="kg_per_animal_per_day_hint">Kg per animal per day</string>
+    <string name="animal_count_hint">Number of animals</string>
+    <string name="milking_animal_count_hint">Number of milking animals</string>
+    <string name="litres_per_animal_per_day_hint">Litres per animal per day</string>
+    <string name="days_hint">Number of days</string>
+
+    <string name="land_unit_label">Land unit</string>
+
+    <string name="seed_result_format">Quantity: %1$s kg\nTotal cost: %2$s</string>
+    <string name="fertilizer_result_format">Quantity: %1$s kg\nTotal cost: %2$s</string>
+    <string name="feed_result_format">Total feed: %1$s kg\nTotal cost: %2$s</string>
+    <string name="milk_result_format">Total milk: %1$s L\nRevenue: %2$s</string>
+    <string name="crop_yield_result_format">Total yield: %1$s kg\nRevenue: %2$s</string>
+
+    <string name="farm_planning_calculator_seed">Seed quantity and cost</string>
+    <string name="farm_planning_calculator_fertilizer">Fertilizer quantity and cost</string>
+    <string name="farm_planning_calculator_feed">Feed requirement and cost</string>
+    <string name="farm_planning_calculator_milk">Milk production and revenue</string>
+    <string name="farm_planning_calculator_crop_yield">Crop yield and revenue</string>
+
     <string name="settings_farm_currency_section">Farm currency</string>
     <string name="settings_language_section">Language</string>
     <string name="settings_no_farm_text">Create a farm on the Home tab to set its currency.</string>

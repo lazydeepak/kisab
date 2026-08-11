@@ -21,6 +21,15 @@ class DecimalValueFormatterTest {
         assertEquals("0.333333", formatter.format(Locale.ENGLISH, BigDecimal.ONE.divide(BigDecimal("3"), 20, java.math.RoundingMode.HALF_UP)))
     }
 
+    @Test fun parsesLocalizedWholeCountsAndRejectsInvalidCounts() {
+        assertEquals(12, formatter.parseNonNegativeWhole(Locale.ENGLISH, "12"))
+        assertEquals(12, formatter.parseNonNegativeWhole(Locale.forLanguageTag("ne"), "१२"))
+        assertEquals(12, formatter.parseNonNegativeWhole(Locale.ENGLISH, "12.0"))
+        assertNull(formatter.parseNonNegativeWhole(Locale.ENGLISH, "12.5"))
+        assertNull(formatter.parseNonNegativeWhole(Locale.ENGLISH, "-1"))
+        assertNull(formatter.parseNonNegativeWhole(Locale.ENGLISH, "999999999999"))
+    }
+
     private fun assertDecimal(expected: String, actual: BigDecimal) =
         assertEquals(0, BigDecimal(expected).compareTo(actual))
 }

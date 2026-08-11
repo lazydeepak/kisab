@@ -791,6 +791,25 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
+    fun seedCalculatorWorksWithoutFarm() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.seedCalculatorContainer))
+                .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.seedAreaInput)).perform(scrollTo(), replaceText("2"))
+            onView(withId(R.id.seedRateInput)).perform(scrollTo(), replaceText("3.5"))
+            onView(withId(R.id.seedPriceInput)).perform(scrollTo(), replaceText("10"), closeSoftKeyboard())
+            onView(withId(R.id.calculateSeedButton)).perform(scrollTo(), click())
+            onView(withId(R.id.seedResultText)).check(matches(withText(containsString("7 kg"))))
+            onView(withId(R.id.hisabNoFarmText))
+                .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test
     fun switchingAwayWhileDirtyPromptsDiscardConfirmation() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {

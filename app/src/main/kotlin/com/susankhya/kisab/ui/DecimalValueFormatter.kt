@@ -18,6 +18,13 @@ class DecimalValueFormatter {
         return parsed?.takeIf { position.index == text.length }
     }
 
+    /** Parses localized digits while rejecting fractions and values outside Int range. */
+    fun parseNonNegativeWhole(locale: Locale, raw: String): Int? {
+        val value = parse(locale, raw) ?: return null
+        if (value.signum() < 0 || value.stripTrailingZeros().scale() > 0) return null
+        return runCatching { value.intValueExact() }.getOrNull()
+    }
+
     fun format(locale: Locale, value: BigDecimal, maximumFractionDigits: Int = 6): String =
         NumberFormat.getNumberInstance(locale).apply {
             isGroupingUsed = true

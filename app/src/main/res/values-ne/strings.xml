@@ -309,6 +309,50 @@
     <string name="calculator_number_error">मान्य संख्या लेख्नुहोस्।</string>
     <string name="calculator_divide_zero_error">शून्यले भाग गर्न मिल्दैन।</string>
 
+    <string name="farm_planning_title">फार्म योजना</string>
+    <string name="farm_planning_body">बिउ, खाद, खाना, दुध, र बाली उपजका व्यावहारिक इनपुट गणकहरू। नतिजा बचत हुँदैन र फार्मका अभिलेख परिवर्तन हुँदैनन्।</string>
+    <string name="farm_planning_calculator_label">गणक</string>
+
+    <string name="seed_title">बिउ परिमाण र लागत</string>
+    <string name="seed_body">क्षेत्रफल, बिउ दर प्रति जग्गा एकाइ, र किलो प्रति मूल्य प्रविष्ट गर्नुहोस्।</string>
+    <string name="seed_rate_hint">बिउ दर (किलो प्रति जग्गा एकाइ)</string>
+
+    <string name="fertilizer_title">खाद परिमाण र लागत</string>
+    <string name="fertilizer_body">क्षेत्रफल, खाद दर प्रति जग्गा एकाइ, र किलो प्रति मूल्य प्रविष्ट गर्नुहोस्।</string>
+    <string name="fertilizer_rate_hint">खाद दर (किलो प्रति जग्गा एकाइ)</string>
+
+    <string name="feed_title">खाना आवश्यकता र लागत</string>
+    <string name="feed_body">पशु संख्या, प्रति पशु दैनिक खाना, दिन संख्या, र किलो प्रति मूल्य प्रविष्ट गर्नुहोस्।</string>
+
+    <string name="milk_title">दुध उत्पादन र राजस्व</string>
+    <string name="milk_body">दुध दिदा पशु संख्या, प्रति पशु दैनिक दुध, दिन संख्या, र लीटर प्रति मूल्य प्रविष्ट गर्नुहोस्।</string>
+
+    <string name="crop_yield_title">बाली उपज र राजस्व</string>
+    <string name="crop_yield_body">क्षेत्रफल, अपेक्षित उपज प्रति जग्गा एकाइ, र किलो प्रति मूल्य प्रविष्ट गर्नुहोस्।</string>
+    <string name="expected_yield_rate_hint">अपेक्षित उपज (किलो प्रति जग्गा एकाइ)</string>
+
+    <string name="price_per_kg_hint">किलो प्रति मूल्य</string>
+    <string name="price_per_litre_hint">लीटर प्रति मूल्य</string>
+    <string name="kg_per_animal_per_day_hint">प्रति पशु प्रति दिन किलो</string>
+    <string name="animal_count_hint">पशु संख्या</string>
+    <string name="milking_animal_count_hint">दुध दिदा पशु संख्या</string>
+    <string name="litres_per_animal_per_day_hint">प्रति पशु प्रति दिन लीटर</string>
+    <string name="days_hint">दिन संख्या</string>
+
+    <string name="land_unit_label">जग्गा एकाइ</string>
+
+    <string name="seed_result_format">परिमाण: %1$s किलो\nकुल लागत: %2$s</string>
+    <string name="fertilizer_result_format">परिमाण: %1$s किलो\nकुल लागत: %2$s</string>
+    <string name="feed_result_format">कुल खाना: %1$s किलो\nकुल लागत: %2$s</string>
+    <string name="milk_result_format">कुल दुध: %1$s लीटर\nराजस्व: %2$s</string>
+    <string name="crop_yield_result_format">कुल उपज: %1$s किलो\nराजस्व: %2$s</string>
+
+    <string name="farm_planning_calculator_seed">बिउ परिमाण र लागत</string>
+    <string name="farm_planning_calculator_fertilizer">खाद परिमाण र लागत</string>
+    <string name="farm_planning_calculator_feed">खाना आवश्यकता र लागत</string>
+    <string name="farm_planning_calculator_milk">दुध उत्पादन र राजस्व</string>
+    <string name="farm_planning_calculator_crop_yield">बाली उपज र राजस्व</string>
+
     <string name="settings_farm_currency_section">फार्म मुद्रा</string>
     <string name="settings_language_section">भाषा</string>
     <string name="settings_no_farm_text">फार्मको मुद्रा सेट गर्न गृह ट्याबमा फार्म सिर्जना गर्नुहोस्।</string>
