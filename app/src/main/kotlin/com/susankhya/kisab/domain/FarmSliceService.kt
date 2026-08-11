@@ -277,6 +277,15 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         zone: java.time.ZoneId
     ): FarmFinancialOverview = getFarm(farmId).financialOverview(preset, now, zone)
 
+    /** M6: non-persisted per-party/per-period Hisab reconciliation. */
+    fun partyHisab(
+        farmId: String,
+        partyId: String,
+        preset: FinancialPeriodPreset,
+        now: java.time.OffsetDateTime,
+        zone: java.time.ZoneId
+    ): PartyHisabResult = getFarm(farmId).partyHisab(partyId, preset, now, zone)
+
     fun transactionsNewestFirst(farmId: String): List<FarmTransaction> =
         getFarm(farmId).transactionsNewestFirst()
 

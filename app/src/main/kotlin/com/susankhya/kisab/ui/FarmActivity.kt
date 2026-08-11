@@ -98,6 +98,27 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var hisabScreen: ScrollView
     private lateinit var settingsScreen: ScrollView
 
+    private lateinit var hisabNoFarmText: TextView
+    private lateinit var hisabNoPartiesText: TextView
+    private lateinit var hisabCalculatorContainer: LinearLayout
+    private lateinit var hisabPartySpinner: Spinner
+    private lateinit var hisabPartyRoleText: TextView
+    private lateinit var hisabPeriodSpinner: Spinner
+    private lateinit var hisabSalesText: TextView
+    private lateinit var hisabPurchasesText: TextView
+    private lateinit var hisabPaymentsReceivedText: TextView
+    private lateinit var hisabPaymentsMadeText: TextView
+    private lateinit var hisabActivityEmptyText: TextView
+    private lateinit var hisabPositionAsOfText: TextView
+    private lateinit var hisabToReceiveText: TextView
+    private lateinit var hisabToPayText: TextView
+    private lateinit var hisabNetText: TextView
+    private lateinit var hisabPositionEmptyText: TextView
+    private var hisabPartyChoices: List<Party> = emptyList()
+    private var hisabSelectedPartyId: String? = null
+    private var hisabPeriodPreset: FinancialPeriodPreset = FinancialPeriodPreset.THIS_MONTH
+    private var hisabSelectionSuppressed = false
+
     private lateinit var partiesEmptyText: TextView
     private lateinit var partiesContainer: LinearLayout
     private lateinit var addPartyButton: Button
@@ -356,6 +377,7 @@ class FarmActivity : AppCompatActivity() {
 
         restoreDestinationFrom(savedInstanceState)
         restoreOverviewPeriodFrom(savedInstanceState)
+        restoreHisabSelectionFrom(savedInstanceState)
         render()
         showDestination(currentDestination)
         restoreEditorFrom(savedInstanceState)
@@ -370,6 +392,8 @@ class FarmActivity : AppCompatActivity() {
         outState.putString(STATE_LAST_PRIMARY_DESTINATION, lastPrimaryDestination.name)
         outState.putBoolean(STATE_TOOLS_EXPANDED, toolsExpanded)
         outState.putString(STATE_OVERVIEW_PERIOD_PRESET, overviewPeriodPreset.name)
+        outState.putString(STATE_HISAB_PARTY_ID, hisabSelectedPartyId)
+        outState.putString(STATE_HISAB_PERIOD_PRESET, hisabPeriodPreset.name)
         val state = currentEditorState()
         if (state != null) {
             outState.putBoolean(STATE_EDITOR_OPEN, true)
@@ -425,6 +449,17 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
+    private fun restoreHisabSelectionFrom(bundle: Bundle?) {
+        hisabSelectedPartyId = bundle?.getString(STATE_HISAB_PARTY_ID)
+        val presetName = bundle?.getString(STATE_HISAB_PERIOD_PRESET)
+        val savedPreset = presetName?.let {
+            runCatching { FinancialPeriodPreset.valueOf(it) }.getOrNull()
+        }
+        if (savedPreset != null) hisabPeriodPreset = savedPreset
+        val periodPosition = FarmOrdering.financialPeriodPresets.indexOf(hisabPeriodPreset)
+        if (periodPosition >= 0) hisabPeriodSpinner.setSelection(periodPosition)
+    }
+
     private fun bindViews() {
         scrollView = findViewById(R.id.scrollView)
         shellTitle = findViewById(R.id.shellTitle)
@@ -435,6 +470,30 @@ class FarmActivity : AppCompatActivity() {
         hisabKitabScreen = findViewById(R.id.hisabKitabScreen)
         hisabScreen = findViewById(R.id.hisabScreen)
         settingsScreen = findViewById(R.id.settingsScreen)
+        hisabNoFarmText = findViewById(R.id.hisabNoFarmText)
+        hisabNoPartiesText = findViewById(R.id.hisabNoPartiesText)
+        hisabCalculatorContainer = findViewById(R.id.hisabCalculatorContainer)
+        hisabPartySpinner = findViewById(R.id.hisabPartySpinner)
+        hisabPartyRoleText = findViewById(R.id.hisabPartyRoleText)
+        hisabPeriodSpinner = findViewById(R.id.hisabPeriodSpinner)
+        hisabSalesText = findViewById(R.id.hisabSalesText)
+        hisabPurchasesText = findViewById(R.id.hisabPurchasesText)
+        hisabPaymentsReceivedText = findViewById(R.id.hisabPaymentsReceivedText)
+        hisabPaymentsMadeText = findViewById(R.id.hisabPaymentsMadeText)
+        hisabActivityEmptyText = findViewById(R.id.hisabActivityEmptyText)
+        hisabPositionAsOfText = findViewById(R.id.hisabPositionAsOfText)
+        hisabToReceiveText = findViewById(R.id.hisabToReceiveText)
+        hisabToPayText = findViewById(R.id.hisabToPayText)
+        hisabNetText = findViewById(R.id.hisabNetText)
+        hisabPositionEmptyText = findViewById(R.id.hisabPositionEmptyText)
+
+        hisabPeriodSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            FarmOrdering.financialPeriodPresets.map { FarmLabels.financialPeriodPreset(this, it) }
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
         partiesEmptyText = findViewById(R.id.partiesEmptyText)
         partiesContainer = findViewById(R.id.partiesContainer)
         addPartyButton = findViewById(R.id.addPartyButton)
@@ -607,6 +666,30 @@ class FarmActivity : AppCompatActivity() {
         navHisabItem.setOnClickListener { navigateTo(Destination.HISAB) }
         shellSettingsButton.setOnClickListener { navigateTo(Destination.SETTINGS) }
 
+        hisabPartySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (hisabSelectionSuppressed) return
+                val selected = hisabPartyChoices.getOrNull(position)?.id ?: return
+                if (selected != hisabSelectedPartyId) {
+                    hisabSelectedPartyId = selected
+                    renderHisabCalculator()
+                }
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
+        hisabPeriodSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val preset = FarmOrdering.financialPeriodPresets.getOrNull(position) ?: return
+                if (preset != hisabPeriodPreset) {
+                    hisabPeriodPreset = preset
+                    renderHisabCalculator()
+                }
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
+
         addPartyButton.setOnClickListener {
             confirmDiscardTradeIfNeeded {
                 confirmDiscardSettlementIfNeeded { openPartyEditor(null) }
@@ -729,6 +812,116 @@ class FarmActivity : AppCompatActivity() {
         updateShellTitle()
 if (destination == Destination.SETTINGS) renderSettings()
         if (destination == Destination.HISAB_KITAB) renderHisabKitab()
+        if (destination == Destination.HISAB) renderHisabCalculator()
+    }
+
+    private fun renderHisabCalculator() {
+        val farmId = currentFarmId
+        if (farmId == null) {
+            hisabNoFarmText.visibility = View.VISIBLE
+            hisabNoPartiesText.visibility = View.GONE
+            hisabCalculatorContainer.visibility = View.GONE
+            return
+        }
+
+        val parties = service.parties(farmId)
+            .filter { it.role != PartyRole.OTHER }
+            .sortedWith(compareBy<Party> { it.name.lowercase(presentationLocale) }.thenBy { it.id })
+        if (parties.isEmpty()) {
+            hisabPartyChoices = emptyList()
+            hisabSelectedPartyId = null
+            hisabNoFarmText.visibility = View.GONE
+            hisabNoPartiesText.visibility = View.VISIBLE
+            hisabCalculatorContainer.visibility = View.GONE
+            return
+        }
+
+        hisabNoFarmText.visibility = View.GONE
+        hisabNoPartiesText.visibility = View.GONE
+        hisabCalculatorContainer.visibility = View.VISIBLE
+        hisabPartyChoices = parties
+        val selectedParty = parties.firstOrNull { it.id == hisabSelectedPartyId } ?: parties.first()
+        hisabSelectedPartyId = selectedParty.id
+
+        hisabSelectionSuppressed = true
+        hisabPartySpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            parties.map { it.name }
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        hisabPartySpinner.setSelection(parties.indexOfFirst { it.id == selectedParty.id })
+        hisabSelectionSuppressed = false
+
+        val result = try {
+            service.partyHisab(
+                farmId = farmId,
+                partyId = selectedParty.id,
+                preset = hisabPeriodPreset,
+                now = OffsetDateTime.now(deviceZone),
+                zone = deviceZone
+            )
+        } catch (exception: RuntimeException) {
+            showUnexpectedFailure(exception, "render party hisab")
+            return
+        }
+
+        val currency = currentFarmCurrency()
+        val activity = result.activity
+        val position = result.position
+        val hasActivity = activity.salesMinor > 0L || activity.purchasesMinor > 0L ||
+            activity.paymentsReceivedMinor > 0L || activity.paymentsMadeMinor > 0L
+        val hasPosition = position.toReceiveMinor > 0L || position.toPayMinor > 0L
+
+        hisabPartyRoleText.text = string(
+            R.string.hisab_party_role_format,
+            FarmLabels.partyRole(this, result.party.role)
+        )
+        hisabSalesText.text = string(R.string.overview_sales_format, formatMoney(currency, activity.salesMinor))
+        hisabPurchasesText.text = string(
+            R.string.overview_purchases_format,
+            formatMoney(currency, activity.purchasesMinor)
+        )
+        hisabPaymentsReceivedText.text = string(
+            R.string.overview_payments_received_format,
+            formatMoney(currency, activity.paymentsReceivedMinor)
+        )
+        hisabPaymentsMadeText.text = string(
+            R.string.overview_payments_made_format,
+            formatMoney(currency, activity.paymentsMadeMinor)
+        )
+        hisabSalesText.visibility = if (hasActivity) View.VISIBLE else View.GONE
+        hisabPurchasesText.visibility = if (hasActivity) View.VISIBLE else View.GONE
+        hisabPaymentsReceivedText.visibility = if (hasActivity) View.VISIBLE else View.GONE
+        hisabPaymentsMadeText.visibility = if (hasActivity) View.VISIBLE else View.GONE
+        hisabActivityEmptyText.visibility = if (hasActivity) View.GONE else View.VISIBLE
+
+        hisabPositionAsOfText.text = string(
+            R.string.overview_position_as_of_format,
+            timePresentation.displayDateTime(
+                presentationLocale,
+                deviceZone,
+                result.period.endExclusive.minusNanos(1)
+            )
+        )
+        hisabToReceiveText.text = string(
+            R.string.to_receive_summary_format,
+            formatMoney(currency, position.toReceiveMinor)
+        )
+        hisabToPayText.text = string(
+            R.string.to_pay_summary_format,
+            formatMoney(currency, position.toPayMinor)
+        )
+        hisabNetText.text = string(
+            R.string.net_position_format,
+            formatMoney(currency, position.netMinor)
+        )
+        hisabPositionAsOfText.visibility = if (hasPosition) View.VISIBLE else View.GONE
+        hisabToReceiveText.visibility = if (hasPosition) View.VISIBLE else View.GONE
+        hisabToPayText.visibility = if (hasPosition) View.VISIBLE else View.GONE
+        hisabNetText.visibility = if (hasPosition) View.VISIBLE else View.GONE
+        hisabPositionEmptyText.visibility = if (hasPosition) View.GONE else View.VISIBLE
     }
 
     private fun updateShellTitle() {
@@ -2733,6 +2926,8 @@ if (destination == Destination.SETTINGS) renderSettings()
         const val STATE_SETTLEMENT_TARGET_TRADE_ID = "settlementTargetTradeId"
         const val STATE_KHATA_PARTY_ID = "khataPartyId"
         const val STATE_OVERVIEW_PERIOD_PRESET = "overviewPeriodPreset"
+        const val STATE_HISAB_PARTY_ID = "hisabPartyId"
+        const val STATE_HISAB_PERIOD_PRESET = "hisabPeriodPreset"
         const val STATE_SETTLEMENT_EDITOR_OPEN = "settlementEditorOpen"
         const val STATE_SETTLEMENT_EDITOR_PREFIX = "settlementEditor"
         const val STATE_SETTLEMENT_EDITOR_BASELINE_PREFIX = "settlementEditorBaseline"
