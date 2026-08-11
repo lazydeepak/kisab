@@ -31,6 +31,6 @@
 
 ## Known limitations before release
 
-- Manual/device validation remains outstanding for the M5 financial flows, M6 Party Hisab interactions, M6.1 small-screen/TalkBack presentation, and M6.3/M6.4 calculator keyboard, selector, small-screen, and long-result behavior.
+- Manual/device validation remains outstanding for the M5 financial flows, M6 Party Hisab interactions, M6.1 small-screen/TalkBack presentation, and the M6.3 calculator keyboard patterns. M6.4 calculator functions (keyboard, selector, small-screen, long-result, Nepali rendering, and persistence isolation) were verified on an API-36 physical device and an API-26 emulator (see `docs/milestones/M6_4_FARM_INPUT_CALCULATORS.md`).
 - Home cash transactions and Trade Settlements remain deliberately separate to prevent accidental double counting.
 - The release workflow requires an annotated `v0.2.0` tag contained in `main`, protected-environment approval, and the existing production signing secrets. It creates a draft release only.
