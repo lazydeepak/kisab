@@ -135,6 +135,12 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | No trade activity empty | No sales, purchases, or payments in this period. | यस अवधिमा कुनै बिक्री, खरिद वा भुक्तानी छैन। (yas awadhimaa kunai bikri, kharid wa bhuktani chaina) | — | Empty state: no trades/settlements in the selected period | Provisional | M5-05 | Pending |
 | No position empty | No money owed or owing at the end of this period. | यस अवधिको अन्त्यमा प्राप्त गर्नुपर्ने वा तिर्नुपर्ने कुनै रकम छैन। (yas awadhiko antyamaa prapat garnuparne wa tirnuparne kunai rakam chaina) | — | Empty state: nothing outstanding at period end | Provisional | M5-05 | Pending |
 | No trend empty | No monthly activity in this period yet. | यस अवधिमा अहिलेसम्म कुनै मासिक कारोबार छैन। (yas awadhimaa ahilesamma kunai masik karobar chaina) | — | Empty state: no monthly activity yet | Provisional | M5-05 | Pending |
+| Party Hisab calculator | Party Hisab calculator | पार्टी हिसाब गणना (party hisab ganana) | पार्टी हिसाब | Hisab destination title for per-party reconciliation | Provisional | M6 | Pending |
+| Activity in this period | Activity in this period | यस अवधिको कारोबार (yas awadhiko karobar) | अवधिको हिसाब | Selected Party's sales, purchases, and payments in the period | Provisional | M6 | Pending |
+| Position at period end | Position at period end | अवधिको अन्त्यको स्थिति (awadhiko antyako sthiti) | अन्तिम बाँकी | Gross receivable/payable position immediately before the period cutoff | Provisional | M6 | Pending |
+| No farm for Hisab | Create or restore a farm to calculate Party Hisab. | पार्टी हिसाब गणना गर्न फार्म बनाउनुहोस् वा पुनर्स्थापना गर्नुहोस्। | — | Hisab empty state when no farm is open | Provisional | M6 | Pending |
+| No parties for Hisab | Add a customer or supplier in Hisab-Kitab to calculate their Hisab. | हिसाब गणना गर्न हिसाब-किताबमा ग्राहक वा आपूर्तिकर्ता थप्नुहोस्। | — | Hisab empty state when the farm has no parties | Provisional | M6 | Pending |
+| Nothing due with Party | Nothing is due between you and this party at the period end. | अवधिको अन्त्यमा तपाईं र यस पार्टीबीच कुनै रकम बाँकी छैन। | — | Party Hisab zero-position guidance | Provisional | M6 | Pending |
 
 ## Rules
 

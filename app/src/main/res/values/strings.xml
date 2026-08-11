@@ -258,8 +258,16 @@
     <string name="overview_trend_empty">No monthly activity in this period yet.</string>
     <string name="trend_row_format">%1$s | in %2$s | out %3$s | sales %4$s | purchases %5$s | received %6$s | paid %7$s</string>
 
-    <string name="hisab_placeholder_title">Hisab is coming soon</string>
-    <string name="hisab_placeholder_body">Farmer hisab lookups and calculations will appear here in a future update.</string>
+    <string name="hisab_calculator_title">Party Hisab calculator</string>
+    <string name="hisab_calculator_body">Choose a party and period to reconcile sales, purchases, payments, and the amount still due.</string>
+    <string name="hisab_no_farm">Create or restore a farm to calculate Party Hisab.</string>
+    <string name="hisab_no_parties">Add a customer or supplier in Hisab-Kitab to calculate their Hisab.</string>
+    <string name="hisab_party_label">Party</string>
+    <string name="hisab_party_role_format">Role: %1$s</string>
+    <string name="hisab_period_activity_section">Activity in this period</string>
+    <string name="hisab_position_section">Position at period end</string>
+    <string name="hisab_activity_empty">No sales, purchases, or payments for this party in the selected period.</string>
+    <string name="hisab_position_empty">Nothing is due between you and this party at the period end.</string>
 
     <string name="settings_farm_currency_section">Farm currency</string>
     <string name="settings_language_section">Language</string>
