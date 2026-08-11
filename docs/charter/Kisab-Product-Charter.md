@@ -28,6 +28,7 @@ A smallholder or farm operator who needs to record a farm, one or more livestock
 - **M5-04** — Party Khata / Ledger: per-party chronological projection of sales, purchases, payments received/made, running balance, and current receivable/payable position — an additional projection over the Party → Trade → Settlement model, not a second accounting authority. **Status: COMPLETE** (see `docs/milestones/M5_04_PARTY_KHATA_LEDGER.md`).
 - **M5-05** — Farm Financial Overview: farm-wide financial synthesis over the same Party → Trade → Settlement projection discipline — period summaries, trend/overview aggregates, and a whole-farm financial picture. **Status: COMPLETE** (see `docs/milestones/M5_05_FARM_FINANCIAL_OVERVIEW.md`).
 - **M6** — Farmer Hisab calculators: non-persisted per-party/per-period reconciliation of sales, purchases, payments, and period-end receivable/payable position over the existing Party → Trade → Settlement facts. **Status: COMPLETE** (see `docs/milestones/M6_FARMER_HISAB_CALCULATORS.md`).
+- **M6.1** — App Shell and Navigation Polish: original Kisab SVG/vector logo, branded top app bar and Settings overflow menu, icon-and-label bottom navigation with explicit selected states, accessibility labels, and recreation-safe shell behavior. **Status: COMPLETE** (see `docs/milestones/M6_1_APP_SHELL_NAVIGATION_POLISH.md`).
 
 ## Product boundary
 Kisab owns farm concepts, user journeys, offline persistence strategy, and product-specific presentation. It reuses the shared foundation only for technical concerns such as secure session persistence.

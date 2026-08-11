@@ -255,7 +255,7 @@ class FarmActivityPresentationTest {
     fun languageSelectionAppliesNepaliAndPersists() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.shellSettingsButton)).perform(click())
+            openSettings()
             onView(withId(R.id.languageNepaliRadio)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.languageNepaliRadio)).perform(scrollTo(), click())
             androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
@@ -280,7 +280,7 @@ class FarmActivityPresentationTest {
     fun languageFollowDeviceResetsToSystemLocale() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.shellSettingsButton)).perform(click())
+            openSettings()
             onView(withId(R.id.languageNepaliRadio)).perform(scrollTo(), click())
             androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             onView(withId(R.id.languageFollowDeviceRadio)).perform(scrollTo(), click())
@@ -367,7 +367,8 @@ class FarmActivityPresentationTest {
     }
 
     private fun openSettings() {
-        onView(withId(R.id.shellSettingsButton)).perform(click())
+        onView(withId(R.id.shellMenuButton)).perform(click())
+        onView(withText(R.string.nav_settings)).perform(click())
     }
 
     private fun setAppLocale(locale: Locale) {

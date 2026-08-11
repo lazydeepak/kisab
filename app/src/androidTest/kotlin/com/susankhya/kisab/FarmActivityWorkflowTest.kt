@@ -20,6 +20,7 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.isSelected
 import androidx.test.espresso.matcher.ViewMatchers.withClassName
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.isChecked
@@ -41,6 +42,7 @@ import java.time.ZonedDateTime
 import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.CoreMatchers.equalTo
+import org.hamcrest.CoreMatchers.not
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -589,21 +591,31 @@ class FarmActivityWorkflowTest {
             onView(withId(R.id.hisabKitabScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.hisabScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.settingsScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.navHomeItem)).check(matches(isSelected()))
+            onView(withId(R.id.navHisabKitabItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navHisabItem)).check(matches(not(isSelected())))
 
             onView(withId(R.id.navHisabKitabItem)).perform(click())
             onView(withId(R.id.scrollView)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.hisabKitabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.shellTitle)).check(matches(withText(R.string.nav_hisab_kitab)))
+            onView(withId(R.id.navHisabKitabItem)).check(matches(isSelected()))
+            onView(withId(R.id.navHomeItem)).check(matches(not(isSelected())))
 
             onView(withId(R.id.navHisabItem)).perform(click())
             onView(withId(R.id.hisabKitabScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.hisabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.shellTitle)).check(matches(withText(R.string.nav_hisab)))
+            onView(withId(R.id.navHisabItem)).check(matches(isSelected()))
+            onView(withId(R.id.navHisabKitabItem)).check(matches(not(isSelected())))
 
-            onView(withId(R.id.shellSettingsButton)).perform(click())
+            openSettings()
             onView(withId(R.id.settingsScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.hisabScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.shellTitle)).check(matches(withText(R.string.nav_settings)))
+            onView(withId(R.id.navHomeItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navHisabKitabItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navHisabItem)).check(matches(not(isSelected())))
 
             onView(withId(R.id.navHomeItem)).perform(click())
             onView(withId(R.id.scrollView)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
@@ -619,7 +631,7 @@ class FarmActivityWorkflowTest {
             onView(withId(R.id.navHisabKitabItem)).perform(click())
             onView(withId(R.id.hisabKitabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
-            onView(withId(R.id.shellSettingsButton)).perform(click())
+            openSettings()
             onView(withId(R.id.settingsScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             Espresso.pressBack()
             onView(withId(R.id.hisabKitabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
@@ -728,13 +740,30 @@ class FarmActivityWorkflowTest {
     fun destinationSurvivesRecreation() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.shellSettingsButton)).perform(click())
+            openSettings()
             onView(withId(R.id.settingsScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             scenario.recreate()
 
             onView(withId(R.id.settingsScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.scrollView)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test
+    fun primaryDestinationSelectionSurvivesRecreation() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navHisabItem)).check(matches(isSelected()))
+
+            scenario.recreate()
+
+            onView(withId(R.id.hisabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.navHisabItem)).check(matches(isSelected()))
+            onView(withId(R.id.navHomeItem)).check(matches(not(isSelected())))
         } finally {
             scenario.close()
         }
@@ -748,13 +777,13 @@ class FarmActivityWorkflowTest {
             onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
             fillEditor(description = "Unsaved", amount = "10")
 
-            onView(withId(R.id.shellSettingsButton)).perform(click())
+            openSettings()
             onView(withText(R.string.discard_changes_title)).inRoot(isDialog()).check(matches(isDisplayed()))
             clickDialogAction(R.string.action_keep_editing)
             onView(withId(R.id.scrollView)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.transactionAmountInput)).check(matches(withText("10")))
 
-            onView(withId(R.id.shellSettingsButton)).perform(click())
+            openSettings()
             onView(withText(R.string.discard_changes_title)).inRoot(isDialog()).check(matches(isDisplayed()))
             clickDialogAction(R.string.action_discard)
             onView(withId(R.id.settingsScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
@@ -804,7 +833,8 @@ class FarmActivityWorkflowTest {
     }
 
     private fun openSettings() {
-        onView(withId(R.id.shellSettingsButton)).perform(click())
+        onView(withId(R.id.shellMenuButton)).perform(click())
+        onView(withText(R.string.nav_settings)).perform(click())
     }
 
     private fun changeSettingCurrency(code: String) {

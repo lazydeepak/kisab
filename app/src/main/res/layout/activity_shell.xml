@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -15,26 +16,34 @@
         android:paddingStart="16dp"
         android:paddingEnd="8dp">
 
+        <ImageView
+            android:id="@+id/shellLogo"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/kisab_logo_content_description"
+            android:src="@drawable/ic_kisab_logo" />
+
         <TextView
             android:id="@+id/shellTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="@string/app_name"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/shellSettingsButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <ImageButton
+            android:id="@+id/shellMenuButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="?android:attr/selectableItemBackground"
-            android:minHeight="48dp"
-            android:minWidth="48dp"
-            android:text="@string/settings_action"
-            android:textColor="#FFFFFF"
-            style="?android:attr/borderlessButtonStyle" />
+            android:contentDescription="@string/shell_menu_content_description"
+            android:padding="12dp"
+            android:src="@drawable/ic_more_vert" />
     </LinearLayout>
 
     <FrameLayout
@@ -1529,55 +1538,119 @@
         android:layout_height="wrap_content"
         android:background="@color/bottomNavBackground"
         android:orientation="horizontal"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp">
+        android:baselineAligned="false"
+        android:elevation="8dp"
+        android:paddingStart="8dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="6dp">
 
         <LinearLayout
             android:id="@+id/navHomeItem"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="64dp"
+            android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
+            android:background="@drawable/bottom_nav_item_background"
+            android:clickable="true"
+            android:contentDescription="@string/nav_home"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
+            android:importantForAccessibility="yes"
             android:orientation="vertical"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:padding="6dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_nav_home"
+                app:tint="@color/bottom_nav_item_tint" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/nav_home" />
+                android:layout_marginTop="2dp"
+                android:duplicateParentState="true"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/nav_home"
+                android:textColor="@color/bottom_nav_item_tint"
+                android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/navHisabKitabItem"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="64dp"
+            android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
+            android:background="@drawable/bottom_nav_item_background"
+            android:clickable="true"
+            android:contentDescription="@string/nav_hisab_kitab"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
+            android:importantForAccessibility="yes"
             android:orientation="vertical"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:padding="6dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_nav_hisab_kitab"
+                app:tint="@color/bottom_nav_item_tint" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/nav_hisab_kitab" />
+                android:layout_marginTop="2dp"
+                android:duplicateParentState="true"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/nav_hisab_kitab"
+                android:textColor="@color/bottom_nav_item_tint"
+                android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/navHisabItem"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="64dp"
+            android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
+            android:background="@drawable/bottom_nav_item_background"
+            android:clickable="true"
+            android:contentDescription="@string/nav_hisab"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
+            android:importantForAccessibility="yes"
             android:orientation="vertical"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:padding="6dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_nav_hisab"
+                app:tint="@color/bottom_nav_item_tint" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/nav_hisab" />
+                android:layout_marginTop="2dp"
+                android:duplicateParentState="true"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/nav_hisab"
+                android:textColor="@color/bottom_nav_item_tint"
+                android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

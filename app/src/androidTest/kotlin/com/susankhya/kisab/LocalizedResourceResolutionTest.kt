@@ -33,6 +33,7 @@ class LocalizedResourceResolutionTest {
         assertEquals("Record income", english.getString(R.string.record_income_action))
         assertEquals("Farm name is required", english.getString(R.string.error_farm_name_required))
         assertEquals("Invalid or unsupported backup", english.getString(R.string.error_backup_invalid_or_unsupported))
+        assertEquals("More options", english.getString(R.string.shell_menu_content_description))
     }
 
     @Test
@@ -57,6 +58,10 @@ class LocalizedResourceResolutionTest {
         assertNotEquals(
             english.getString(R.string.error_backup_invalid_or_unsupported),
             nepali.getString(R.string.error_backup_invalid_or_unsupported)
+        )
+        assertNotEquals(
+            english.getString(R.string.shell_menu_content_description),
+            nepali.getString(R.string.shell_menu_content_description)
         )
     }
 
