@@ -38,4 +38,12 @@ class FarmLabelsMappingTest {
         assertTrue(resourceIds.all { it != 0 })
         assertEquals(values.size, resourceIds.toSet().size)
     }
+
+    @Test
+    fun everyFinancialPeriodPresetHasADistinctMapping() {
+        val values = com.susankhya.kisab.domain.FinancialPeriodPreset.values()
+        val resourceIds = values.map { FarmLabels.financialPeriodPresetRes(it) }
+        assertTrue(resourceIds.all { it != 0 })
+        assertEquals(values.size, resourceIds.toSet().size)
+    }
 }

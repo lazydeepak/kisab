@@ -3,6 +3,7 @@ package com.susankhya.kisab.ui
 import android.content.Context
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntryKind
+import com.susankhya.kisab.domain.FinancialPeriodPreset
 import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.TradeType
@@ -55,6 +56,12 @@ object FarmLabels {
         PartyRole.OTHER -> R.string.party_role_other
     }
 
+    fun financialPeriodPresetRes(preset: FinancialPeriodPreset): Int = when (preset) {
+        FinancialPeriodPreset.THIS_MONTH -> R.string.period_this_month
+        FinancialPeriodPreset.LAST_30_DAYS -> R.string.period_last_30_days
+        FinancialPeriodPreset.ALL_TIME -> R.string.period_all_time
+    }
+
     fun entryKind(context: Context, kind: FarmEntryKind): String = context.getString(entryKindRes(kind))
 
     fun transactionType(context: Context, type: TransactionType): String = context.getString(transactionTypeRes(type))
@@ -67,4 +74,7 @@ object FarmLabels {
         context.getString(transactionCategoryRes(category))
 
     fun partyRole(context: Context, role: PartyRole): String = context.getString(partyRoleRes(role))
+
+    fun financialPeriodPreset(context: Context, preset: FinancialPeriodPreset): String =
+        context.getString(financialPeriodPresetRes(preset))
 }

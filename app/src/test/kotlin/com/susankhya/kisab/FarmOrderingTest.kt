@@ -69,4 +69,16 @@ class FarmOrderingTest {
     fun everyTransactionTypeIsPresentOnce() {
         assertEquals(listOf(TransactionType.INCOME, TransactionType.EXPENSE), FarmOrdering.transactionTypes)
     }
+
+    @Test
+    fun everyFinancialPeriodPresetIsPresentOnce() {
+        assertEquals(
+            listOf(
+                com.susankhya.kisab.domain.FinancialPeriodPreset.THIS_MONTH,
+                com.susankhya.kisab.domain.FinancialPeriodPreset.LAST_30_DAYS,
+                com.susankhya.kisab.domain.FinancialPeriodPreset.ALL_TIME
+            ),
+            FarmOrdering.financialPeriodPresets
+        )
+    }
 }

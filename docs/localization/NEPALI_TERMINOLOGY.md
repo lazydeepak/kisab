@@ -118,6 +118,23 @@ Governed glossary for user-facing Kisab terminology. Terms proposed here are **p
 | Payment received | Payment received | भुक्तानी प्राप्त भयो (bhuktani prapat bhayo) | — | Khata row: a payment received from a customer (sale settlement) | Provisional | M5-04 | Pending |
 | Payment made | Payment made | भुक्तानी गरियो (bhuktani gariyo) | — | Khata row: a payment made to a supplier (purchase settlement) | Provisional | M5-04 | Pending |
 | Balance after | Balance after | पछि (pachhi) / पछिको बाँकी | — | Khata running balance after a row's event | Provisional | M5-04 | Pending |
+| Financial overview | Financial overview | वित्तीय अवलोकन (wittiya awalokan) | — | Farm-wide financial summary section on Hisab-Kitab | Provisional | M5-05 | Pending |
+| Period | Period | अवधि (awadhi) | अवधि छनोट | Time window selector for the financial overview | Provisional | M5-05 | Pending |
+| This month | This month | यो महिना (yo mahina) | — | Preset: current calendar month | Provisional | M5-05 | Pending |
+| Last 30 days | Last 30 days | पछिल्लो ३० दिन (pachhilo 30 din) | विगत ३० दिन | Preset: rolling 30-day window | Provisional | M5-05 | Pending |
+| All time | All time | सबै समय (sabai samay) | — | Preset: entire recorded history | Provisional | M5-05 | Pending |
+| Cash activity | Cash activity | नगद गतिविधि (nagad gatibidhi) | — | Overview section: Home income/expense in the period | Provisional | M5-05 | Pending |
+| Trade and payments | Trade and payments | बिक्री/खरिद र भुक्तानी (bikri/kharid ra bhuktani) | — | Overview section: sales, purchases, and payment flows | Provisional | M5-05 | Pending |
+| Current position | Current position | हालको स्थिति (halako sthiti) | — | Overview section: outstanding receivable/payable as of period end | Provisional | M5-05 | Pending |
+| Monthly trend | Monthly trend | मासिक प्रवृत्ति (masik prawritti) | मासिक विवरण | Overview section: per-month activity rows | Provisional | M5-05 | Pending |
+| Net | Net | खुद (khud) | — | Cash income minus expense in the period | Provisional | M5-05 | Pending |
+| Receivable | Receivable | प्राप्त गर्न बाँकी (prapat garna banki) | — | Outstanding money the farmer is owed as of period end | Provisional | M5-05 | Pending |
+| Payable | Payable | तिर्न बाँकी (tirna banki) | — | Outstanding money the farmer owes as of period end | Provisional | M5-05 | Pending |
+| As of | As of | सम्मको स्थिति (sammako sthiti) | — | Position timestamp: as of the end of the period | Provisional | M5-05 | Pending |
+| No cash activity empty | No cash income or expenses in this period. | यस अवधिमा कुनै नगद आम्दानी वा खर्च छैन। (yas awadhimaa kunai nagad aamdani wa kharcha chaina) | — | Empty state: no Home income/expense in the selected period | Provisional | M5-05 | Pending |
+| No trade activity empty | No sales, purchases, or payments in this period. | यस अवधिमा कुनै बिक्री, खरिद वा भुक्तानी छैन। (yas awadhimaa kunai bikri, kharid wa bhuktani chaina) | — | Empty state: no trades/settlements in the selected period | Provisional | M5-05 | Pending |
+| No position empty | No money owed or owing at the end of this period. | यस अवधिको अन्त्यमा प्राप्त गर्नुपर्ने वा तिर्नुपर्ने कुनै रकम छैन। (yas awadhiko antyamaa prapat garnuparne wa tirnuparne kunai rakam chaina) | — | Empty state: nothing outstanding at period end | Provisional | M5-05 | Pending |
+| No trend empty | No monthly activity in this period yet. | यस अवधिमा अहिलेसम्म कुनै मासिक कारोबार छैन। (yas awadhimaa ahilesamma kunai masik karobar chaina) | — | Empty state: no monthly activity yet | Provisional | M5-05 | Pending |
 
 ## Rules
 
