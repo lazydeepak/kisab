@@ -1,0 +1,47 @@
+name: RC sign launcher
+
+# Secret-free entry point that starts the protected `RC sign` workflow.
+#
+# This workflow provides the "Run workflow" UI button for signing a v0.2.0
+# release candidate. It holds no secrets, signs nothing, and does not
+# reference the `release-signing` environment. It only emits a
+# `repository_dispatch` event (`rc-signing-request`) carrying the exact
+# candidate SHA that the `RC sign` workflow validates and signs.
+#
+# `repository_dispatch` is used instead of running the signing workflow via
+# `workflow_dispatch` because a manual dispatch can be started from a selected
+# ref (the Branch dropdown or `--ref`). GitHub sources a `repository_dispatch`
+# run from the default branch (main) and requires the workflow to exist there,
+# so the `RC sign` workflow that actually accesses signing secrets is always
+# the trusted, reviewed main version.
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: 'Exact 40-character hexadecimal commit SHA of the v0.2.0 candidate to sign. Must be contained in main and must report versionName 0.2.0 / versionCode 3.'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Emit rc-signing-request repository_dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          DISPATCH_REPO: ${{ github.repository }}
+        run: |
+          if ! [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::candidate_sha must be a full 40-character hexadecimal commit SHA."
+            exit 1
+          fi
+          jq -n --arg sha "$CANDIDATE_SHA" \
+            '{event_type: "rc-signing-request", client_payload: {candidate_sha: $sha}}' | \
+            gh api -X POST "repos/${DISPATCH_REPO}/dispatches" --input -
