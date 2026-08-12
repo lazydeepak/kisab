@@ -164,9 +164,11 @@ The pre-existing schema-v6 backup byte-stability and v5→v6 migration tests rem
 
 `compileDebugKotlin`, `compileDebugAndroidTestKotlin`, `assembleDebug`, and `lintDebug` all SUCCESS on the M5-04 branch.
 
-### Manual / device UI validation — NOT performed
+### Manual / device UI validation — NOT performed in this pass
 
 No manual or device/emulator UI validation was performed for M5-04 in this pass. The interactive Khata flows (tap-party opens Khata, row routing to Trade/Settlement editors, layered back navigation, role-compatible preselection, restore over configuration change, Nepali rendering) are covered by code inspection and automated unit-toolchain checks only. Per M4-04 disposition, timed Android tests on the API-26 emulator remain supplemental and are not a completion gate; device validation should still be scheduled before any production release of this feature.
+
+> **Update (M6.4.1, 2026-08-11):** the on-device gap for the basic Khata flows was later closed. The M6.4.1 full connected suite ran the updated party workflow tests (tap-party opens Khata, edit party from Khata, delete party from Khata, close Khata returning to the parties list) on an API-36 physical device (Moto Edge 60 Fusion, 86/86 tests pass) and on an API-26 emulator (86 run, 2 documented back-navigation coordinate flakes only). See `docs/milestones/M6_4_1_SHELL_SYSTEM_BAR_INSETS.md` and `docs/release/V0.2.0_RELEASE_CHECKLIST.md`. Long-Nepali-text and small-screen Khata rendering remain not device-exercised as of the v0.2.0 candidate freeze.
 
 ## M5-05 boundary
 
