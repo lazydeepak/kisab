@@ -16,6 +16,8 @@ Defines the Application Shell for Kisab: an intentional top app bar, a small set
 - Verified: `compileDebugKotlin`, `compileDebugAndroidTestKotlin`, `lintDebug` green. Instrumentation on the API 26 emulator shows the click-through nav and Settings paths working; bottom-nav tap injection and `pressBack` delivery are flaky on this AVD (Espresso `InjectEventSecurityException`), flagged for a more reliable device before M5-00 validation is closed.
 
 > **API-26 emulator instrumentation is not a completion gate for this feature-first slice** due to intermittent system input injection failures near the navigation-bar boundary (Espresso `InjectEventSecurityException` on bottom-nav taps and flaky `pressBack()` delivery). Navigation behavior is covered by successful isolated/recreation cases and should be re-run on a reliable physical device during later stabilization.
+>
+> **Update (M6.4.1, 2026-08-11):** navigation was subsequently validated on-device. The M6.4.1 full connected suite exercised the shell/navigation/Settings workflow tests on an API-36 physical device (Moto Edge 60 Fusion, 86/86 pass). On the API-26 emulator the residual `pressBack`-class failures persist and are documented as two back-navigation coordinate flakes reproduced on the pre-change baseline — distinct from product failures. See `docs/milestones/M6_4_1_SHELL_SYSTEM_BAR_INSETS.md` and `docs/release/V0.2.0_RELEASE_CHECKLIST.md`.
 
 ## Working principles
 
