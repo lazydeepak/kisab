@@ -34,6 +34,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.core.os.LocaleListCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntry
 import com.susankhya.kisab.domain.FarmEntryKind
@@ -97,8 +99,11 @@ class FarmActivity : AppCompatActivity() {
         get() = ZoneId.systemDefault()
 
     private lateinit var scrollView: ScrollView
+    private lateinit var shellRoot: LinearLayout
+    private lateinit var shellAppBar: LinearLayout
     private lateinit var shellTitle: TextView
     private lateinit var shellMenuButton: ImageButton
+    private lateinit var bottomNavigation: LinearLayout
     private lateinit var navHomeItem: LinearLayout
     private lateinit var navHisabKitabItem: LinearLayout
     private lateinit var navHisabItem: LinearLayout
@@ -209,6 +214,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var partyRoleSpinner: Spinner
     private lateinit var partyContactInput: EditText
     private lateinit var partyNotesInput: EditText
+    private lateinit var partyValidationMessageText: TextView
     private lateinit var savePartyButton: Button
     private lateinit var cancelPartyButton: Button
     private lateinit var deletePartyButton: Button
@@ -400,6 +406,7 @@ class FarmActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_shell)
         bindViews()
+        applyShellSystemBarInsets()
         wireListeners()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -537,9 +544,12 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun bindViews() {
+        shellRoot = findViewById(R.id.shellRoot)
+        shellAppBar = findViewById(R.id.shellAppBar)
         scrollView = findViewById(R.id.scrollView)
         shellTitle = findViewById(R.id.shellTitle)
         shellMenuButton = findViewById(R.id.shellMenuButton)
+        bottomNavigation = findViewById(R.id.bottomNavigation)
         navHomeItem = findViewById(R.id.navHomeItem)
         navHisabKitabItem = findViewById(R.id.navHisabKitabItem)
         navHisabItem = findViewById(R.id.navHisabItem)
@@ -704,6 +714,7 @@ class FarmActivity : AppCompatActivity() {
         partyRoleSpinner = findViewById(R.id.partyRoleSpinner)
         partyContactInput = findViewById(R.id.partyContactInput)
         partyNotesInput = findViewById(R.id.partyNotesInput)
+        partyValidationMessageText = findViewById(R.id.partyValidationMessageText)
         savePartyButton = findViewById(R.id.savePartyButton)
         cancelPartyButton = findViewById(R.id.cancelPartyButton)
         deletePartyButton = findViewById(R.id.deletePartyButton)
@@ -840,6 +851,36 @@ class FarmActivity : AppCompatActivity() {
         settlementsContainer = findViewById(R.id.settlementsContainer)
         addSettlementButton = findViewById(R.id.addSettlementButton)
         doneSettlementsButton = findViewById(R.id.doneSettlementsButton)
+    }
+
+    private fun applyShellSystemBarInsets() {
+        val baseAppBarTop = shellAppBar.paddingTop
+        val baseAppBarBottom = shellAppBar.paddingBottom
+        val baseAppBarStart = shellAppBar.paddingStart
+        val baseAppBarEnd = shellAppBar.paddingEnd
+        val baseNavTop = bottomNavigation.paddingTop
+        val baseNavBottom = bottomNavigation.paddingBottom
+        val baseNavStart = bottomNavigation.paddingStart
+        val baseNavEnd = bottomNavigation.paddingEnd
+        ViewCompat.setOnApplyWindowInsetsListener(shellRoot) { _, insets ->
+            val statusBarTopInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            val navigationBarBottomInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            ViewCompat.setPaddingRelative(
+                shellAppBar,
+                baseAppBarStart,
+                ShellInsets.appBarTopPadding(baseAppBarTop, statusBarTopInset),
+                baseAppBarEnd,
+                baseAppBarBottom,
+            )
+            ViewCompat.setPaddingRelative(
+                bottomNavigation,
+                baseNavStart,
+                baseNavTop,
+                baseNavEnd,
+                ShellInsets.bottomNavigationBottomPadding(baseNavBottom, navigationBarBottomInset),
+            )
+            insets
+        }
     }
 
     private fun wireListeners() {
@@ -2354,7 +2395,7 @@ class FarmActivity : AppCompatActivity() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val name = partyNameInput.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
-            showValidationMessage(FarmUiError.PARTY_NAME_REQUIRED.resourceId)
+            showPartyValidationMessage(FarmUiError.PARTY_NAME_REQUIRED.resourceId)
             partyNameInput.requestFocus()
             return
         }
@@ -2364,7 +2405,7 @@ class FarmActivity : AppCompatActivity() {
             val referencedTypes = service.trades(farmId).filter { it.partyId == partyId }.map { it.type }.distinct()
             val incompatibleType = referencedTypes.firstOrNull { !role.compatibleWith(it) }
             if (incompatibleType != null) {
-                showValidationMessage(FarmUiError.PARTY_ROLE_INCOMPATIBLE.resourceId)
+                showPartyValidationMessage(FarmUiError.PARTY_ROLE_INCOMPATIBLE.resourceId)
                 partyRoleSpinner.requestFocus()
                 return
             }
@@ -2398,7 +2439,7 @@ class FarmActivity : AppCompatActivity() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val partyId = editingPartyId ?: return
         if (service.trades(farmId).any { it.partyId == partyId }) {
-            showValidationMessage(FarmUiError.PARTY_HAS_TRADES.resourceId)
+            showPartyValidationMessage(FarmUiError.PARTY_HAS_TRADES.resourceId)
             return
         }
         AlertDialog.Builder(this)
@@ -2601,6 +2642,7 @@ class FarmActivity : AppCompatActivity() {
         savePartyButton.visibility = visibility
         cancelPartyButton.visibility = visibility
         deletePartyButton.visibility = if (visible && editingPartyId != null) View.VISIBLE else View.GONE
+        if (!visible) partyValidationMessageText.visibility = View.GONE
     }
 
     private fun isPartyEditorDirty(): Boolean {
@@ -3302,6 +3344,13 @@ class FarmActivity : AppCompatActivity() {
         val message = string(resId, *formatArgs)
         validationMessageText.text = message
         validationMessageText.visibility = View.VISIBLE
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showPartyValidationMessage(@StringRes resId: Int, vararg formatArgs: Any) {
+        val message = string(resId, *formatArgs)
+        partyValidationMessageText.text = message
+        partyValidationMessageText.visibility = View.VISIBLE
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 

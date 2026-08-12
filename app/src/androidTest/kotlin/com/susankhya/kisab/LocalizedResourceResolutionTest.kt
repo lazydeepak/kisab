@@ -235,6 +235,18 @@ class LocalizedResourceResolutionTest {
         }
     }
 
+    private fun assertContentStringsResolveInBothLocales(keys: List<Int>, placeholderOnlyKeys: List<Int> = emptyList()) {
+        for (key in keys) {
+            val englishText = english.getString(key)
+            val nepaliText = nepali.getString(key)
+            assertTrue("English text blank for $key", englishText.isNotBlank())
+            assertTrue("Nepali text blank for $key", nepaliText.isNotBlank())
+            if (key !in placeholderOnlyKeys) {
+                assertNotEquals("English fallback for $key", englishText, nepaliText)
+            }
+        }
+    }
+
     @Test
     fun partyStringsResolveInBothLocales() {
         val keys = listOf(
@@ -262,13 +274,7 @@ class LocalizedResourceResolutionTest {
             R.string.toast_party_saved,
             R.string.toast_party_deleted
         )
-        for (key in keys) {
-            val englishText = english.getString(key)
-            val nepaliText = nepali.getString(key)
-            assertTrue("English text blank for $key", englishText.isNotBlank())
-            assertTrue("Nepali text blank for $key", nepaliText.isNotBlank())
-            assertNotEquals("English fallback for $key", englishText, nepaliText)
-        }
+        assertContentStringsResolveInBothLocales(keys, placeholderOnlyKeys = listOf(R.string.party_row_format))
     }
 
     @Test
@@ -321,12 +327,12 @@ class LocalizedResourceResolutionTest {
             R.string.toast_trade_updated,
             R.string.toast_trade_deleted
         )
-        for (key in keys) {
-            val englishText = english.getString(key)
-            val nepaliText = nepali.getString(key)
-            assertTrue("English text blank for $key", englishText.isNotBlank())
-            assertTrue("Nepali text blank for $key", nepaliText.isNotBlank())
-            assertNotEquals("English fallback for $key", englishText, nepaliText)
-        }
+        assertContentStringsResolveInBothLocales(
+            keys,
+            placeholderOnlyKeys = listOf(
+                R.string.trade_row_format,
+                R.string.trade_row_time_format
+            )
+        )
     }
 }
