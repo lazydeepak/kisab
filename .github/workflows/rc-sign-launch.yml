@@ -1,0 +1,51 @@
+name: RC sign launcher
+
+# Secret-free entry point that starts the protected `RC sign` workflow.
+#
+# This workflow provides the "Run workflow" UI button for signing the frozen
+# v0.2.0 release-candidate commit. It holds no secrets, signs nothing, and does
+# not reference the `release-signing` environment. It only emits a
+# `repository_dispatch` event (`rc-signing-request`) carrying the exact frozen
+# candidate SHA that the `RC sign` workflow validates and signs.
+#
+# The candidate is a compile-time constant (FROZEN_CANDIDATE_SHA), not a user
+# input. There is no input to type, so a typo, stale SHA, or an arbitrary
+# same-version `main` commit cannot be requested for signing.
+#
+# `repository_dispatch` is used instead of running the signing workflow via
+# `workflow_dispatch` because a manual dispatch can be started from a selected
+# ref (the Branch dropdown or `--ref`). GitHub sources a `repository_dispatch`
+# run from the default branch (main) and requires the workflow to exist there,
+# so the `RC sign` workflow that actually accesses signing secrets is always
+# the trusted, reviewed main version.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Frozen v0.2.0 release-candidate commit to sign (RC-01). This exact commit
+  # is the only candidate this launcher may dispatch.
+  FROZEN_CANDIDATE_SHA: 53de2711cb7fabca6fb39ee13892822518b36d4f
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Emit rc-signing-request repository_dispatch for frozen candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_REPO: ${{ github.repository }}
+        run: |
+          if ! [[ "$FROZEN_CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::FROZEN_CANDIDATE_SHA is not a full 40-character hexadecimal commit SHA."
+            exit 1
+          fi
+          jq -n --arg sha "$FROZEN_CANDIDATE_SHA" \
+            '{event_type: "rc-signing-request", client_payload: {candidate_sha: $sha}}' | \
+            gh api -X POST "repos/${DISPATCH_REPO}/dispatches" --input -
