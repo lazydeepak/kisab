@@ -7,7 +7,7 @@ fixes two pre-existing defects surfaced by the full device suite during triage:
 the party editor never showed inline validation errors, and the EN/NE row-format
 guards asserted equality on placeholder-only format strings.
 
-> **Status: COMPLETE** on `feature/m6-4-1-shell-insets`, based on merged M6.4 `main`.
+> **Status: COMPLETE — merged to `main` at `b66a191` via PR #25 (squash).** Validated on `feature/m6-4-1-shell-insets` head `63ac13b`, based on merged M6.4 `main` at `185721a`.
 
 ## Defect
 
