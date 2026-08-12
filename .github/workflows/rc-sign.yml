@@ -1,12 +1,20 @@
 name: RC sign
 
-# Builds and signs a production-signed Kisab APK from an exact v0.2.0
-# release-candidate commit SHA (no release tag, no GitHub Release).
+# Builds and signs a production-signed Kisab APK from the frozen v0.2.0
+# release-candidate commit (no release tag, no GitHub Release).
 #
 # Trigger:
 #   - repository_dispatch (event type `rc-signing-request`), normally emitted
 #     by the secret-free `RC sign launcher` workflow, which provides the
-#     "Run workflow" UI button.
+#     "Run workflow" UI button. The launcher always dispatches the frozen
+#     candidate SHA; this workflow independently asserts that equality before
+#     any further processing.
+#
+# Frozen candidate: FROZEN_CANDIDATE_SHA (see the `env` block below) is the
+# authoritative v0.2.0 RC-01 commit. Only that exact commit may be signed by
+# this workflow. A typo, stale SHA, or another `main` commit that merely
+# reports versionName 0.2.0 / versionCode 3 is rejected, even though it would
+# satisfy the commit-exists and contained-in-origin/main checks.
 #
 # Trust anchor: for a `repository_dispatch` run GitHub sources this workflow
 # from the default branch (main), sets GITHUB_REF and GITHUB_SHA to main, and
@@ -28,24 +36,30 @@ name: RC sign
 #     workflow source cannot be modified outside a reviewed pull request.
 #
 # Jobs:
-#   - validate: NO environment and NO secrets. Only git operations plus an
-#     authoritative version read from the candidate. Validates that the
-#     supplied candidate is a full 40-hex commit SHA, exists, is contained in
-#     origin/main, reports versionName 0.2.0 / versionCode 3, and carries the
-#     v0.2.0 release notes. Emits the validated IMMUTABLE commit SHA as a job
-#     output; the SHA is never re-derived from the client payload afterwards.
+#   - validate: NO environment and NO secrets. Only trusted workflow actions
+#     plus Git object/file inspection. It does NOT run Gradle or any other
+#     candidate-controlled build script, and provides no credential to
+#     candidate code. It asserts that the dispatched payload equals the frozen
+#     candidate SHA, that the SHA is a full 40-hex commit, that the commit
+#     exists and is contained in origin/main, that the exact commit defines
+#     appVersionName 0.2.0 / appVersionCode 3 (read via `git show`, not
+#     executed), and that the v0.2.0 release notes exist in that exact commit
+#     (checked via Git object inspection). Emits the validated IMMUTABLE commit
+#     SHA as a job output; the SHA is never re-derived from the client payload
+#     afterwards.
 #   - build-sign: depends on validate, references the protected
 #     `release-signing` environment, and checks out the VALIDATED IMMUTABLE
-#     commit SHA (passed via job output). It re-runs the version read,
+#     commit SHA (passed via job output). It re-reads the version from the
+#     trusted checkout (compared against the validate job's inspection),
 #     runs tests/lint/metadata validation from that trusted commit, decodes
 #     the keystore only into $RUNNER_TEMP, signs, and verifies. Because it
 #     depends on validate, no environment approval is ever requested for an
-#     invalid or unmerged candidate.
+#     invalid, unmerged, or non-frozen candidate.
 #
 # No release tag is required or created. No GitHub Release is created.
 #
 # Signing secrets (KISAB_KEYSTORE_B64, KISAB_KEYSTORE_PASSWORD, KISAB_KEY_ALIAS,
-# KISAB_KEY_PASSWORD) are environment-scoped and must live in the protected
+# KISAB_KEY_PASSWORD) are environment-scoped and live in the protected
 # `release-signing` GitHub Environment, gated by required approval. Values are
 # never echoed; the decoded keystore exists only under $RUNNER_TEMP and is
 # deleted automatically when the job ends.
@@ -58,6 +72,11 @@ on:
 permissions:
   contents: read
 
+env:
+  # Frozen v0.2.0 release-candidate commit to sign (RC-01). This exact commit
+  # is the ONLY candidate this workflow may sign; the payload must equal it.
+  FROZEN_CANDIDATE_SHA: 53de2711cb7fabca6fb39ee13892822518b36d4f
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -69,12 +88,20 @@ jobs:
       version_code: ${{ steps.version.outputs.version_code }}
     permissions:
       contents: read
-      packages: read
     steps:
       - name: Checkout default branch (trusted workflow source)
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
+
+      - name: Assert dispatched candidate is the frozen v0.2.0 candidate
+        env:
+          CANDIDATE_SHA: ${{ github.event.client_payload.candidate_sha }}
+        run: |
+          if [ "$CANDIDATE_SHA" != "$FROZEN_CANDIDATE_SHA" ]; then
+            echo "::error::Dispatched candidate_sha '$CANDIDATE_SHA' is not the frozen v0.2.0 candidate $FROZEN_CANDIDATE_SHA; refusing to sign."
+            exit 1
+          fi
 
       - name: Validate candidate SHA format and existence
         id: sha
@@ -114,47 +141,33 @@ jobs:
             exit 1
           fi
 
-      - name: Set up Java 21
-        uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: gradle
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
-
-      - name: Install Android build tools
-        run: |
-          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "platform-tools"
-
-      - name: Create local.properties
-        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-
-      - name: Read version from candidate and assert v0.2.0 metadata
+      - name: Inspect version metadata in candidate without executing build code
         id: version
         env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.KISAB_GITHUB_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
+          CANDIDATE_SHA: ${{ steps.sha.outputs.candidate_sha }}
         run: |
-          VERSION_LINE=$(./gradlew -q :app:printVersionInfo)
-          VERSION_NAME=$(printf '%s\n' "$VERSION_LINE" | sed -n 's/^versionName=//p')
-          VERSION_CODE=$(printf '%s\n' "$VERSION_LINE" | sed -n 's/^versionCode=//p')
+          GRADLE_FILE="$(git show "$CANDIDATE_SHA:app/build.gradle.kts")"
+          VERSION_NAME="$(printf '%s\n' "$GRADLE_FILE" | sed -n 's/^val appVersionName = "\([^"]*\)".*$/\1/p' | head -n1)"
+          VERSION_CODE="$(printf '%s\n' "$GRADLE_FILE" | sed -n 's/^val appVersionCode = \([0-9][0-9]*\).*$/\1/p' | head -n1)"
           if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ]; then
-            echo "::error::Could not read versionName/versionCode from the candidate."
+            echo "::error::Could not read appVersionName/appVersionCode from app/build.gradle.kts in the candidate."
             exit 1
           fi
           if [ "$VERSION_NAME" != "0.2.0" ] || [ "$VERSION_CODE" != "3" ]; then
-            echo "::error::Candidate does not report the frozen v0.2.0 metadata (versionName=${VERSION_NAME} versionCode=${VERSION_CODE}); refusing to sign."
+            echo "::error::Candidate does not define the frozen v0.2.0 metadata (appVersionName=${VERSION_NAME} appVersionCode=${VERSION_CODE}); refusing to sign."
             exit 1
           fi
-          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
-          echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+          {
+            echo "version_name=${VERSION_NAME}"
+            echo "version_code=${VERSION_CODE}"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Verify v0.2.0 release notes exist in candidate
+      - name: Verify v0.2.0 release notes exist in candidate (Git object inspection)
+        env:
+          CANDIDATE_SHA: ${{ steps.sha.outputs.candidate_sha }}
         run: |
-          if [ ! -f "docs/release/RELEASE_NOTES_0.2.0.md" ]; then
-            echo "::error::Required release notes missing at docs/release/RELEASE_NOTES_0.2.0.md."
+          if ! git cat-file -e "$CANDIDATE_SHA:docs/release/RELEASE_NOTES_0.2.0.md"; then
+            echo "::error::Required release notes missing at docs/release/RELEASE_NOTES_0.2.0.md in candidate $CANDIDATE_SHA."
             exit 1
           fi
 
