@@ -9,6 +9,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.LocaleList
 import android.text.InputType
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.RelativeSizeSpan
 import android.text.format.DateFormat
 import android.util.Log
 import android.util.TypedValue
@@ -1113,6 +1116,7 @@ class FarmActivity : AppCompatActivity() {
     private fun showShellMenu() {
         PopupMenu(this, shellMenuButton).apply {
             inflate(R.menu.menu_shell_overflow)
+            applyMenuTextScale(menu)
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     R.id.menuSettings -> {
@@ -1138,6 +1142,17 @@ class FarmActivity : AppCompatActivity() {
                 }
             }
             show()
+        }
+    }
+
+    private fun applyMenuTextScale(menu: android.view.Menu) {
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.DEFAULT_SP
+        for (index in 0 until menu.size()) {
+            val item = menu.getItem(index)
+            val title = item.title ?: continue
+            item.title = SpannableString(title).also {
+                it.setSpan(RelativeSizeSpan(scale), 0, it.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
         }
     }
 
