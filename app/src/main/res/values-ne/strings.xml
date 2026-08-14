@@ -371,10 +371,8 @@
     <string name="settings_about_section">बारेमा</string>
 
     <string name="settings_text_size_label">अक्षरको आकार</string>
-    <string name="text_size_small">सानो</string>
-    <string name="text_size_default">सामान्य</string>
-    <string name="text_size_large">ठूलो</string>
-    <string name="text_size_coming_later">अक्षरको आकार विकल्पहरू पछिल्लो अपडेटमा आउनेछन्।</string>
+    <string name="text_size_value_format">अक्षरको आकार: %1$d px</string>
+    <string name="text_size_slider_note">किसाबको अक्षर सानो वा ठूलो बनाउन स्लाइडर सार्नुहोस्।</string>
 
     <string name="settings_farm_name_label">फार्मको नाम</string>
     <string name="settings_no_farm_gentle">अहिलेसम्म फार्म छैन। पहिले गृह ट्याबमा फार्म सिर्जना गर्नुहोस्।</string>

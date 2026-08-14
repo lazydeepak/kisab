@@ -11,8 +11,10 @@ import android.os.LocaleList
 import android.text.InputType
 import android.text.format.DateFormat
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import androidx.annotation.RequiresApi
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -22,6 +24,7 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.SeekBar
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
@@ -71,6 +74,7 @@ import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.FarmBackupException
 import com.susankhya.kisab.persistence.FarmBackupFileAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesAppLanguagePreferences
+import com.susankhya.kisab.persistence.SharedPreferencesAppTextSizePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import java.time.OffsetDateTime
 import java.time.YearMonth
@@ -78,6 +82,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.math.BigDecimal
+import java.util.IdentityHashMap
 import java.util.Locale
 
 class FarmActivity : AppCompatActivity() {
@@ -301,6 +306,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var settingsAppearanceSection: TextView
     private lateinit var settingsFarmSection: TextView
     private lateinit var settingsDataSection: TextView
+    private lateinit var settingsTextSizeValueText: TextView
+    private lateinit var settingsTextSizeSeekBar: SeekBar
     private lateinit var languageFollowDeviceRadio: RadioButton
     private lateinit var languageEnglishRadio: RadioButton
     private lateinit var languageNepaliRadio: RadioButton
@@ -345,8 +352,11 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var languagePreferences: AppLanguagePreferences
+    private lateinit var textSizePreferences: AppTextSizePreferences
     private var languageCheckSuppressed = false
+    private var textSizeChangeSuppressed = false
     private var pendingSettingsScrollToSection: View? = null
+    private val originalTextSizesPx = IdentityHashMap<TextView, Float>()
 
     private var currentFarmId: String? = null
     private var pendingExportContent: String? = null
@@ -374,6 +384,7 @@ class FarmActivity : AppCompatActivity() {
         service = FarmSliceService(store)
         backupFileAdapter = AndroidStorageAccessFrameworkBackupFileAdapter(applicationContext)
         languagePreferences = SharedPreferencesAppLanguagePreferences(applicationContext)
+        textSizePreferences = SharedPreferencesAppTextSizePreferences(applicationContext)
 
         createBackupDocumentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -419,6 +430,8 @@ class FarmActivity : AppCompatActivity() {
         bindViews()
         applyShellSystemBarInsets()
         wireListeners()
+        syncTextSizeSelection()
+        applyAppTextSize()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (editorState != null) {
@@ -742,6 +755,8 @@ class FarmActivity : AppCompatActivity() {
         settingsAppearanceSection = findViewById(R.id.settingsAppearanceSection)
         settingsFarmSection = findViewById(R.id.settingsFarmSection)
         settingsDataSection = findViewById(R.id.settingsDataSection)
+        settingsTextSizeValueText = findViewById(R.id.settingsTextSizeValueText)
+        settingsTextSizeSeekBar = findViewById(R.id.settingsTextSizeSeekBar)
         languageFollowDeviceRadio = findViewById(R.id.languageFollowDeviceRadio)
         languageEnglishRadio = findViewById(R.id.languageEnglishRadio)
         languageNepaliRadio = findViewById(R.id.languageNepaliRadio)
@@ -911,6 +926,16 @@ class FarmActivity : AppCompatActivity() {
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
         changeSettingsCurrencyButton.setOnClickListener { showFarmCurrencyChooser() }
+        settingsTextSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser || textSizeChangeSuppressed) return
+                onTextSizeSelected(AppTextSize.MIN_SP + progress)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+        })
 
         navHomeItem.setOnClickListener { navigateTo(Destination.HOME) }
         navHisabKitabItem.setOnClickListener { navigateTo(Destination.HISAB_KITAB) }
@@ -1075,6 +1100,7 @@ class FarmActivity : AppCompatActivity() {
         if (destination == Destination.SETTINGS) renderSettings()
         if (destination == Destination.HISAB_KITAB) renderHisabKitab()
         if (destination == Destination.HISAB) renderHisabCalculator()
+        applyAppTextSize()
         scrollSettingsToPendingSection()
     }
 
@@ -3105,6 +3131,7 @@ class FarmActivity : AppCompatActivity() {
             createFarmContainer.visibility = View.VISIBLE
             farmDetailsContainer.visibility = View.GONE
             updateShellTitle()
+            applyAppTextSize()
             return
         }
         currentFarmId = farm.id
@@ -3114,6 +3141,8 @@ class FarmActivity : AppCompatActivity() {
         updateShellTitle()
         if (currentDestination == Destination.SETTINGS) renderSettings()
         if (currentDestination == Destination.HISAB_KITAB) renderHisabKitab()
+        if (currentDestination == Destination.HISAB) renderHisabCalculator()
+        applyAppTextSize()
     }
 
     private fun renderFarm(farm: FarmState) {
@@ -3210,6 +3239,40 @@ class FarmActivity : AppCompatActivity() {
         settingsImportBackupButton.visibility = View.VISIBLE
         settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
         syncLanguageSelection()
+        syncTextSizeSelection()
+    }
+
+    private fun onTextSizeSelected(textSizeSp: Int) {
+        val coerced = AppTextSize.coerce(textSizeSp)
+        textSizePreferences.save(coerced)
+        settingsTextSizeValueText.text = string(R.string.text_size_value_format, coerced)
+        applyAppTextSize()
+    }
+
+    private fun syncTextSizeSelection() {
+        val selected = textSizePreferences.load()
+        textSizeChangeSuppressed = true
+        settingsTextSizeSeekBar.max = AppTextSize.MAX_SP - AppTextSize.MIN_SP
+        settingsTextSizeSeekBar.progress = selected - AppTextSize.MIN_SP
+        settingsTextSizeValueText.text = string(R.string.text_size_value_format, selected)
+        textSizeChangeSuppressed = false
+    }
+
+    private fun applyAppTextSize() {
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.DEFAULT_SP
+        applyTextScale(shellRoot, scale)
+    }
+
+    private fun applyTextScale(view: View, scale: Float) {
+        if (view is TextView) {
+            val original = originalTextSizesPx.getOrPut(view) { view.textSize }
+            view.setTextSize(TypedValue.COMPLEX_UNIT_PX, original * scale)
+        }
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                applyTextScale(view.getChildAt(index), scale)
+            }
+        }
     }
 
     private fun appVersionName(): String {

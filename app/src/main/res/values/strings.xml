@@ -375,10 +375,8 @@
     <string name="settings_about_section">About</string>
 
     <string name="settings_text_size_label">Text size</string>
-    <string name="text_size_small">Small</string>
-    <string name="text_size_default">Default</string>
-    <string name="text_size_large">Large</string>
-    <string name="text_size_coming_later">Text size options are coming in a later update.</string>
+    <string name="text_size_value_format">Text size: %1$d px</string>
+    <string name="text_size_slider_note">Move the slider to make Kisab text smaller or larger.</string>
 
     <string name="settings_farm_name_label">Farm name</string>
     <string name="settings_no_farm_gentle">No farm yet. Create a farm on the Home tab first.</string>
