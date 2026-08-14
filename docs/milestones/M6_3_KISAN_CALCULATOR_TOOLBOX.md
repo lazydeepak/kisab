@@ -79,6 +79,8 @@ Completion gates remain `:app:verifyLocal`, `:app:verifyReleaseMetadata`, releas
 
 Manual emulator/device validation remains deferred under the current instruction. Before production release, validate Nepali keyboard entry, long labels and results on a small screen, TalkBack result announcements, focus/error behavior, and representative land conversions against a trusted local reference.
 
+> **Update (RC-01, 2026-08-14):** the calculator battery was later exercised on the API-36 physical device by `KisanToolboxDeviceBatteryTest`, covering the arithmetic operations, divide-by-zero, blank input, profit/loss with margin/markup, negative guards, simple interest, and Hill/Terai land conversions. Keyboard behavior, long labels/results on a small screen, and TalkBack announcements remain manual checks. See `docs/release/V0.2.0_RELEASE_CHECKLIST.md`.
+
 ## Post-M6.3 boundary
 
-M6.3 completes the currently authorized calculator toolbox. Seed/fertilizer or other agronomy-specific tools require a separately bounded milestone because their recommendations need crop, unit, and regional product decisions. M7 remains unprioritized.
+M6.3 completed the then-authorized calculator toolbox. Seed/fertilizer or other farm-input tools required a separately bounded milestone because their recommendations need crop, unit, and regional product decisions; M6.4 later authorized a temporary farmer-entered farm-planning calculator slice without agronomy recommendations. M7 remains unprioritized.

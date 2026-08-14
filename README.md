@@ -42,10 +42,11 @@ scripts/release-preflight.sh v0.2.0
 - Kisab M2 is complete. It hardens the transaction model with stable IDs, explicit transaction types and categories, minor-unit money with currency codes, explicit timestamps, validation, and create/edit/delete flows.
 - Kisab M3 is complete. It adds fully offline single-farm backup/restore using a versioned backup envelope, Android document picker integration, full pre-restore validation, and destructive overwrite confirmation.
 - Kisab `v0.1.0` is published and verified. The annotated tag points to a commit contained in `main`, and release workflow run `30750947492` produced the production-signed APK that passed tests, lint, tag/version validation, Android APK signature verification using v2 signing, and independent checksum verification. The GitHub release is published. See `docs/release/RELEASE_NOTES_0.1.0.md` for the full record.
-- Kisab M4 implementation and physical-device pilot work are complete; M4-05 release-candidate closeout remains deferred. M5-00 through M5-05, M6, and M6.1 are merged on `main`, covering the application shell, Parties, Trades, Settlements, Party Khata, farm financial overview, Party Hisab calculator, and branded navigation shell.
+- Kisab M4 implementation and physical-device pilot work are complete; M4-05 release-candidate closeout remains deferred pending the remaining manual gates recorded in `docs/release/V0.2.0_RELEASE_CHECKLIST.md`. M5-00 through M5-05, M6, and M6.1 are merged on `main`, covering the application shell, Parties, Trades, Settlements, Party Khata, farm financial overview, Party Hisab calculator, and branded navigation shell.
 - M6.2 adds a local CI-equivalent Gradle gate, machine-readable build evidence, workflow lint, API-36-hermetic GitHub CI, Android-test compilation in CI, and secret-free release preflight. It does not publish a release.
 - M6.3 adds offline money arithmetic, profit/loss, simple-interest, and Nepali land-unit calculators to Hisab without persisting results or changing farm accounting data.
 - M6.4 adds farmer-entered seed, fertilizer, feed, milk, and crop-yield planning calculators. They remain offline, temporary projections and do not provide agronomy recommendations or alter farm records.
+- M6.4.1 fixes shell system-bar inset handling and records API-36 physical-device plus API-26 emulator validation evidence for the navigation/insets paths, with API-26 back-navigation coordinate flakes retained as accepted residual test issues.
 
 ## Kisab M1 acceptance criteria
 - Launch a usable Android app from a launcher activity.

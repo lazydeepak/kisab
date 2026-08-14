@@ -4,7 +4,7 @@
 Accepted, frozen
 
 ## Context
-Kisab is currently an offline-first Android product. M0 through M6.4 establish the local farm, party, trade, settlement, khata, overview, and calculator workflows that make the Android app useful before any shared backend or additional client exists.
+Kisab is currently an offline-first Android product. M0 through M6.4.1 establish the local farm, party, trade, settlement, khata, overview, calculator, and shell/navigation workflows that make the Android app useful before any shared backend or additional client exists.
 
 The product direction is to eventually support multiple clients, shared data, and synchronization. That direction is approved for later planning, but implementing it now would distract from the next higher-value work: finishing `v0.2.0`, then improving Android features, UI/UX, Nepali-first usability, data-entry speed, and field readiness.
 
