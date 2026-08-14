@@ -159,11 +159,13 @@ class KisanToolboxDeviceBatteryTest {
             onView(withId(R.id.interestRateInput)).perform(scrollTo(), replaceText("12"), closeSoftKeyboard())
             onView(withId(R.id.interestMonthsInput)).perform(scrollTo(), replaceText("6"), closeSoftKeyboard())
             onView(withId(R.id.calculateInterestButton)).perform(scrollTo(), click())
+            // The complete labeled result proves both values are present: the
+            // total "10,600" alone would not satisfy the exact formatted string.
+            val expected = context.getString(R.string.interest_result_format, "600", "10,600")
             onView(withId(R.id.interestResultText))
                 .check(matches(allOf(
                     withEffectiveVisibility(Visibility.VISIBLE),
-                    withText(containsString("600")),
-                    withText(containsString("10,600"))
+                    withText(expected)
                 )))
         } finally {
             scenario.close()

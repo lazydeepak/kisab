@@ -67,20 +67,34 @@ class FarmOverviewAndHisabDeviceTest {
             overviewCashNet(scenario, formattedFor(scenario, 100000))
             assertOverviewEmptyState(scenario, R.id.overviewCashEmptyText, View.GONE)
 
-            // Trade + position render in THIS_MONTH too.
+            // Trade renders in THIS_MONTH with period-scoped totals: sales 20,000
+            // (in-window) and purchases 10,000 (only the in-window purchase).
             assertViewTextContains(scenario, R.id.overviewSalesText, formattedFor(scenario, 20000))
             assertViewTextContains(scenario, R.id.overviewPurchasesText, formattedFor(scenario, 10000))
             assertOverviewEmptyState(scenario, R.id.overviewTradeEmptyText, View.GONE)
+
+            // Position (start-independent) covers both purchases and the sale.
             assertOverviewEmptyState(scenario, R.id.overviewPositionEmptyText, View.GONE)
+            assertViewTextContains(scenario, R.id.overviewReceivableText, formattedFor(scenario, 20000))
+            assertViewTextContains(scenario, R.id.overviewPayableText, formattedFor(scenario, 20000))
+            assertViewTextContains(scenario, R.id.overviewNetPositionText, formattedFor(scenario, 0))
+            assertOverviewEmptyState(scenario, R.id.overviewPositionAsOfText, View.VISIBLE)
+
+            // THIS_MONTH trend: a single row for the current month.
+            assertTrendRowCount(scenario, 1)
 
             // LAST_30_DAYS: the 60-day-old expense is still excluded.
             selectOverviewPeriod(scenario, FinancialPeriodPreset.LAST_30_DAYS)
             overviewCashExpense(scenario, formattedFor(scenario, 0))
 
-            // ALL_TIME: the 60-day-old expense is now included.
+            // ALL_TIME: the 60-day-old expense is now included; purchases rise to
+            // 20,000 (both supplier purchases) and the trend gains a second month.
             selectOverviewPeriod(scenario, FinancialPeriodPreset.ALL_TIME)
             overviewCashExpense(scenario, formattedFor(scenario, 50000))
             overviewCashNet(scenario, formattedFor(scenario, 50000))
+            assertViewTextContains(scenario, R.id.overviewPurchasesText, formattedFor(scenario, 20000))
+            // The trend gains the out-of-window month (row count strictly grows).
+            assertTrendRowCountAtLeast(scenario, 2)
         } finally {
             scenario.close()
         }
@@ -150,12 +164,15 @@ class FarmOverviewAndHisabDeviceTest {
             }
             waitForIdle()
             assertHisabRole(scenario, roleLabel(com.susankhya.kisab.domain.PartyRole.SUPPLIER))
+            // THIS_MONTH: only the in-window purchase (10,000) counts as activity;
+            // the position (start-independent) still covers both purchases.
             assertHisabPurchases(scenario, formattedFor(scenario, 10000))
-            assertHisabToPay(scenario, formattedFor(scenario, 10000))
+            assertHisabToPay(scenario, formattedFor(scenario, 20000))
 
-            // Period switch re-renders the reconciliation for the supplier.
+            // ALL_TIME: the 60-day-old purchase is included, so the purchases
+            // line differs — a no-op period listener would now fail.
             selectHisabPeriod(scenario, FinancialPeriodPreset.ALL_TIME)
-            assertHisabPurchases(scenario, formattedFor(scenario, 10000))
+            assertHisabPurchases(scenario, formattedFor(scenario, 20000))
         } finally {
             scenario.close()
         }
@@ -177,12 +194,22 @@ class FarmOverviewAndHisabDeviceTest {
             selectHisabPeriod(scenario, FinancialPeriodPreset.ALL_TIME)
             waitForIdle()
             assertHisabRole(scenario, roleLabel(com.susankhya.kisab.domain.PartyRole.SUPPLIER))
+            assertHisabPurchases(scenario, formattedFor(scenario, 20000))
 
             scenario.recreate()
 
             onView(withId(R.id.navHisabItem)).perform(click())
             assertHisabRole(scenario, roleLabel(com.susankhya.kisab.domain.PartyRole.SUPPLIER))
-            assertHisabPurchases(scenario, formattedFor(scenario, 10000))
+            // ALL_TIME must survive recreation: 20,000 proves the period (not a
+            // THIS_MONTH reset, which would show 10,000).
+            assertHisabPurchases(scenario, formattedFor(scenario, 20000))
+            scenario.onActivity { activity ->
+                val spinner = activity.findViewById<android.widget.Spinner>(R.id.hisabPeriodSpinner)
+                assertEquals(
+                    activity.getString(R.string.period_all_time),
+                    spinner.selectedItem as String
+                )
+            }
         } finally {
             scenario.close()
         }
@@ -287,6 +314,23 @@ class FarmOverviewAndHisabDeviceTest {
         }
     }
 
+    private fun assertTrendRowCount(scenario: ActivityScenario<FarmActivity>, expected: Int) {
+        scenario.onActivity { activity ->
+            val container = activity.findViewById<android.view.ViewGroup>(R.id.overviewTrendContainer)
+            assertEquals("monthly trend row count", expected, container.childCount)
+        }
+    }
+
+    private fun assertTrendRowCountAtLeast(scenario: ActivityScenario<FarmActivity>, minimum: Int) {
+        scenario.onActivity { activity ->
+            val container = activity.findViewById<android.view.ViewGroup>(R.id.overviewTrendContainer)
+            assertTrue(
+                "monthly trend row count should be at least $minimum, got ${container.childCount}",
+                container.childCount >= minimum
+            )
+        }
+    }
+
     private fun seedOverviewFarm() {
         val store = SharedPreferencesFarmStore(context)
         val service = FarmSliceService(store)
@@ -337,6 +381,19 @@ class FarmOverviewAndHisabDeviceTest {
                 totalMinor = 10000,
                 description = "Inputs from seller",
                 occurredAt = OffsetDateTime.now().toString()
+            )
+        )
+        // An out-of-window supplier purchase so THIS_MONTH (10,000) and ALL_TIME
+        // (20,000) differ for the Hisab reconciliation and the overview trade
+        // section; a period listener that does nothing now fails the assertion.
+        service.addTrade(
+            farm.id,
+            TradeDraft(
+                type = TradeType.PURCHASE,
+                partyId = seller.id,
+                totalMinor = 10000,
+                description = "Old inputs from seller",
+                occurredAt = OffsetDateTime.now().minusDays(60).toString()
             )
         )
     }
