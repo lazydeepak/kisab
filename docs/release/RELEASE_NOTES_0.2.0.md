@@ -1,6 +1,6 @@
 # Kisab v0.2.0 — Draft Release Notes
 
-> **Draft only.** `v0.2.0` has not been tagged, signed, or published. Manual/device validation for several M5–M6 screens remains deferred, so this document must not be presented as a production-readiness claim.
+> **Draft only.** `v0.2.0` has not been tagged, signed, or published. Several manual/human device-validation items remain deferred (see "Known limitations"), so this document must not be presented as a production-readiness claim.
 
 ## User-visible changes since v0.1.0
 
@@ -31,7 +31,8 @@
 
 ## Known limitations before release
 
-- Manual/device validation outstanding at the v0.2.0 candidate freeze: M5-05 Financial Overview (period switching, empty states, overflow handling, recreation restore, Nepali rendering), M6 Party Hisab interactions (party/period switching, recreation, long Nepali text, small-screen scrolling), M6.1 shell visual/accessibility presentation (small-screen EN/NE labels, TalkBack order, popup placement, icon contrast), and the M6.3 toolbox device battery (keyboard behavior, long labels/results, TalkBack announcements, focus/errors, representative land conversions). See `docs/release/V0.2.0_RELEASE_CHECKLIST.md` for the release-candidate gate record.
-- Device validation already completed: M6.4 farm-planning calculators (keyboard, selector, small-screen, long-result, Nepali rendering, and persistence isolation) on an API-36 physical device and an API-26 emulator (`docs/milestones/M6_4_FARM_INPUT_CALCULATORS.md`); M6.4.1 shell/system-bar insets including the full connected instrumentation suite (86/86 on the API-36 physical device; API-26 emulator passes except two documented back-navigation coordinate flakes reproduced on the pre-change baseline, `docs/milestones/M6_4_1_SHELL_SYSTEM_BAR_INSETS.md`).
+- Manual/device validation **completed at the v0.2.0 candidate freeze** (RC-01, Moto API-36 physical): M5-05 Financial Overview (period switching, empty states, recreation restore) and M6 Party Hisab (party/period switching, recreation restore) — now covered by `FarmOverviewAndHisabDeviceTest`, with the connected instrumentation suite at **91/91** (86 baseline + 5 new). Overflow handling and Nepali rendering remain unit-covered. See `docs/release/V0.2.0_RELEASE_CHECKLIST.md` for the release-candidate gate record.
+- Still outstanding **manual/human** validation: M6.1 shell visual/accessibility presentation (small-screen EN/NE labels, TalkBack order, popup placement, icon contrast), the M6.3 toolbox device battery (keyboard behavior, long labels/results, TalkBack announcements, focus/errors, representative land conversions), long-Nepali-text and small-screen rendering for Khata and Party Hisab, and the API-26 emulator smoke pass. See `docs/release/V0.2.0_RELEASE_CHECKLIST.md` (Sections C/E/F).
+- Device validation already completed: M6.4 farm-planning calculators (keyboard, selector, small-screen, long-result, Nepali rendering, and persistence isolation) on an API-36 physical device and an API-26 emulator (`docs/milestones/M6_4_FARM_INPUT_CALCULATORS.md`); M6.4.1 shell/system-bar insets including the full connected instrumentation suite (**91/91** on the API-36 physical device at RC-01 head; API-26 emulator passes except two documented back-navigation coordinate flakes reproduced on the pre-change baseline, `docs/milestones/M6_4_1_SHELL_SYSTEM_BAR_INSETS.md`).
 - Home cash transactions and Trade Settlements remain deliberately separate to prevent accidental double counting.
 - The release workflow requires an annotated `v0.2.0` tag contained in `main`, protected-environment approval, and the existing production signing secrets. It creates a draft release only.
