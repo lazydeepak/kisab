@@ -4,6 +4,7 @@ import android.app.DatePickerDialog
 import android.app.LocaleManager
 import android.app.TimePickerDialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.LocaleList
@@ -291,6 +292,15 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var changeSettingsCurrencyButton: Button
     private lateinit var settingsCurrencyLockedText: TextView
     private lateinit var settingsNoFarmText: TextView
+    private lateinit var settingsFarmNameLabel: TextView
+    private lateinit var settingsFarmNameText: TextView
+    private lateinit var settingsDataNoFarmText: TextView
+    private lateinit var settingsExportBackupButton: Button
+    private lateinit var settingsImportBackupButton: Button
+    private lateinit var settingsAboutVersionText: TextView
+    private lateinit var settingsAppearanceSection: TextView
+    private lateinit var settingsFarmSection: TextView
+    private lateinit var settingsDataSection: TextView
     private lateinit var languageFollowDeviceRadio: RadioButton
     private lateinit var languageEnglishRadio: RadioButton
     private lateinit var languageNepaliRadio: RadioButton
@@ -336,6 +346,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var languagePreferences: AppLanguagePreferences
     private var languageCheckSuppressed = false
+    private var pendingSettingsScrollToSection: View? = null
 
     private var currentFarmId: String? = null
     private var pendingExportContent: String? = null
@@ -722,6 +733,15 @@ class FarmActivity : AppCompatActivity() {
         changeSettingsCurrencyButton = findViewById(R.id.changeSettingsCurrencyButton)
         settingsCurrencyLockedText = findViewById(R.id.settingsCurrencyLockedText)
         settingsNoFarmText = findViewById(R.id.settingsNoFarmText)
+        settingsFarmNameLabel = findViewById(R.id.settingsFarmNameLabel)
+        settingsFarmNameText = findViewById(R.id.settingsFarmNameText)
+        settingsDataNoFarmText = findViewById(R.id.settingsDataNoFarmText)
+        settingsExportBackupButton = findViewById(R.id.settingsExportBackupButton)
+        settingsImportBackupButton = findViewById(R.id.settingsImportBackupButton)
+        settingsAboutVersionText = findViewById(R.id.settingsAboutVersionText)
+        settingsAppearanceSection = findViewById(R.id.settingsAppearanceSection)
+        settingsFarmSection = findViewById(R.id.settingsFarmSection)
+        settingsDataSection = findViewById(R.id.settingsDataSection)
         languageFollowDeviceRadio = findViewById(R.id.languageFollowDeviceRadio)
         languageEnglishRadio = findViewById(R.id.languageEnglishRadio)
         languageNepaliRadio = findViewById(R.id.languageNepaliRadio)
@@ -888,6 +908,8 @@ class FarmActivity : AppCompatActivity() {
         addEntryButton.setOnClickListener { addEntry() }
         exportBackupButton.setOnClickListener { exportBackup() }
         importBackupButton.setOnClickListener { importBackup() }
+        settingsExportBackupButton.setOnClickListener { exportBackup() }
+        settingsImportBackupButton.setOnClickListener { importBackup() }
         changeSettingsCurrencyButton.setOnClickListener { showFarmCurrencyChooser() }
 
         navHomeItem.setOnClickListener { navigateTo(Destination.HOME) }
@@ -1026,6 +1048,7 @@ class FarmActivity : AppCompatActivity() {
     private fun navigateTo(destination: Destination) {
         if (destination == currentDestination) {
             render()
+            scrollSettingsToPendingSection()
             return
         }
         confirmDiscardIfNeeded {
@@ -1052,6 +1075,13 @@ class FarmActivity : AppCompatActivity() {
         if (destination == Destination.SETTINGS) renderSettings()
         if (destination == Destination.HISAB_KITAB) renderHisabKitab()
         if (destination == Destination.HISAB) renderHisabCalculator()
+        scrollSettingsToPendingSection()
+    }
+
+    private fun scrollSettingsToPendingSection() {
+        val target = pendingSettingsScrollToSection ?: return
+        pendingSettingsScrollToSection = null
+        settingsScreen.post { settingsScreen.smoothScrollTo(0, target.top) }
     }
 
     private fun showShellMenu() {
@@ -1060,7 +1090,22 @@ class FarmActivity : AppCompatActivity() {
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     R.id.menuSettings -> {
+                        pendingSettingsScrollToSection = null
                         navigateTo(Destination.SETTINGS)
+                        true
+                    }
+                    R.id.menuBackupRestore -> {
+                        pendingSettingsScrollToSection = settingsDataSection
+                        navigateTo(Destination.SETTINGS)
+                        true
+                    }
+                    R.id.menuFarmDetails -> {
+                        pendingSettingsScrollToSection = settingsFarmSection
+                        navigateTo(Destination.SETTINGS)
+                        true
+                    }
+                    R.id.menuAbout -> {
+                        showAboutDialog()
                         true
                     }
                     else -> false
@@ -3149,12 +3194,45 @@ class FarmActivity : AppCompatActivity() {
         val farm = currentFarmId?.let { service.loadFarm(it) }
         val canChangeCurrency = farm != null && farm.transactions.isEmpty()
         settingsNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
+        settingsNoFarmText.text = string(
+            if (farm == null) R.string.settings_no_farm_gentle else R.string.settings_no_farm_text
+        )
+        settingsFarmNameLabel.visibility = if (farm == null) View.GONE else View.VISIBLE
+        settingsFarmNameText.text = farm?.name ?: ""
+        settingsFarmNameText.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsCurrencyText.text = farm?.currencyCode ?: ""
         settingsCurrencyText.visibility = if (farm == null) View.GONE else View.VISIBLE
         changeSettingsCurrencyButton.visibility = if (canChangeCurrency) View.VISIBLE else View.GONE
         settingsCurrencyLockedText.visibility =
             if (farm != null && !canChangeCurrency) View.VISIBLE else View.GONE
+        settingsDataNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
+        settingsExportBackupButton.visibility = if (farm == null) View.GONE else View.VISIBLE
+        settingsImportBackupButton.visibility = View.VISIBLE
+        settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
         syncLanguageSelection()
+    }
+
+    private fun appVersionName(): String {
+        val versionName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0)).versionName
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageInfo(packageName, 0).versionName
+        }
+        return versionName ?: string(R.string.app_name)
+    }
+
+    private fun showAboutDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_about_title)
+            .setMessage(
+                string(
+                    R.string.settings_about_version_format,
+                    appVersionName()
+                ) + "\n\n" + string(R.string.settings_about_privacy_note)
+            )
+            .setPositiveButton(R.string.action_done, null)
+            .show()
     }
 
     private fun onLanguageSelected(language: AppLanguage) {

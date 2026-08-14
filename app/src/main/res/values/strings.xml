@@ -363,4 +363,30 @@
     <string name="language_follow_device">Follow the device language</string>
     <string name="language_english">English</string>
     <string name="language_nepali">Nepali</string>
+
+    <string name="menu_backup_restore">Backup / Restore</string>
+    <string name="menu_farm_details">Farm details</string>
+    <string name="menu_about">About Kisab</string>
+
+    <string name="settings_app_section">App</string>
+    <string name="settings_appearance_section">Appearance</string>
+    <string name="settings_farm_section">Farm</string>
+    <string name="settings_data_section">Data</string>
+    <string name="settings_about_section">About</string>
+
+    <string name="settings_text_size_label">Text size</string>
+    <string name="text_size_small">Small</string>
+    <string name="text_size_default">Default</string>
+    <string name="text_size_large">Large</string>
+    <string name="text_size_coming_later">Text size options are coming in a later update.</string>
+
+    <string name="settings_farm_name_label">Farm name</string>
+    <string name="settings_no_farm_gentle">No farm yet. Create a farm on the Home tab first.</string>
+
+    <string name="settings_data_offline_note">Kisab keeps your farm data on this device. Export a backup to keep a copy.</string>
+    <string name="settings_data_no_farm_note">Create a farm on the Home tab to export a backup.</string>
+
+    <string name="settings_about_version_format">Kisab %1$s</string>
+    <string name="settings_about_privacy_note">Kisab stores farm data on this device unless you export or restore a backup.</string>
+    <string name="dialog_about_title">About Kisab</string>
 </resources>

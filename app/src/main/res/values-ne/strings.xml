@@ -359,4 +359,30 @@
     <string name="language_follow_device">उपकरणको भाषा अनुसरण गर्नुहोस्</string>
     <string name="language_english">अङ्ग्रेजी</string>
     <string name="language_nepali">नेपाली</string>
+
+    <string name="menu_backup_restore">ब्याकअप / पुनर्स्थापना</string>
+    <string name="menu_farm_details">फार्म विवरण</string>
+    <string name="menu_about">किसाबको बारेमा</string>
+
+    <string name="settings_app_section">एप</string>
+    <string name="settings_appearance_section">देखावट</string>
+    <string name="settings_farm_section">फार्म</string>
+    <string name="settings_data_section">डेटा</string>
+    <string name="settings_about_section">बारेमा</string>
+
+    <string name="settings_text_size_label">अक्षरको आकार</string>
+    <string name="text_size_small">सानो</string>
+    <string name="text_size_default">सामान्य</string>
+    <string name="text_size_large">ठूलो</string>
+    <string name="text_size_coming_later">अक्षरको आकार विकल्पहरू पछिल्लो अपडेटमा आउनेछन्।</string>
+
+    <string name="settings_farm_name_label">फार्मको नाम</string>
+    <string name="settings_no_farm_gentle">अहिलेसम्म फार्म छैन। पहिले गृह ट्याबमा फार्म सिर्जना गर्नुहोस्।</string>
+
+    <string name="settings_data_offline_note">किसाबले तपाईंको फार्म डेटा यही उपकरणमा राख्छ। प्रतिलिपि राख्न ब्याकअप निर्यात गर्नुहोस्।</string>
+    <string name="settings_data_no_farm_note">ब्याकअप निर्यात गर्न गृह ट्याबमा फार्म सिर्जना गर्नुहोस्।</string>
+
+    <string name="settings_about_version_format">किसाब %1$s</string>
+    <string name="settings_about_privacy_note">किसाबले फार्म डेटा यही उपकरणमा राख्छ, जबसम्म तपाईं ब्याकअप निर्यात वा पुनर्स्थापना गर्नुहुन्न।</string>
+    <string name="dialog_about_title">किसाबको बारेमा</string>
 </resources>

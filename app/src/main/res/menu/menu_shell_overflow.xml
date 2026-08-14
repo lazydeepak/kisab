@@ -2,4 +2,13 @@
     <item
         android:id="@+id/menuSettings"
         android:title="@string/nav_settings" />
+    <item
+        android:id="@+id/menuBackupRestore"
+        android:title="@string/menu_backup_restore" />
+    <item
+        android:id="@+id/menuFarmDetails"
+        android:title="@string/menu_farm_details" />
+    <item
+        android:id="@+id/menuAbout"
+        android:title="@string/menu_about" />
 </menu>
