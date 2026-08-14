@@ -34,6 +34,7 @@ A smallholder or farm operator who needs to record a farm, one or more livestock
 - **M6.4** — Farm Input Calculators: temporary farmer-entered seed, fertilizer, feed, milk, and crop-yield quantity/cost/revenue projections in Hisab, without agronomy recommendations, persistence, or accounting side effects. **Status: COMPLETE (automated and manual/device validation on API 36 + API 26)** (see `docs/milestones/M6_4_FARM_INPUT_CALCULATORS.md`).
 - **M6.4.1** — Shell System-Bar Insets: keep the app bar and bottom navigation clear of system bars on edge-to-edge Android layouts, with API-36 physical-device and API-26 emulator validation. **Status: COMPLETE** (see `docs/milestones/M6_4_1_SHELL_SYSTEM_BAR_INSETS.md`).
 - **Post-v0.2.0 multiplatform direction** — Android/Web/iPhone/iPad/macOS/Windows with one API-backed authoritative backend and offline-capable sync is **ACCEPTED BUT FROZEN**; Android features and UI/UX remain the next priority. See `docs/decisions/ADR-0002-post-v0.2.0-multiplatform-direction.md`.
+- **Agent workflow and validation depth** — implementation prompts, agent work, Codex review, maintainer function/UI acceptance, and only then approved validation prompts. **Status: ACCEPTED** (see `docs/decisions/ADR-0003-agent-workflow-and-validation-depth.md`).
 
 ## Product boundary
 Kisab owns farm concepts, user journeys, offline persistence strategy, and product-specific presentation. It reuses the shared foundation only for technical concerns such as secure session persistence.
