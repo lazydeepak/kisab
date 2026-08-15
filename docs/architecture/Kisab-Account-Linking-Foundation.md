@@ -54,3 +54,11 @@ Farm export remains farm-only (`FarmBackupCodec`). It must not embed LocalUser i
 - `domain/AccountLinkStore.kt` / `AccountLinkService.kt`
 - `persistence/SharedPreferencesAccountLinkStore.kt`
 - Session remains `session/KisabSessionStorageAdapter.kt`
+
+## Online account / session (next layer)
+
+See `Kisab-Online-Account-Session.md` for:
+
+provider credential → `AccountApi` → secure `KisabSession` → `AccountLink`
+
+orchestrated by `account/OnlineAccountService` (no farm sync).
