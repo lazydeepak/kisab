@@ -398,7 +398,13 @@
     <string name="delete_farm_action">फार्म मेटाउनुहोस्</string>
     <string name="action_continue">जारी राख्नुहोस्</string>
     <string name="dialog_reset_farm_title">फार्म डेटा रिसेट गर्ने?</string>
-    <string name="dialog_reset_farm_message">यसले फार्मका सबै प्रविष्टिहरू, कारोबारहरू, साझेदारहरू, बिक्रीहरू, किनमेलहरू र भुक्तानीहरू खाली गर्छ। फार्मको नाम र मुद्रा राखिन्छ।\n\nयो रद्द गर्न सकिँदैन।</string>
+    <string name="dialog_reset_farm_message">यसले फार्मका सबै प्रविष्टिहरू, कारोबारहरू, साझेदारहरू, बिक्रीहरू, किनमेलहरू र भुक्तानीहरू स्थायी रूपमा मेटाउँछ। फार्मको नाम र मुद्रा राखिन्छ।\n\nब्याकअप बिना किसाबबाट यो रद्द गर्न सकिँदैन।</string>
+    <string name="dialog_reset_backup_gate_title">रिसेट गर्नुअघि ब्याकअप गर्ने?</string>
+    <string name="dialog_reset_backup_gate_message">रिसेटले फार्मका सबै अभिलेख स्थायी रूपमा मेटाउँछ। ती कसरी सुरक्षित राख्ने छनौट गर्नुहोस्।</string>
+    <string name="reset_backup_now_action">अहिले ब्याकअप गर्नुहोस्</string>
+    <string name="reset_backup_existing_action">मसँग पहिले नै ब्याकअप छ</string>
+    <string name="dialog_reset_typed_title">रिसेट पुष्टि गर्नुहोस्</string>
+    <string name="dialog_reset_typed_message">फार्मका सबै अभिलेख स्थायी रूपमा मेटाउन RESET टाइप गर्नुहोस्। यो रद्द गर्न सकिँदैन।</string>
     <string name="dialog_delete_farm_title">फार्म मेटाउने?</string>
     <string name="dialog_delete_farm_message">यसले फार्म र यसका सबै डेटा स्थायी रूपमा मेटाउँछ, जसमा फार्मको नाम र मुद्रा पनि समावेश छ। पहिले निर्यात गरिएका ब्याकअप फाइलहरूमा असर पर्दैन।\n\nयो रद्द गर्न सकिँदैन।</string>
     <string name="dialog_delete_farm_typed_message_format">पुष्टि गर्न फार्मको नाम टाइप गर्नुहोस्: %1$s</string>

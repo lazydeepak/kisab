@@ -381,6 +381,8 @@ class FarmActivity : AppCompatActivity() {
 
     private var currentFarmId: String? = null
     private var pendingExportContent: String? = null
+    private var pendingResetBackupGate = false
+    private val resetFlow = ResetFarmFlow { performResetFarmData() }
 
     private var createFarmCurrencyCode: String = FarmState.DEFAULT_CURRENCY_CODE
 
@@ -419,20 +421,25 @@ class FarmActivity : AppCompatActivity() {
                 pendingExportContent = null
                 if (uri == null || content == null) {
                     showToast(R.string.toast_export_cancelled)
+                    finishResetBackupGate(succeeded = false)
                     return@registerForActivityResult
                 }
                 try {
                     backupFileAdapter.writeText(uri.toString(), content, FarmBackupCodec.MAX_BACKUP_BYTES)
                     showToast(R.string.toast_backup_exported)
+                    finishResetBackupGate(succeeded = true)
                 } catch (exception: FarmBackupException) {
                     showValidationMessage(FarmUiError.fromBackupFailure(exception).resourceId)
+                    finishResetBackupGate(succeeded = false)
                 } catch (exception: Exception) {
                     Log.e(LOG_TAG, "export backup failed", exception)
                     showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
+                    finishResetBackupGate(succeeded = false)
                 }
             } else {
                 pendingExportContent = null
                 showToast(R.string.toast_export_cancelled)
+                finishResetBackupGate(succeeded = false)
             }
         }
 
@@ -3189,15 +3196,92 @@ class FarmActivity : AppCompatActivity() {
     private fun showResetFarmDataConfirmation() {
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        resetFlow.begin()
         AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_reset_farm_title))
             .setMessage(string(R.string.dialog_reset_farm_message))
-            .setPositiveButton(string(R.string.reset_farm_data_action)) { _, _ -> performResetFarmData(farm) }
-            .setNegativeButton(string(R.string.action_cancel), null)
+            .setPositiveButton(string(R.string.action_continue)) { _, _ ->
+                resetFlow.proceedFromWarning()
+                showResetBackupGateDialog()
+            }
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
             .show()
     }
 
-    private fun performResetFarmData(farm: FarmState) {
+    private fun showResetBackupGateDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_reset_backup_gate_title))
+            .setMessage(string(R.string.dialog_reset_backup_gate_message))
+            .setItems(
+                arrayOf(
+                    string(R.string.reset_backup_now_action),
+                    string(R.string.reset_backup_existing_action)
+                )
+            ) { _, which ->
+                when (which) {
+                    0 -> {
+                        pendingResetBackupGate = true
+                        exportBackup()
+                    }
+                    1 -> {
+                        resetFlow.acknowledgeExistingBackup()
+                        showResetTypedConfirmation()
+                    }
+                }
+            }
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
+            .show()
+    }
+
+    private fun showResetTypedConfirmation() {
+        val input = EditText(this).apply {
+            isSingleLine = true
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_reset_typed_title))
+            .setMessage(string(R.string.dialog_reset_typed_message))
+            .setView(input)
+            .setPositiveButton(string(R.string.reset_farm_data_action), null)
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
+            .setOnCancelListener { resetFlow.cancel() }
+            .create()
+        dialog.setOnShowListener {
+            val confirmButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            confirmButton.isEnabled = resetFlow.canType(input.text?.toString().orEmpty())
+            input.addTextChangedListener(object : TextWatcher {
+                override fun afterTextChanged(text: Editable?) {
+                    confirmButton.isEnabled = resetFlow.canType(text?.toString().orEmpty())
+                }
+
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            })
+            confirmButton.setOnClickListener {
+                if (resetFlow.confirm(input.text?.toString().orEmpty())) {
+                    dialog.dismiss()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    /** Resolves the pending backup-gate export result without new backup code. */
+    private fun finishResetBackupGate(succeeded: Boolean) {
+        if (!pendingResetBackupGate) return
+        pendingResetBackupGate = false
+        if (succeeded) {
+            resetFlow.onBackupSucceeded()
+            showResetTypedConfirmation()
+        } else {
+            resetFlow.onBackupCancelledOrFailed()
+        }
+    }
+
+    private fun performResetFarmData() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         closeEditor()
         try {
             service.resetFarmData(farm.id)
