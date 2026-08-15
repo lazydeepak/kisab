@@ -90,7 +90,6 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
 
     fun setFarmCurrency(farmId: String, currencyCode: String) {
         val farm = getFarm(farmId)
-        require(farm.transactions.isEmpty()) { "Farm currency cannot change after transactions are recorded" }
         require(currencyCode.matches(CURRENCY_CODE_PATTERN)) { "Farm currency must be a 3-letter ISO code" }
         store.saveFarm(farm.copy(currencyCode = currencyCode.trim().uppercase()))
     }
@@ -333,6 +332,14 @@ data class FarmState(
     val settlements: MutableList<Settlement> = mutableListOf(),
     val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
 ) {
+    /**
+     * Whether the farm already holds monetary records (transactions, trades or
+     * settlements). Changing the display currency for such a farm requires
+     * confirmation, because amounts are kept unchanged and are never converted.
+     */
+    fun hasMonetaryRecords(): Boolean =
+        transactions.isNotEmpty() || trades.isNotEmpty() || settlements.isNotEmpty()
+
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
         const val CURRENT_FARM_SCHEMA_VERSION = 6

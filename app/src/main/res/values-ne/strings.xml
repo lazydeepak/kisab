@@ -53,7 +53,9 @@
     <string name="today_label">आज</string>
     <string name="today_time_format">%1$s, %2$s</string>
     <string name="currency_choice_dialog_title">फार्मको मुद्रा छान्नुहोस्</string>
-    <string name="currency_iso_hint">ISO 4217 कोड</string>
+    <string name="dialog_change_currency_title">फार्मको मुद्रा परिवर्तन गर्ने?</string>
+    <string name="dialog_change_currency_message_format">फार्मको मुद्रा %1$s बाट %2$s मा परिवर्तन गर्ने?\n\nअवस्थित रकमहरू उस्तै रहनेछन्। तिनीहरूलाई रूपान्तरण गरिने छैन।</string>
+    <string name="toast_currency_changed">मुद्रा परिवर्तन भयो</string>
     <string name="action_ok">ठिक छ</string>
     <string name="action_done">सम्पन्न</string>
 
@@ -64,7 +66,6 @@
     <string name="show_farm_tools_action">फार्म उपकरणहरू देखाउनुहोस्</string>
     <string name="hide_farm_tools_action">फार्म उपकरणहरू लुकाउनुहोस्</string>
     <string name="farm_currency_label">मुद्रा</string>
-    <string name="currency_locked_note">लेनदेन अभिलेख भएपछि मुद्रा लक हुन्छ।</string>
     <string name="backup_section">ब्याकअप</string>
 
     <string name="farm_tools_summary_format">फार्म: %1$s\nप्रविष्टि सङ्ख्या: %2$s\nबाँकी रकम: %3$s</string>
@@ -102,8 +103,6 @@
     <string name="error_transaction_amount_positive">रकम धनात्मक हुनुपर्छ</string>
     <string name="error_transaction_amount_too_precise">रकममा यस मुद्राका लागि धेरै दशमलव अङ्क छ</string>
     <string name="error_transaction_amount_too_large">रकम धेरै ठूलो छ</string>
-    <string name="error_currency_iso_three_letters">मुद्रा तीन अक्षरको ISO कोड हुनुपर्छ</string>
-    <string name="error_currency_locked">लेनदेन अभिलेख भएपछि मुद्रा परिवर्तन गर्न सकिँदैन</string>
     <string name="error_backup_invalid_or_unsupported">अमान्य वा समर्थन नगरिएको ब्याकअप</string>
     <string name="error_backup_too_large_or_unreadable">ब्याकअप धेरै ठूलो छ वा पढ्न सकिएन</string>
     <string name="error_current_farm_missing">पहिले फार्म सिर्जना गर्नुहोस्</string>

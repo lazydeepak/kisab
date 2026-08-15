@@ -116,8 +116,6 @@ class LocalizedResourceResolutionTest {
     fun validationAndBackupMessagesResolveInBothLocales() {
         val validationKeys = listOf(
             R.string.error_farm_name_required,
-            R.string.error_currency_iso_three_letters,
-            R.string.error_currency_locked,
             R.string.error_unexpected
         )
         val backupKeys = listOf(
@@ -158,9 +156,10 @@ class LocalizedResourceResolutionTest {
     fun dailyEntryCurrencyStringsResolveInBothLocales() {
         val keys = listOf(
             R.string.currency_choice_dialog_title,
-            R.string.currency_iso_hint,
             R.string.farm_currency_label,
-            R.string.currency_locked_note,
+            R.string.dialog_change_currency_title,
+            R.string.dialog_change_currency_message_format,
+            R.string.toast_currency_changed,
             R.string.action_ok,
             R.string.action_cancel
         )

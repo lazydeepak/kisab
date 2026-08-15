@@ -8,7 +8,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.LocaleList
-import android.text.InputType
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.RelativeSizeSpan
@@ -299,7 +298,6 @@ class FarmActivity : AppCompatActivity() {
 
     private lateinit var settingsCurrencyText: TextView
     private lateinit var changeSettingsCurrencyButton: Button
-    private lateinit var settingsCurrencyLockedText: TextView
     private lateinit var settingsNoFarmText: TextView
     private lateinit var settingsFarmNameLabel: TextView
     private lateinit var settingsFarmNameText: TextView
@@ -326,6 +324,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var createFarmContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmDetailsContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmNameInput: EditText
+    private lateinit var createFarmCurrencyText: TextView
+    private lateinit var changeCreateFarmCurrencyButton: Button
     private lateinit var createFarmButton: Button
     private lateinit var farmNameText: TextView
     private lateinit var balanceText: TextView
@@ -374,6 +374,8 @@ class FarmActivity : AppCompatActivity() {
     private var currentFarmId: String? = null
     private var pendingExportContent: String? = null
 
+    private var createFarmCurrencyCode: String = FarmState.DEFAULT_CURRENCY_CODE
+
     private var currentDestination: Destination = Destination.HOME
     private var lastPrimaryDestination: Destination = Destination.HOME
     private var editorState: TransactionEditorState? = null
@@ -400,6 +402,7 @@ class FarmActivity : AppCompatActivity() {
         backupFileAdapter = AndroidStorageAccessFrameworkBackupFileAdapter(applicationContext)
         languagePreferences = SharedPreferencesAppLanguagePreferences(applicationContext)
         textSizePreferences = SharedPreferencesAppTextSizePreferences(applicationContext)
+        createFarmCurrencyCode = FarmCurrencies.defaultFor(Locale.getDefault())
 
         createBackupDocumentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -759,7 +762,6 @@ class FarmActivity : AppCompatActivity() {
         deletePartyButton = findViewById(R.id.deletePartyButton)
         settingsCurrencyText = findViewById(R.id.settingsCurrencyText)
         changeSettingsCurrencyButton = findViewById(R.id.changeSettingsCurrencyButton)
-        settingsCurrencyLockedText = findViewById(R.id.settingsCurrencyLockedText)
         settingsNoFarmText = findViewById(R.id.settingsNoFarmText)
         settingsFarmNameLabel = findViewById(R.id.settingsFarmNameLabel)
         settingsFarmNameText = findViewById(R.id.settingsFarmNameText)
@@ -785,6 +787,8 @@ class FarmActivity : AppCompatActivity() {
         createFarmContainer = findViewById(R.id.createFarmContainer)
         farmDetailsContainer = findViewById(R.id.farmDetailsContainer)
         farmNameInput = findViewById(R.id.farmNameInput)
+        createFarmCurrencyText = findViewById(R.id.createFarmCurrencyText)
+        changeCreateFarmCurrencyButton = findViewById(R.id.changeCreateFarmCurrencyButton)
         createFarmButton = findViewById(R.id.createFarmButton)
         farmNameText = findViewById(R.id.farmNameText)
         balanceText = findViewById(R.id.balanceText)
@@ -942,12 +946,18 @@ class FarmActivity : AppCompatActivity() {
 
     private fun wireListeners() {
         createFarmButton.setOnClickListener { createFarm() }
+        changeCreateFarmCurrencyButton.setOnClickListener {
+            showCurrencyChooser(createFarmCurrencyCode) { code ->
+                createFarmCurrencyCode = code
+                createFarmCurrencyText.text = FarmCurrencies.label(code, presentationLocale)
+            }
+        }
         addEntryButton.setOnClickListener { addEntry() }
         exportBackupButton.setOnClickListener { exportBackup() }
         importBackupButton.setOnClickListener { importBackup() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
-        changeSettingsCurrencyButton.setOnClickListener { showFarmCurrencyChooser() }
+        changeSettingsCurrencyButton.setOnClickListener { showSettingsCurrencyChooser() }
         settingsTextSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (!fromUser || textSizeChangeSuppressed) return
@@ -2823,7 +2833,7 @@ class FarmActivity : AppCompatActivity() {
             return
         }
         try {
-            service.createFarm(name)
+            service.createFarm(name, createFarmCurrencyCode)
             render()
             showToast(R.string.toast_farm_created)
         } catch (exception: Exception) {
@@ -3061,44 +3071,49 @@ class FarmActivity : AppCompatActivity() {
         datePicker.show()
     }
 
-    private fun showFarmCurrencyChooser() {
-        val input = EditText(this).apply {
-            id = R.id.currencyInput
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
-            hint = string(R.string.currency_iso_hint)
-            setText(currentFarmCurrencyOrNull())
-            setSelection(text?.length ?: 0)
-        }
-        val errorText = TextView(this).apply {
-            id = R.id.currencyErrorText
-            setTextColor(resources.getColor(android.R.color.holo_red_dark, theme))
-            text = ""
-            setPadding(0, dp(4), 0, 0)
-        }
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(8), dp(20), 0)
-            addView(input)
-            addView(errorText)
-        }
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(string(R.string.currency_choice_dialog_title))
-            .setView(content)
-            .setPositiveButton(string(R.string.action_ok), null)
-            .setNegativeButton(string(R.string.action_cancel), null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val code = input.text?.toString()?.trim()?.uppercase(Locale.US).orEmpty()
-                if (code.matches(Regex("^[A-Z]{3}$"))) {
-                    applyFarmCurrencyChange(code)
-                    dialog.dismiss()
+    private fun showSettingsCurrencyChooser() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        showCurrencyChooser(farm.currencyCode) { code ->
+            if (code != farm.currencyCode) {
+                if (farm.hasMonetaryRecords()) {
+                    showChangeCurrencyConfirmation(farm.currencyCode, code)
                 } else {
-                    errorText.text = string(R.string.error_currency_iso_three_letters)
+                    applyFarmCurrencyChange(code)
                 }
             }
         }
+    }
+
+    private fun showCurrencyChooser(currentCode: String, onSelected: (String) -> Unit) {
+        val labels = FarmCurrencies.SUPPORTED.map { FarmCurrencies.label(it, presentationLocale) }
+        val selectedIndex = FarmCurrencies.SUPPORTED.indexOf(currentCode).coerceAtLeast(0)
+        var dialog: AlertDialog? = null
+        dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.currency_choice_dialog_title))
+            .setSingleChoiceItems(labels.toTypedArray(), selectedIndex) { _, which ->
+                val code = FarmCurrencies.SUPPORTED[which]
+                dialog?.dismiss()
+                onSelected(code)
+            }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .create()
         dialog.show()
+    }
+
+    private fun showChangeCurrencyConfirmation(fromCode: String, toCode: String) {
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_change_currency_title))
+            .setMessage(
+                string(
+                    R.string.dialog_change_currency_message_format,
+                    FarmCurrencies.label(fromCode, presentationLocale),
+                    FarmCurrencies.label(toCode, presentationLocale)
+                )
+            )
+            .setPositiveButton(string(R.string.change_currency_action)) { _, _ -> applyFarmCurrencyChange(toCode) }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .show()
     }
 
     private fun applyFarmCurrencyChange(code: String) {
@@ -3106,15 +3121,10 @@ class FarmActivity : AppCompatActivity() {
         try {
             service.setFarmCurrency(farmId, code)
             render()
+            showToast(R.string.toast_currency_changed)
         } catch (exception: Exception) {
-            showValidationMessage(FarmUiError.CURRENCY_LOCKED.resourceId)
-            Log.e(LOG_TAG, "change farm currency failed", exception)
+            showUnexpectedFailure(exception, "change farm currency failed")
         }
-    }
-
-    private fun currentFarmCurrencyOrNull(): String {
-        val farm = currentFarmId?.let { service.loadFarm(it) }
-        return farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
     }
 
     private fun updateDateTimeDisplay() {
@@ -3199,6 +3209,7 @@ class FarmActivity : AppCompatActivity() {
             currentFarmId = null
             createFarmContainer.visibility = View.VISIBLE
             farmDetailsContainer.visibility = View.GONE
+            createFarmCurrencyText.text = FarmCurrencies.label(createFarmCurrencyCode, presentationLocale)
             updateShellTitle()
             applyAppTextSize()
             return
@@ -3290,7 +3301,6 @@ class FarmActivity : AppCompatActivity() {
 
     private fun renderSettings() {
         val farm = currentFarmId?.let { service.loadFarm(it) }
-        val canChangeCurrency = farm != null && farm.transactions.isEmpty()
         settingsNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
         settingsNoFarmText.text = string(
             if (farm == null) R.string.settings_no_farm_gentle else R.string.settings_no_farm_text
@@ -3300,9 +3310,7 @@ class FarmActivity : AppCompatActivity() {
         settingsFarmNameText.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsCurrencyText.text = farm?.currencyCode ?: ""
         settingsCurrencyText.visibility = if (farm == null) View.GONE else View.VISIBLE
-        changeSettingsCurrencyButton.visibility = if (canChangeCurrency) View.VISIBLE else View.GONE
-        settingsCurrencyLockedText.visibility =
-            if (farm != null && !canChangeCurrency) View.VISIBLE else View.GONE
+        changeSettingsCurrencyButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsDataNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
         settingsExportBackupButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsImportBackupButton.visibility = View.VISIBLE

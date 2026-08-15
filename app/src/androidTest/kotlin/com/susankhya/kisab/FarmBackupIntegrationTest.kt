@@ -30,9 +30,11 @@ import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.FarmActivity
+import com.susankhya.kisab.ui.FarmCurrencies
 import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 import java.util.Base64
+import java.util.Locale
 import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.containsString
 import org.junit.After
@@ -293,7 +295,7 @@ class FarmBackupIntegrationTest {
                 assertNotNull(original)
                 assertTrue("no transaction may be created by keep-editing", original!!.transactions.isEmpty())
                 assertTrue("replacement farm must not be saved", service.loadFarm("farm-restored") == null)
-                assertEquals("NPR", original.currencyCode)
+                assertEquals(FarmCurrencies.defaultFor(Locale.getDefault()), original.currencyCode)
                 val spinner = activity.findViewById<android.widget.Spinner>(R.id.transactionCategorySpinner)
                 assertEquals("category must stay FEED", 0, spinner.selectedItemPosition)
             }

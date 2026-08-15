@@ -211,9 +211,9 @@ class FarmSliceServiceTest {
     }
 
     @Test
-    fun farmCurrencyLocksAfterFirstTransaction() {
+    fun farmCurrencyCanChangeAfterTransactionsKeepingAmountsUnchanged() {
         val farm = service.createFarm("Demo Farm")
-        service.createTransaction(
+        val transaction = service.createTransaction(
             farm.id,
             FarmTransactionDraft(
                 type = TransactionType.INCOME,
@@ -224,14 +224,37 @@ class FarmSliceServiceTest {
             )
         )
 
-        try {
-            service.setFarmCurrency(farm.id, "USD")
-            fail("Expected IllegalArgumentException")
-        } catch (exception: IllegalArgumentException) {
-            assertEquals("Farm currency cannot change after transactions are recorded", exception.message)
-        }
+        service.setFarmCurrency(farm.id, "USD")
 
-        assertEquals("NPR", service.loadFarm(farm.id)?.currencyCode)
+        val updated = service.loadFarm(farm.id)!!
+        assertEquals("USD", updated.currencyCode)
+        assertEquals(transaction, updated.transactions.single())
+        assertEquals(1000, updated.transactions.single().amountMinor)
+    }
+
+    @Test
+    fun farmCurrencyCanChangeAfterTradeAndSettlementKeepingAmountsUnchanged() {
+        val farm = service.createFarm("Demo Farm")
+        service.addParty(farm.id, PartyDraft(name = "Feed Store", role = PartyRole.SUPPLIER))
+        val trade = service.addTradeWithInitialSettlement(
+            farm.id,
+            TradeDraft(
+                type = TradeType.PURCHASE,
+                partyId = service.parties(farm.id).single().id,
+                totalMinor = 2500,
+                description = "Feed stock",
+                occurredAt = "2024-01-01T12:00:00Z"
+            ),
+            initialSettlementMinor = 2500
+        )
+
+        service.setFarmCurrency(farm.id, "JPY")
+
+        val updated = service.loadFarm(farm.id)!!
+        assertEquals("JPY", updated.currencyCode)
+        assertEquals(trade, updated.trades.single())
+        assertEquals(2500, updated.trades.single().totalMinor)
+        assertEquals(2500, updated.settlements.single().amountMinor)
     }
 
     @Test

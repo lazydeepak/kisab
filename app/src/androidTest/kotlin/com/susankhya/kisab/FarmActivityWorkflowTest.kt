@@ -10,6 +10,7 @@ import androidx.annotation.StringRes
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
+import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.closeSoftKeyboard
@@ -33,13 +34,16 @@ import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.FarmActivity
+import com.susankhya.kisab.ui.FarmCurrencies
 import com.susankhya.kisab.ui.FarmOrdering
 import java.time.Duration
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.Locale
 import org.hamcrest.CoreMatchers.allOf
+import org.hamcrest.CoreMatchers.anything
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.not
@@ -115,7 +119,7 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
-    fun firstIncomeQuickActionRecordsWithoutCurrencyOrIsoInput() {
+    fun firstIncomeQuickActionRecordsWithoutCurrencyInput() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("Workflow Farm")
@@ -137,12 +141,14 @@ class FarmActivityWorkflowTest {
                 val transaction = farm.transactions.single()
                 assertEquals(TransactionType.INCOME, transaction.type)
                 assertEquals(150000, transaction.amountMinor)
-                assertEquals("NPR", farm.currencyCode)
+                assertEquals(FarmCurrencies.defaultFor(Locale.getDefault()), farm.currencyCode)
                 assertEquals(expectedInstant(2024, 1, 1, 17, 45), transaction.occurredAt.toInstant().toString())
             }
 
             var income: String? = null
-            scenario.onActivity { activity -> income = activity.formatMoney("NPR", 150000) }
+            scenario.onActivity { activity ->
+                income = activity.formatMoney(FarmCurrencies.defaultFor(Locale.getDefault()), 150000)
+            }
             onView(withId(R.id.balanceText)).check(matches(withText(containsString(income))))
             onView(withId(R.id.incomeText)).check(matches(withText(containsString(income))))
 
@@ -324,12 +330,13 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
-    fun emptyFarmDefaultsToNprAndAllowsCurrencyChoice() {
+    fun emptyFarmUsesSuggestedCurrencyAndAllowsChoice() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("Currency Farm")
             openSettings()
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("NPR")))
+            val suggested = FarmCurrencies.defaultFor(Locale.getDefault())
+            onView(withId(R.id.settingsCurrencyText)).check(matches(withText(suggested)))
             onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             changeSettingCurrency("USD")
@@ -352,7 +359,7 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
-    fun establishedFarmLocksCurrencyInSettings() {
+    fun establishedFarmCanChangeCurrencyWithConfirmation() {
         seedFarm(
             "USD Farm",
             SeedTransaction("Feed", 1000, "USD"),
@@ -362,8 +369,19 @@ class FarmActivityWorkflowTest {
         try {
             openSettings()
             onView(withId(R.id.settingsCurrencyText)).check(matches(withText("USD")))
-            onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            onView(withId(R.id.settingsCurrencyLockedText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+
+            changeSettingCurrency("NPR")
+            onView(withText(R.string.dialog_change_currency_title)).inRoot(isDialog()).check(matches(isDisplayed()))
+            clickDialogAction(R.string.change_currency_action)
+            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("NPR")))
+
+            scenario.onActivity { activity ->
+                val farm = farmFor(activity)
+                assertEquals("NPR", farm.currencyCode)
+                assertEquals(1000, farm.transactions.first { it.description == "Feed" }.amountMinor)
+                assertEquals(2000, farm.transactions.first { it.description == "Supplies" }.amountMinor)
+            }
         } finally {
             scenario.close()
         }
@@ -453,22 +471,18 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
-    fun invalidCurrencyIsoKeepsDialogOpenWithError() {
+    fun currencyChooserOffersSupportedCurrenciesAndCancelKeepsCurrency() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("Currency Farm")
             openSettings()
+            val current = FarmCurrencies.defaultFor(Locale.getDefault())
 
             onView(withId(R.id.changeSettingsCurrencyButton)).perform(scrollTo(), click())
-            onView(withId(R.id.currencyInput)).inRoot(isDialog()).perform(replaceText("US"), closeSoftKeyboard())
-            clickDialogAction(R.string.action_ok)
-            onView(withId(R.id.currencyErrorText)).inRoot(isDialog())
-                .check(matches(withText(R.string.error_currency_iso_three_letters)))
-            onView(withId(R.id.currencyInput)).inRoot(isDialog()).check(matches(isDisplayed()))
-
-            onView(withId(R.id.currencyInput)).inRoot(isDialog()).perform(replaceText("USD"), closeSoftKeyboard())
-            clickDialogAction(R.string.action_ok)
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("USD")))
+            onView(withText(containsString("(NPR)"))).inRoot(isDialog()).check(matches(isDisplayed()))
+            onView(withText(containsString("(USD)"))).inRoot(isDialog()).check(matches(isDisplayed()))
+            clickDialogAction(R.string.action_cancel)
+            onView(withId(R.id.settingsCurrencyText)).check(matches(withText(current)))
         } finally {
             scenario.close()
         }
@@ -887,9 +901,8 @@ class FarmActivityWorkflowTest {
 
     private fun changeSettingCurrency(code: String) {
         onView(withId(R.id.changeSettingsCurrencyButton)).perform(scrollTo(), click())
-        onView(withId(R.id.currencyInput)).inRoot(isDialog()).perform(replaceText(code), closeSoftKeyboard())
-        onView(withId(R.id.currencyInput)).inRoot(isDialog()).check(matches(withText(code)))
-        clickDialogAction(R.string.action_ok)
+        val index = FarmCurrencies.SUPPORTED.indexOf(code)
+        onData(anything()).inRoot(isDialog()).atPosition(index).perform(click())
     }
 
     private fun expectedInstant(year: Int, month: Int, day: Int, hour: Int, minute: Int): String =

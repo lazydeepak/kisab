@@ -54,7 +54,9 @@
     <string name="today_label">Today</string>
     <string name="today_time_format">%1$s, %2$s</string>
     <string name="currency_choice_dialog_title">Choose the farm\'s currency</string>
-    <string name="currency_iso_hint">ISO 4217 code</string>
+    <string name="dialog_change_currency_title">Change farm currency?</string>
+    <string name="dialog_change_currency_message_format">Change farm currency from %1$s to %2$s?\n\nExisting amounts will stay the same. They will not be converted.</string>
+    <string name="toast_currency_changed">Currency changed</string>
     <string name="action_ok">OK</string>
     <string name="action_done">Done</string>
 
@@ -65,7 +67,6 @@
     <string name="show_farm_tools_action">Show farm tools</string>
     <string name="hide_farm_tools_action">Hide farm tools</string>
     <string name="farm_currency_label">Currency</string>
-    <string name="currency_locked_note">Currency is locked after transactions are recorded.</string>
     <string name="backup_section">Backup</string>
 
     <string name="farm_tools_summary_format">Farm: %1$s\nEntry count: %2$s\nBalance: %3$s</string>
@@ -106,8 +107,6 @@
     <string name="error_transaction_amount_positive">Amount must be positive</string>
     <string name="error_transaction_amount_too_precise">Amount has too many decimal places for this currency</string>
     <string name="error_transaction_amount_too_large">Amount is too large</string>
-    <string name="error_currency_iso_three_letters">Currency must be a three-letter ISO code</string>
-    <string name="error_currency_locked">Currency cannot change after transactions are recorded</string>
     <string name="error_backup_invalid_or_unsupported">Invalid or unsupported backup</string>
     <string name="error_backup_too_large_or_unreadable">Backup is too large or unreadable</string>
     <string name="error_current_farm_missing">Create a farm first</string>
