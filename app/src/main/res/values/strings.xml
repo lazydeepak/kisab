@@ -84,8 +84,11 @@
 
     <string name="dialog_delete_transaction_title">Delete transaction</string>
     <string name="dialog_delete_transaction_message">Delete this transaction permanently?</string>
-    <string name="dialog_replace_farm_title">Replace current farm?</string>
-    <string name="dialog_import_backup_message_format">Import backup for %1$s?\n\n%2$s\n\nThis will replace the current farm permanently.</string>
+    <string name="dialog_replace_farm_title">Import this farm?</string>
+    <string name="dialog_import_backup_message_format">Import backup for %1$s?\n\n%2$s\n\n%3$s</string>
+    <string name="dialog_import_replace_existing_note">This farm already exists on this device. Import will update that farm only. Other farms are not changed.</string>
+    <string name="dialog_import_add_new_note">This farm is new on this device. Import will add it as another farm. Other farms are not changed.</string>
+    <string name="action_import_farm">Import farm</string>
     <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_replace_farm">Replace farm</string>
@@ -365,8 +368,21 @@
     <string name="language_nepali">Nepali</string>
 
     <string name="menu_backup_restore">Backup / Restore</string>
-    <string name="menu_farm_details">Farm details</string>
+    <string name="menu_farms">Farms</string>
     <string name="menu_about">About Kisab</string>
+
+    <string name="farms_page_title">Farms</string>
+    <string name="farms_empty_text">No farms yet. Add a farm to start tracking.</string>
+    <string name="add_farm_action">Add Farm</string>
+    <string name="add_farm_page_title">Add Farm</string>
+    <string name="farm_details_page_title">Farm details</string>
+    <string name="farm_active_badge">Active</string>
+    <string name="farm_active_status">This is the active farm</string>
+    <string name="farm_inactive_status">This farm is not active</string>
+    <string name="switch_to_farm_action">Switch to this farm</string>
+    <string name="toast_farm_switched">Switched farm</string>
+    <string name="farm_row_subtitle_format">%1$s · %2$s</string>
+    <string name="farm_row_active_subtitle_format">%1$s · Active</string>
 
     <string name="settings_app_section">App</string>
     <string name="settings_appearance_section">Appearance</string>
@@ -415,7 +431,13 @@
     <string name="dialog_reset_typed_message">Type RESET to permanently remove all farm records. This cannot be undone.</string>
     <string name="dialog_delete_farm_title">Delete farm?</string>
     <string name="dialog_delete_farm_message">This permanently removes the farm and all of its data, including the farm name and currency. Backup files you exported earlier are not affected.\n\nThis cannot be undone.</string>
-    <string name="dialog_delete_farm_typed_message_format">Type the farm name to confirm: %1$s</string>
+    <string name="dialog_delete_farm_typed_message">Type DELETE to permanently remove this farm. This cannot be undone.</string>
+    <string name="dialog_delete_farm_typed_title">Confirm delete</string>
+    <string name="dialog_delete_backup_gate_title">Back up before deleting?</string>
+    <string name="dialog_delete_backup_gate_message">Deleting permanently removes this farm and all of its records. Choose how to protect them.</string>
+    <string name="dialog_delete_recent_backup_title">Recent backup found</string>
+    <string name="dialog_delete_recent_backup_message_format">A recent backup was completed.\n\nLast backup: %1$s</string>
+    <string name="dialog_delete_farm_named_message_format">Delete “%1$s”?\n\nThis permanently removes the farm and all of its data, including the farm name and currency. Backup files you exported earlier are not affected.\n\nThis cannot be undone.</string>
     <string name="toast_farm_data_reset">Farm data reset</string>
     <string name="toast_farm_deleted">Farm deleted</string>
 

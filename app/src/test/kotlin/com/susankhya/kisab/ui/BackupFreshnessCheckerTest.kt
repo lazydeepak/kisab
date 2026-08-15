@@ -14,6 +14,10 @@ class BackupFreshnessCheckerTest {
         override fun recordSuccessfulBackup(farmId: String, atMillis: Long) {
             records[farmId] = atMillis
         }
+
+        override fun clearFarm(farmId: String) {
+            records.remove(farmId)
+        }
     }
 
     private class FakeClock(var nowMillis: Long) : Clock {

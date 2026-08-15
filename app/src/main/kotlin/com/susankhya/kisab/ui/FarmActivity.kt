@@ -57,6 +57,7 @@ import com.susankhya.kisab.domain.FinancialPeriodPreset
 import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.domain.ArithmeticOperation
 import com.susankhya.kisab.domain.KisanCalculators
+import com.susankhya.kisab.domain.FarmManagement
 import com.susankhya.kisab.domain.LocalUserService
 import com.susankhya.kisab.domain.LandUnit
 import com.susankhya.kisab.domain.Party
@@ -101,7 +102,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var localUserService: LocalUserService
     internal lateinit var backupFileAdapter: FarmBackupFileAdapter
 
-    private enum class Destination { HOME, HISAB_KITAB, HISAB, SETTINGS }
+    private enum class Destination { HOME, HISAB_KITAB, HISAB, SETTINGS, FARMS, FARM_DETAILS, ADD_FARM }
 
     private val moneyFormatter = MoneyFormatter()
     private val moneyInputParser = MoneyInputParser(moneyFormatter)
@@ -304,23 +305,30 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var addSettlementButton: Button
     private lateinit var doneSettlementsButton: Button
 
-    private lateinit var settingsCurrencyText: TextView
-    private lateinit var changeSettingsCurrencyButton: Button
-    private lateinit var settingsNoFarmText: TextView
-    private lateinit var settingsFarmNameLabel: TextView
-    private lateinit var settingsFarmNameText: TextView
-    private lateinit var renameFarmButton: Button
     private lateinit var settingsDataNoFarmText: TextView
     private lateinit var settingsExportBackupButton: Button
     private lateinit var settingsImportBackupButton: Button
-    private lateinit var settingsDangerZoneSection: TextView
-    private lateinit var settingsDangerZoneNote: TextView
-    private lateinit var resetFarmDataButton: Button
-    private lateinit var deleteFarmButton: Button
     private lateinit var settingsAboutVersionText: TextView
     private lateinit var settingsAppearanceSection: TextView
-    private lateinit var settingsFarmSection: TextView
     private lateinit var settingsDataSection: TextView
+    private lateinit var farmsScreen: ScrollView
+    private lateinit var farmsListContainer: LinearLayout
+    private lateinit var farmsEmptyText: TextView
+    private lateinit var addFarmButton: Button
+    private lateinit var farmDetailsScreen: ScrollView
+    private lateinit var farmDetailsNameText: TextView
+    private lateinit var farmDetailsRenameButton: Button
+    private lateinit var farmDetailsCurrencyText: TextView
+    private lateinit var farmDetailsChangeCurrencyButton: Button
+    private lateinit var farmDetailsActiveStatusText: TextView
+    private lateinit var farmDetailsSwitchButton: Button
+    private lateinit var farmDetailsResetButton: Button
+    private lateinit var farmDetailsDeleteButton: Button
+    private lateinit var addFarmScreen: ScrollView
+    private lateinit var addFarmNameInput: EditText
+    private lateinit var addFarmCurrencyText: TextView
+    private lateinit var addFarmChangeCurrencyButton: Button
+    private lateinit var addFarmCreateButton: Button
     private lateinit var settingsTextSizeValueText: TextView
     private lateinit var settingsTextSizeSeekBar: SeekBar
     private lateinit var currencyDisplayOnRadio: RadioButton
@@ -385,9 +393,15 @@ class FarmActivity : AppCompatActivity() {
     private val originalTextSizesPx = IdentityHashMap<TextView, Float>()
 
     private var currentFarmId: String? = null
+    /** Farm selected in Farm Management (details/reset/delete/export target). */
+    private var managedFarmId: String? = null
+    private var pendingExportFarmId: String? = null
+    private var pendingDangerBackupGate: String? = null // "reset" or "delete"
+    private var addFarmCurrencyCode: String = FarmState.DEFAULT_CURRENCY_CODE
     private var pendingExportContent: String? = null
     private var pendingResetBackupGate = false
     private val resetFlow = ResetFarmFlow { performResetFarmData() }
+    private val deleteFlow = DeleteFarmFlow { performDeleteManagedFarm() }
     private val clock: Clock = Clock { System.currentTimeMillis() }
     private lateinit var backupFreshnessStore: BackupFreshnessStore
     private lateinit var backupFreshness: BackupFreshnessChecker
@@ -432,27 +446,30 @@ class FarmActivity : AppCompatActivity() {
                 val content = pendingExportContent
                 pendingExportContent = null
                 if (uri == null || content == null) {
+                    pendingExportFarmId = null
                     showToast(R.string.toast_export_cancelled)
-                    finishResetBackupGate(succeeded = false)
+                    finishDangerBackupGate(succeeded = false)
                     return@registerForActivityResult
                 }
                 try {
                     backupFileAdapter.writeText(uri.toString(), content, FarmBackupCodec.MAX_BACKUP_BYTES)
                     showToast(R.string.toast_backup_exported)
-                    recordSuccessfulBackup()
-                    finishResetBackupGate(succeeded = true)
+                    recordSuccessfulBackup(pendingExportFarmId ?: currentFarmId)
+                    pendingExportFarmId = null
+                    finishDangerBackupGate(succeeded = true)
                 } catch (exception: FarmBackupException) {
                     showValidationMessage(FarmUiError.fromBackupFailure(exception).resourceId)
-                    finishResetBackupGate(succeeded = false)
+                    finishDangerBackupGate(succeeded = false)
                 } catch (exception: Exception) {
                     Log.e(LOG_TAG, "export backup failed", exception)
                     showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
-                    finishResetBackupGate(succeeded = false)
+                    finishDangerBackupGate(succeeded = false)
                 }
             } else {
                 pendingExportContent = null
+                pendingExportFarmId = null
                 showToast(R.string.toast_export_cancelled)
-                finishResetBackupGate(succeeded = false)
+                finishDangerBackupGate(succeeded = false)
             }
         }
 
@@ -510,7 +527,11 @@ class FarmActivity : AppCompatActivity() {
                     }
                 } else if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
                     closePartyKhata()
-                } else if (currentDestination == Destination.SETTINGS) {
+                } else if (currentDestination == Destination.FARM_DETAILS || currentDestination == Destination.ADD_FARM) {
+                    managedFarmId = null
+                    showDestination(Destination.FARMS)
+                } else if (currentDestination == Destination.FARMS || currentDestination == Destination.SETTINGS) {
+                    managedFarmId = null
                     showDestination(lastPrimaryDestination)
                 } else if (currentDestination != Destination.HOME) {
                     showDestination(Destination.HOME)
@@ -788,23 +809,30 @@ class FarmActivity : AppCompatActivity() {
         savePartyButton = findViewById(R.id.savePartyButton)
         cancelPartyButton = findViewById(R.id.cancelPartyButton)
         deletePartyButton = findViewById(R.id.deletePartyButton)
-        settingsCurrencyText = findViewById(R.id.settingsCurrencyText)
-        changeSettingsCurrencyButton = findViewById(R.id.changeSettingsCurrencyButton)
-        settingsNoFarmText = findViewById(R.id.settingsNoFarmText)
-        settingsFarmNameLabel = findViewById(R.id.settingsFarmNameLabel)
-        settingsFarmNameText = findViewById(R.id.settingsFarmNameText)
-        renameFarmButton = findViewById(R.id.renameFarmButton)
         settingsDataNoFarmText = findViewById(R.id.settingsDataNoFarmText)
         settingsExportBackupButton = findViewById(R.id.settingsExportBackupButton)
         settingsImportBackupButton = findViewById(R.id.settingsImportBackupButton)
-        settingsDangerZoneSection = findViewById(R.id.settingsDangerZoneSection)
-        settingsDangerZoneNote = findViewById(R.id.settingsDangerZoneNote)
-        resetFarmDataButton = findViewById(R.id.resetFarmDataButton)
-        deleteFarmButton = findViewById(R.id.deleteFarmButton)
         settingsAboutVersionText = findViewById(R.id.settingsAboutVersionText)
         settingsAppearanceSection = findViewById(R.id.settingsAppearanceSection)
-        settingsFarmSection = findViewById(R.id.settingsFarmSection)
         settingsDataSection = findViewById(R.id.settingsDataSection)
+        farmsScreen = findViewById(R.id.farmsScreen)
+        farmsListContainer = findViewById(R.id.farmsListContainer)
+        farmsEmptyText = findViewById(R.id.farmsEmptyText)
+        addFarmButton = findViewById(R.id.addFarmButton)
+        farmDetailsScreen = findViewById(R.id.farmDetailsScreen)
+        farmDetailsNameText = findViewById(R.id.farmDetailsNameText)
+        farmDetailsRenameButton = findViewById(R.id.farmDetailsRenameButton)
+        farmDetailsCurrencyText = findViewById(R.id.farmDetailsCurrencyText)
+        farmDetailsChangeCurrencyButton = findViewById(R.id.farmDetailsChangeCurrencyButton)
+        farmDetailsActiveStatusText = findViewById(R.id.farmDetailsActiveStatusText)
+        farmDetailsSwitchButton = findViewById(R.id.farmDetailsSwitchButton)
+        farmDetailsResetButton = findViewById(R.id.farmDetailsResetButton)
+        farmDetailsDeleteButton = findViewById(R.id.farmDetailsDeleteButton)
+        addFarmScreen = findViewById(R.id.addFarmScreen)
+        addFarmNameInput = findViewById(R.id.addFarmNameInput)
+        addFarmCurrencyText = findViewById(R.id.addFarmCurrencyText)
+        addFarmChangeCurrencyButton = findViewById(R.id.addFarmChangeCurrencyButton)
+        addFarmCreateButton = findViewById(R.id.addFarmCreateButton)
         settingsTextSizeValueText = findViewById(R.id.settingsTextSizeValueText)
         settingsTextSizeSeekBar = findViewById(R.id.settingsTextSizeSeekBar)
         currencyDisplayOnRadio = findViewById(R.id.currencyDisplayOnRadio)
@@ -990,10 +1018,19 @@ class FarmActivity : AppCompatActivity() {
         importBackupButton.setOnClickListener { importBackup() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
-        changeSettingsCurrencyButton.setOnClickListener { showSettingsCurrencyChooser() }
-        renameFarmButton.setOnClickListener { showRenameFarmDialog() }
-        resetFarmDataButton.setOnClickListener { showResetFarmDataConfirmation() }
-        deleteFarmButton.setOnClickListener { showDeleteFarmConfirmation() }
+        addFarmButton.setOnClickListener { openAddFarmScreen() }
+        farmDetailsRenameButton.setOnClickListener { showRenameFarmDialog() }
+        farmDetailsChangeCurrencyButton.setOnClickListener { showManagedFarmCurrencyChooser() }
+        farmDetailsSwitchButton.setOnClickListener { switchToManagedFarm() }
+        farmDetailsResetButton.setOnClickListener { showResetFarmDataConfirmation() }
+        farmDetailsDeleteButton.setOnClickListener { showDeleteFarmConfirmation() }
+        addFarmChangeCurrencyButton.setOnClickListener {
+            showCurrencyChooser(addFarmCurrencyCode) { code ->
+                addFarmCurrencyCode = code
+                addFarmCurrencyText.text = FarmCurrencies.label(code, presentationLocale)
+            }
+        }
+        addFarmCreateButton.setOnClickListener { createFarmFromAddScreen() }
         settingsTextSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (!fromUser || textSizeChangeSuppressed) return
@@ -1189,16 +1226,24 @@ class FarmActivity : AppCompatActivity() {
         if (destination != Destination.HISAB_KITAB && khataPartyId != null) {
             closePartyKhata()
         }
-        if (destination != Destination.SETTINGS) lastPrimaryDestination = destination
+        if (destination in setOf(Destination.HOME, Destination.HISAB_KITAB, Destination.HISAB)) {
+            lastPrimaryDestination = destination
+        }
         scrollView.visibility = if (destination == Destination.HOME) View.VISIBLE else View.GONE
         hisabKitabScreen.visibility = if (destination == Destination.HISAB_KITAB) View.VISIBLE else View.GONE
         hisabScreen.visibility = if (destination == Destination.HISAB) View.VISIBLE else View.GONE
         settingsScreen.visibility = if (destination == Destination.SETTINGS) View.VISIBLE else View.GONE
+        farmsScreen.visibility = if (destination == Destination.FARMS) View.VISIBLE else View.GONE
+        farmDetailsScreen.visibility = if (destination == Destination.FARM_DETAILS) View.VISIBLE else View.GONE
+        addFarmScreen.visibility = if (destination == Destination.ADD_FARM) View.VISIBLE else View.GONE
         updateShellTitle()
         updateShellNavigationState()
         if (destination == Destination.SETTINGS) renderSettings()
         if (destination == Destination.HISAB_KITAB) renderHisabKitab()
         if (destination == Destination.HISAB) renderHisabCalculator()
+        if (destination == Destination.FARMS) renderFarmsList()
+        if (destination == Destination.FARM_DETAILS) renderFarmDetails()
+        if (destination == Destination.ADD_FARM) renderAddFarmScreen()
         applyAppTextSize()
         scrollSettingsToPendingSection()
     }
@@ -1225,9 +1270,9 @@ class FarmActivity : AppCompatActivity() {
                         navigateTo(Destination.SETTINGS)
                         true
                     }
-                    R.id.menuFarmDetails -> {
-                        pendingSettingsScrollToSection = settingsFarmSection
-                        navigateTo(Destination.SETTINGS)
+                    R.id.menuFarms -> {
+                        managedFarmId = null
+                        navigateTo(Destination.FARMS)
                         true
                     }
                     R.id.menuAbout -> {
@@ -1587,6 +1632,9 @@ class FarmActivity : AppCompatActivity() {
             Destination.HISAB_KITAB -> string(R.string.nav_hisab_kitab)
             Destination.HISAB -> string(R.string.nav_hisab)
             Destination.SETTINGS -> string(R.string.nav_settings)
+            Destination.FARMS -> string(R.string.farms_page_title)
+            Destination.FARM_DETAILS -> string(R.string.farm_details_page_title)
+            Destination.ADD_FARM -> string(R.string.add_farm_page_title)
         }
     }
 
@@ -3108,20 +3156,6 @@ class FarmActivity : AppCompatActivity() {
         datePicker.show()
     }
 
-    private fun showSettingsCurrencyChooser() {
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
-        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
-        showCurrencyChooser(farm.currencyCode) { code ->
-            if (code != farm.currencyCode) {
-                if (farm.hasMonetaryRecords()) {
-                    showChangeCurrencyConfirmation(farm.currencyCode, code)
-                } else {
-                    applyFarmCurrencyChange(code)
-                }
-            }
-        }
-    }
-
     private fun showCurrencyChooser(currentCode: String, onSelected: (String) -> Unit) {
         val labels = FarmCurrencies.SUPPORTED.map { FarmCurrencies.label(it, presentationLocale) }
         val selectedIndex = FarmCurrencies.SUPPORTED.indexOf(currentCode).coerceAtLeast(0)
@@ -3154,10 +3188,11 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun applyFarmCurrencyChange(code: String) {
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farmId = managedFarmId ?: currentFarmId ?: return showMissingFarmMessage()
         try {
             service.setFarmCurrency(farmId, code)
             render()
+            if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()
             showToast(R.string.toast_currency_changed)
         } catch (exception: Exception) {
             showUnexpectedFailure(exception, "change farm currency failed")
@@ -3167,7 +3202,7 @@ class FarmActivity : AppCompatActivity() {
     // --- Farm name -------------------------------------------------------------
 
     private fun showRenameFarmDialog() {
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farmId = managedFarmId ?: currentFarmId ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         val input = EditText(this).apply {
             isSingleLine = true
@@ -3199,6 +3234,8 @@ class FarmActivity : AppCompatActivity() {
         try {
             service.renameFarm(farm.id, name)
             render()
+            if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()
+            if (currentDestination == Destination.FARMS) renderFarmsList()
             showToast(R.string.toast_farm_renamed)
         } catch (exception: Exception) {
             showUnexpectedFailure(exception, "rename farm failed")
@@ -3207,32 +3244,38 @@ class FarmActivity : AppCompatActivity() {
 
     // --- Danger Zone ----------------------------------------------------------
 
+    private fun targetManagementFarmId(): String? =
+        managedFarmId ?: currentFarmId
+
     private fun showResetFarmDataConfirmation() {
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        managedFarmId = farm.id
         resetFlow.begin()
         AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_reset_farm_title))
             .setMessage(string(R.string.dialog_reset_farm_message))
             .setPositiveButton(string(R.string.action_continue)) { _, _ ->
-                val recent = isRecentBackup()
+                val recent = isRecentBackupFor(farm.id)
                 resetFlow.proceedFromWarning(recentBackup = recent)
                 if (recent) {
-                    showRecentBackupConfirmation()
+                    showRecentBackupConfirmation(forDelete = false)
                 } else {
-                    showResetBackupGateDialog()
+                    showDangerBackupGateDialog(forDelete = false)
                 }
             }
             .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
             .show()
     }
 
-    private fun showResetBackupGateDialog() {
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+    private fun showDangerBackupGateDialog(forDelete: Boolean) {
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
         val lastBackupAt = backupFreshnessStore.lastSuccessfulBackupAt(farmId)
         val gateDetail = lastBackupAt?.let {
             string(R.string.dialog_reset_backup_gate_stale_format, formatBackupTime(it))
         } ?: string(R.string.dialog_reset_backup_gate_none)
+        val messageRes = if (forDelete) R.string.dialog_delete_backup_gate_message else R.string.dialog_reset_backup_gate_message
+        val titleRes = if (forDelete) R.string.dialog_delete_backup_gate_title else R.string.dialog_reset_backup_gate_title
         val backupNowButton = Button(this).apply { text = string(R.string.reset_backup_now_action) }
         val existingBackupButton = Button(this).apply { text = string(R.string.reset_backup_existing_action) }
         val container = LinearLayout(this).apply {
@@ -3240,7 +3283,7 @@ class FarmActivity : AppCompatActivity() {
         }
         container.addView(
             TextView(this).apply {
-                text = string(R.string.dialog_reset_backup_gate_message) + "\n\n" + gateDetail
+                text = string(messageRes) + "\n\n" + gateDetail
                 textSize = 16f
                 setPadding(0, 0, 0, dp(16))
             }
@@ -3254,19 +3297,27 @@ class FarmActivity : AppCompatActivity() {
             ).apply { topMargin = dp(8) }
         )
         val dialog = AlertDialog.Builder(this)
-            .setTitle(string(R.string.dialog_reset_backup_gate_title))
+            .setTitle(string(titleRes))
             .setView(container)
-            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
+                if (forDelete) deleteFlow.cancel() else resetFlow.cancel()
+            }
             .create()
         backupNowButton.setOnClickListener {
             dialog.dismiss()
-            pendingResetBackupGate = true
-            exportBackup()
+            pendingDangerBackupGate = if (forDelete) "delete" else "reset"
+            pendingResetBackupGate = !forDelete
+            exportBackupForFarm(farmId)
         }
         existingBackupButton.setOnClickListener {
             dialog.dismiss()
-            resetFlow.acknowledgeExistingBackup()
-            showResetTypedConfirmation()
+            if (forDelete) {
+                deleteFlow.acknowledgeExistingBackup()
+                showDeleteTypedConfirmation()
+            } else {
+                resetFlow.acknowledgeExistingBackup()
+                showResetTypedConfirmation()
+            }
         }
         dialog.show()
     }
@@ -3306,42 +3357,50 @@ class FarmActivity : AppCompatActivity() {
     }
 
     /** Resolves the pending backup-gate export result without new backup code. */
-    private fun finishResetBackupGate(succeeded: Boolean) {
-        if (!pendingResetBackupGate) return
+    private fun finishDangerBackupGate(succeeded: Boolean) {
+        val kind = pendingDangerBackupGate
+        val wasReset = pendingResetBackupGate
+        pendingDangerBackupGate = null
         pendingResetBackupGate = false
+        if (kind == null && !wasReset) return
+        val forDelete = kind == "delete"
         if (succeeded) {
-            resetFlow.onBackupSucceeded()
-            showResetTypedConfirmation()
+            if (forDelete) {
+                deleteFlow.onBackupSucceeded()
+                showDeleteTypedConfirmation()
+            } else {
+                resetFlow.onBackupSucceeded()
+                showResetTypedConfirmation()
+            }
         } else {
-            resetFlow.onBackupCancelledOrFailed()
+            if (forDelete) deleteFlow.onBackupCancelledOrFailed()
+            else resetFlow.onBackupCancelledOrFailed()
         }
     }
 
-    private fun isRecentBackup(): Boolean {
-        val farmId = currentFarmId ?: return false
-        return backupFreshness.isRecent(farmId)
-    }
+    private fun isRecentBackupFor(farmId: String): Boolean =
+        backupFreshness.isRecent(farmId)
 
     /** Records app-local backup freshness metadata; never touches farm accounting data. */
-    private fun recordSuccessfulBackup() {
-        val farmId = currentFarmId ?: return
-        backupFreshnessStore.recordSuccessfulBackup(farmId, clock.nowMillis())
+    private fun recordSuccessfulBackup(farmId: String? = pendingExportFarmId ?: currentFarmId) {
+        val id = farmId ?: return
+        backupFreshnessStore.recordSuccessfulBackup(id, clock.nowMillis())
     }
 
-    /** Leads into the typed RESET step after confirming a recent recorded backup. */
-    private fun showRecentBackupConfirmation() {
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+    private fun showRecentBackupConfirmation(forDelete: Boolean) {
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
         val lastBackupAt = backupFreshnessStore.lastSuccessfulBackupAt(farmId)
+        val titleRes = if (forDelete) R.string.dialog_delete_recent_backup_title else R.string.dialog_reset_recent_backup_title
+        val messageRes = if (forDelete) R.string.dialog_delete_recent_backup_message_format else R.string.dialog_reset_recent_backup_message_format
         AlertDialog.Builder(this)
-            .setTitle(string(R.string.dialog_reset_recent_backup_title))
-            .setMessage(
-                string(
-                    R.string.dialog_reset_recent_backup_message_format,
-                    formatBackupTime(lastBackupAt)
-                )
-            )
-            .setPositiveButton(string(R.string.action_continue)) { _, _ -> showResetTypedConfirmation() }
-            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
+            .setTitle(string(titleRes))
+            .setMessage(string(messageRes, formatBackupTime(lastBackupAt)))
+            .setPositiveButton(string(R.string.action_continue)) { _, _ ->
+                if (forDelete) showDeleteTypedConfirmation() else showResetTypedConfirmation()
+            }
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
+                if (forDelete) deleteFlow.cancel() else resetFlow.cancel()
+            }
             .show()
     }
 
@@ -3362,12 +3421,13 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun performResetFarmData() {
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         closeEditor()
         try {
             service.resetFarmData(farm.id)
             render()
+            if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()
             showToast(R.string.toast_farm_data_reset)
         } catch (exception: Exception) {
             showUnexpectedFailure(exception, "reset farm data failed")
@@ -3376,35 +3436,45 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun showDeleteFarmConfirmation() {
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        managedFarmId = farm.id
+        deleteFlow.begin()
         AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_delete_farm_title))
-            .setMessage(string(R.string.dialog_delete_farm_message))
-            .setPositiveButton(string(R.string.action_continue)) { _, _ -> showDeleteFarmTypedConfirmation(farm) }
-            .setNegativeButton(string(R.string.action_cancel), null)
+            .setMessage(string(R.string.dialog_delete_farm_named_message_format, farm.name))
+            .setPositiveButton(string(R.string.action_continue)) { _, _ ->
+                val recent = isRecentBackupFor(farm.id)
+                deleteFlow.proceedFromWarning(recentBackup = recent)
+                if (recent) {
+                    showRecentBackupConfirmation(forDelete = true)
+                } else {
+                    showDangerBackupGateDialog(forDelete = true)
+                }
+            }
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> deleteFlow.cancel() }
             .show()
     }
 
-    private fun showDeleteFarmTypedConfirmation(farm: FarmState) {
+    private fun showDeleteTypedConfirmation() {
         val input = EditText(this).apply {
             isSingleLine = true
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
-            hint = farm.name
         }
         val dialog = AlertDialog.Builder(this)
-            .setTitle(string(R.string.dialog_delete_farm_title))
-            .setMessage(string(R.string.dialog_delete_farm_typed_message_format, farm.name))
+            .setTitle(string(R.string.dialog_delete_farm_typed_title))
+            .setMessage(string(R.string.dialog_delete_farm_typed_message))
             .setView(input)
             .setPositiveButton(string(R.string.delete_farm_action), null)
-            .setNegativeButton(string(R.string.action_cancel), null)
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> deleteFlow.cancel() }
+            .setOnCancelListener { deleteFlow.cancel() }
             .create()
         dialog.setOnShowListener {
             val confirmButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            confirmButton.isEnabled = false
+            confirmButton.isEnabled = deleteFlow.canType(input.text?.toString().orEmpty())
             input.addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(text: Editable?) {
-                    confirmButton.isEnabled = text?.toString()?.trim()?.equals(farm.name, ignoreCase = true) == true
+                    confirmButton.isEnabled = deleteFlow.canType(text?.toString().orEmpty())
                 }
 
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -3412,20 +3482,32 @@ class FarmActivity : AppCompatActivity() {
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
             })
             confirmButton.setOnClickListener {
-                dialog.dismiss()
-                performDeleteFarm(farm)
+                if (deleteFlow.confirm(input.text?.toString().orEmpty())) {
+                    dialog.dismiss()
+                }
             }
         }
         dialog.show()
     }
 
-    private fun performDeleteFarm(farm: FarmState) {
+    private fun performDeleteManagedFarm() {
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         closeEditor()
         try {
+            val previousCurrent = service.currentFarmId()
             service.deleteFarm(farm.id)
             localUserService.disassociateFarm(farm.id)
+            backupFreshnessStore.clearFarm(farm.id)
+            val remaining = service.farmIds()
+            val next = FarmManagement.nextCurrentFarmIdAfterDelete(farm.id, previousCurrent, remaining)
+            if (next != null) {
+                service.setCurrentFarmId(next)
+            }
             currentFarmId = service.currentFarmId()
+            managedFarmId = null
             render()
+            showDestination(if (currentFarmId == null) Destination.HOME else Destination.FARMS)
             showToast(R.string.toast_farm_deleted)
         } catch (exception: Exception) {
             showUnexpectedFailure(exception, "delete farm failed")
@@ -3529,6 +3611,9 @@ class FarmActivity : AppCompatActivity() {
         if (currentDestination == Destination.SETTINGS) renderSettings()
         if (currentDestination == Destination.HISAB_KITAB) renderHisabKitab()
         if (currentDestination == Destination.HISAB) renderHisabCalculator()
+        if (currentDestination == Destination.FARMS) renderFarmsList()
+        if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()
+        if (currentDestination == Destination.ADD_FARM) renderAddFarmScreen()
         applyAppTextSize()
     }
 
@@ -3608,28 +3693,136 @@ class FarmActivity : AppCompatActivity() {
 
     private fun renderSettings() {
         val farm = currentFarmId?.let { service.loadFarm(it) }
-        settingsNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
-        settingsNoFarmText.text = string(
-            if (farm == null) R.string.settings_no_farm_gentle else R.string.settings_no_farm_text
-        )
-        settingsFarmNameLabel.visibility = if (farm == null) View.GONE else View.VISIBLE
-        settingsFarmNameText.text = farm?.name ?: ""
-        settingsFarmNameText.visibility = if (farm == null) View.GONE else View.VISIBLE
-        renameFarmButton.visibility = if (farm == null) View.GONE else View.VISIBLE
-        settingsCurrencyText.text = farm?.currencyCode ?: ""
-        settingsCurrencyText.visibility = if (farm == null) View.GONE else View.VISIBLE
-        changeSettingsCurrencyButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsDataNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
         settingsExportBackupButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsImportBackupButton.visibility = View.VISIBLE
-        settingsDangerZoneSection.visibility = if (farm == null) View.GONE else View.VISIBLE
-        settingsDangerZoneNote.visibility = if (farm == null) View.GONE else View.VISIBLE
-        resetFarmDataButton.visibility = if (farm == null) View.GONE else View.VISIBLE
-        deleteFarmButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
         syncLanguageSelection()
         syncTextSizeSelection()
         syncAppearanceSelection()
+    }
+
+    private fun renderFarmsList() {
+        farmsListContainer.removeAllViews()
+        val persisted = service.farmIds()
+        val owned = localUserService.ownedFarmIds()
+        val visibleIds = FarmManagement.visibleFarmIds(persisted, owned)
+        val activeId = service.currentFarmId()
+        farmsEmptyText.visibility = if (visibleIds.isEmpty()) View.VISIBLE else View.GONE
+        farmsEmptyText.text = string(R.string.farms_empty_text)
+        for (farmId in visibleIds) {
+            val farm = service.loadFarm(farmId) ?: continue
+            val isActive = farm.id == activeId
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(12), dp(12), dp(12), dp(12))
+                isClickable = true
+                isFocusable = true
+            }
+            val nameView = TextView(this).apply {
+                text = farm.name
+                textSize = 18f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+            }
+            val currencyLabel = FarmCurrencies.label(farm.currencyCode, presentationLocale)
+            row.addView(nameView)
+            if (isActive) {
+                row.addView(TextView(this).apply {
+                    text = string(R.string.farm_active_badge)
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                })
+            }
+            row.addView(TextView(this).apply {
+                text = if (isActive) {
+                    string(R.string.farm_row_active_subtitle_format, currencyLabel)
+                } else {
+                    currencyLabel
+                }
+            })
+            row.setOnClickListener { openFarmDetails(farm.id) }
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(8) }
+            farmsListContainer.addView(row, lp)
+        }
+    }
+
+    private fun renderFarmDetails() {
+        val farmId = managedFarmId ?: return showDestination(Destination.FARMS)
+        val farm = service.loadFarm(farmId) ?: run {
+            managedFarmId = null
+            showDestination(Destination.FARMS)
+            return
+        }
+        val isActive = farm.id == service.currentFarmId()
+        farmDetailsNameText.text = farm.name
+        farmDetailsCurrencyText.text = FarmCurrencies.label(farm.currencyCode, presentationLocale)
+        farmDetailsActiveStatusText.text = string(
+            if (isActive) R.string.farm_active_status else R.string.farm_inactive_status
+        )
+        farmDetailsSwitchButton.visibility = if (isActive) View.GONE else View.VISIBLE
+    }
+
+    private fun renderAddFarmScreen() {
+        addFarmCurrencyCode = FarmCurrencies.defaultFor(Locale.getDefault())
+        addFarmCurrencyText.text = FarmCurrencies.label(addFarmCurrencyCode, presentationLocale)
+    }
+
+    private fun openFarmDetails(farmId: String) {
+        managedFarmId = farmId
+        showDestination(Destination.FARM_DETAILS)
+    }
+
+    private fun openAddFarmScreen() {
+        addFarmNameInput.setText("")
+        showDestination(Destination.ADD_FARM)
+    }
+
+    private fun createFarmFromAddScreen() {
+        val name = addFarmNameInput.text?.toString()?.trim().orEmpty()
+        if (name.isBlank()) {
+            showValidationMessage(FarmUiError.FARM_NAME_REQUIRED.resourceId)
+            return
+        }
+        try {
+            val farm = service.createFarm(name, addFarmCurrencyCode)
+            localUserService.associateFarm(farm.id)
+            currentFarmId = farm.id
+            managedFarmId = farm.id
+            render()
+            showDestination(Destination.HOME)
+            showToast(R.string.toast_farm_created)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "add farm failed")
+        }
+    }
+
+    private fun switchToManagedFarm() {
+        val farmId = managedFarmId ?: return
+        try {
+            service.setCurrentFarmId(farmId)
+            currentFarmId = farmId
+            render()
+            renderFarmDetails()
+            showToast(R.string.toast_farm_switched)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "switch farm failed")
+        }
+    }
+
+    private fun showManagedFarmCurrencyChooser() {
+        val farmId = managedFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        showCurrencyChooser(farm.currencyCode) { code ->
+            if (code != farm.currencyCode) {
+                if (farm.hasMonetaryRecords()) {
+                    showChangeCurrencyConfirmation(farm.currencyCode, code)
+                } else {
+                    applyFarmCurrencyChange(code)
+                }
+            }
+        }
     }
 
     private fun onTextSizeSelected(textSizeSp: Int) {
@@ -3769,9 +3962,13 @@ class FarmActivity : AppCompatActivity() {
     // --- Backup -------------------------------------------------------------
 
     private fun exportBackup() {
-        val backupContent = createBackupContentForCurrentFarm() ?: return
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        exportBackupForFarm(currentFarmId ?: return showMissingFarmMessage())
+    }
+
+    private fun exportBackupForFarm(farmId: String) {
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val backupContent = FarmBackupCodec.encode(farm)
+        pendingExportFarmId = farmId
         pendingExportContent = backupContent
         val safeName = farm.name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
             .takeIf { it.isNotBlank() } ?: string(R.string.backup_filename_fallback)
@@ -3785,6 +3982,11 @@ class FarmActivity : AppCompatActivity() {
 
     internal fun createBackupContentForCurrentFarm(): String? {
         val farmId = currentFarmId ?: return null
+        val farm = service.loadFarm(farmId) ?: return null
+        return FarmBackupCodec.encode(farm)
+    }
+
+    internal fun createBackupContentForFarm(farmId: String): String? {
         val farm = service.loadFarm(farmId) ?: return null
         return FarmBackupCodec.encode(farm)
     }
@@ -3806,10 +4008,15 @@ class FarmActivity : AppCompatActivity() {
 
     private fun showImportConfirmation(farm: FarmState) {
         val summary = buildImportedFarmSummary(farm)
+        val exists = service.loadFarm(farm.id) != null
+        val note = string(
+            if (exists) R.string.dialog_import_replace_existing_note
+            else R.string.dialog_import_add_new_note
+        )
         AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_replace_farm_title))
-            .setMessage(string(R.string.dialog_import_backup_message_format, farm.name, summary))
-            .setPositiveButton(string(R.string.action_replace_farm)) { _, _ ->
+            .setMessage(string(R.string.dialog_import_backup_message_format, farm.name, summary, note))
+            .setPositiveButton(string(R.string.action_import_farm)) { _, _ ->
                 if (editorState != null && isEditorDirty()) {
                     showDiscardDialog { replaceFarmWith(farm) }
                 } else {

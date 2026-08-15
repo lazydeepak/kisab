@@ -15,4 +15,7 @@ interface BackupFreshnessStore {
 
     /** Records a successful backup for [farmId] at [atMillis] (epoch millis). */
     fun recordSuccessfulBackup(farmId: String, atMillis: Long)
+
+    /** Drops freshness metadata for [farmId] after the farm is deleted (not the SAF file). */
+    fun clearFarm(farmId: String)
 }

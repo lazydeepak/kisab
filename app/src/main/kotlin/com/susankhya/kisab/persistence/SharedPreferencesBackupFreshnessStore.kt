@@ -20,6 +20,10 @@ class SharedPreferencesBackupFreshnessStore(context: Context) : BackupFreshnessS
         prefs.edit().putLong(keyFor(farmId), atMillis).commit()
     }
 
+    override fun clearFarm(farmId: String) {
+        prefs.edit().remove(keyFor(farmId)).commit()
+    }
+
     private fun keyFor(farmId: String): String = KEY_PREFIX + farmId
 
     companion object {

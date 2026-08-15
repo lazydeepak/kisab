@@ -83,8 +83,11 @@
 
     <string name="dialog_delete_transaction_title">लेनदेन मेटाउनुहोस्</string>
     <string name="dialog_delete_transaction_message">के यो लेनदेन स्थायी रूपमा मेटाउने?</string>
-    <string name="dialog_replace_farm_title">हालको फार्म प्रतिस्थापन गर्ने?</string>
-    <string name="dialog_import_backup_message_format">%1$s को ब्याकअप आयात गर्ने?\n\n%2$s\n\nयसले हालको फार्म स्थायी रूपमा प्रतिस्थापन गर्नेछ।</string>
+    <string name="dialog_replace_farm_title">यो फार्म आयात गर्ने?</string>
+    <string name="dialog_import_backup_message_format">%1$s को ब्याकअप आयात गर्ने?\n\n%2$s\n\n%3$s</string>
+    <string name="dialog_import_replace_existing_note">यो फार्म यस उपकरणमा पहिले नै छ। आयातले त्यही फार्म मात्र अद्यावधिक गर्नेछ। अन्य फार्महरू परिवर्तन हुँदैनन्।</string>
+    <string name="dialog_import_add_new_note">यो फार्म यस उपकरणमा नयाँ हो। आयातले यसलाई अर्को फार्मका रूपमा थप्नेछ। अन्य फार्महरू परिवर्तन हुँदैनन्।</string>
+    <string name="action_import_farm">फार्म आयात गर्नुहोस्</string>
     <string name="action_delete">मेटाउनुहोस्</string>
     <string name="action_cancel">रद्द गर्नुहोस्</string>
     <string name="action_replace_farm">फार्म प्रतिस्थापन गर्नुहोस्</string>
@@ -361,8 +364,21 @@
     <string name="language_nepali">नेपाली</string>
 
     <string name="menu_backup_restore">ब्याकअप / पुनर्स्थापना</string>
-    <string name="menu_farm_details">फार्म विवरण</string>
+    <string name="menu_farms">फार्महरू</string>
     <string name="menu_about">किसाबको बारेमा</string>
+
+    <string name="farms_page_title">फार्महरू</string>
+    <string name="farms_empty_text">अहिलेसम्म फार्म छैन। ट्र्याक गर्न फार्म थप्नुहोस्।</string>
+    <string name="add_farm_action">फार्म थप्नुहोस्</string>
+    <string name="add_farm_page_title">फार्म थप्नुहोस्</string>
+    <string name="farm_details_page_title">फार्म विवरण</string>
+    <string name="farm_active_badge">सक्रिय</string>
+    <string name="farm_active_status">यो सक्रिय फार्म हो</string>
+    <string name="farm_inactive_status">यो फार्म सक्रिय छैन</string>
+    <string name="switch_to_farm_action">यो फार्ममा स्विच गर्नुहोस्</string>
+    <string name="toast_farm_switched">फार्म स्विच भयो</string>
+    <string name="farm_row_subtitle_format">%1$s · %2$s</string>
+    <string name="farm_row_active_subtitle_format">%1$s · सक्रिय</string>
 
     <string name="settings_app_section">एप</string>
     <string name="settings_appearance_section">देखावट</string>
@@ -411,7 +427,13 @@
     <string name="dialog_reset_typed_message">फार्मका सबै अभिलेख स्थायी रूपमा मेटाउन RESET टाइप गर्नुहोस्। यो रद्द गर्न सकिँदैन।</string>
     <string name="dialog_delete_farm_title">फार्म मेटाउने?</string>
     <string name="dialog_delete_farm_message">यसले फार्म र यसका सबै डेटा स्थायी रूपमा मेटाउँछ, जसमा फार्मको नाम र मुद्रा पनि समावेश छ। पहिले निर्यात गरिएका ब्याकअप फाइलहरूमा असर पर्दैन।\n\nयो रद्द गर्न सकिँदैन।</string>
-    <string name="dialog_delete_farm_typed_message_format">पुष्टि गर्न फार्मको नाम टाइप गर्नुहोस्: %1$s</string>
+    <string name="dialog_delete_farm_typed_message">यो फार्म स्थायी रूपमा मेटाउन DELETE टाइप गर्नुहोस्। यो रद्द गर्न सकिँदैन।</string>
+    <string name="dialog_delete_farm_typed_title">मेटाउने पुष्टि गर्नुहोस्</string>
+    <string name="dialog_delete_backup_gate_title">मेटाउनुअघि ब्याकअप गर्ने?</string>
+    <string name="dialog_delete_backup_gate_message">मेटाउँदा यो फार्म र यसका सबै अभिलेख स्थायी रूपमा हट्छन्। ती कसरी सुरक्षित राख्ने छनौट गर्नुहोस्।</string>
+    <string name="dialog_delete_recent_backup_title">भर्खरको ब्याकअप भेटियो</string>
+    <string name="dialog_delete_recent_backup_message_format">भर्खरै ब्याकअप सम्पन्न भएको थियो।\n\nअन्तिम ब्याकअप: %1$s</string>
+    <string name="dialog_delete_farm_named_message_format">“%1$s” मेटाउने?\n\nयसले फार्म र यसका सबै डेटा स्थायी रूपमा मेटाउँछ, जसमा फार्मको नाम र मुद्रा पनि समावेश छ। पहिले निर्यात गरिएका ब्याकअप फाइलहरूमा असर पर्दैन।\n\nयो रद्द गर्न सकिँदैन।</string>
     <string name="toast_farm_data_reset">फार्म डेटा रिसेट भयो</string>
     <string name="toast_farm_deleted">फार्म मेटाइयो</string>
 
