@@ -389,6 +389,19 @@
     <string name="settings_data_offline_note">किसाबले तपाईंको फार्म डेटा यही उपकरणमा राख्छ। प्रतिलिपि राख्न ब्याकअप निर्यात गर्नुहोस्।</string>
     <string name="settings_data_no_farm_note">ब्याकअप निर्यात गर्न गृह ट्याबमा फार्म सिर्जना गर्नुहोस्।</string>
 
+    <string name="settings_danger_zone_section">जोखिम क्षेत्र</string>
+    <string name="settings_danger_zone_note">यहाँका क्रियाहरूले फार्म डेटा स्थायी रूपमा परिवर्तन वा हटाउन सक्छन्।</string>
+    <string name="reset_farm_data_action">फार्म डेटा रिसेट गर्नुहोस्</string>
+    <string name="delete_farm_action">फार्म मेटाउनुहोस्</string>
+    <string name="action_continue">जारी राख्नुहोस्</string>
+    <string name="dialog_reset_farm_title">फार्म डेटा रिसेट गर्ने?</string>
+    <string name="dialog_reset_farm_message">यसले फार्मका सबै प्रविष्टिहरू, कारोबारहरू, साझेदारहरू, बिक्रीहरू, किनमेलहरू र भुक्तानीहरू खाली गर्छ। फार्मको नाम र मुद्रा राखिन्छ।\n\nयो रद्द गर्न सकिँदैन।</string>
+    <string name="dialog_delete_farm_title">फार्म मेटाउने?</string>
+    <string name="dialog_delete_farm_message">यसले फार्म र यसका सबै डेटा स्थायी रूपमा मेटाउँछ, जसमा फार्मको नाम र मुद्रा पनि समावेश छ। पहिले निर्यात गरिएका ब्याकअप फाइलहरूमा असर पर्दैन।\n\nयो रद्द गर्न सकिँदैन।</string>
+    <string name="dialog_delete_farm_typed_message_format">पुष्टि गर्न फार्मको नाम टाइप गर्नुहोस्: %1$s</string>
+    <string name="toast_farm_data_reset">फार्म डेटा रिसेट भयो</string>
+    <string name="toast_farm_deleted">फार्म मेटाइयो</string>
+
     <string name="settings_about_version_format">किसाब %1$s</string>
     <string name="settings_about_privacy_note">किसाबले फार्म डेटा यही उपकरणमा राख्छ, जबसम्म तपाईं ब्याकअप निर्यात वा पुनर्स्थापना गर्नुहुन्न।</string>
     <string name="dialog_about_title">किसाबको बारेमा</string>

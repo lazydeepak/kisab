@@ -1701,6 +1701,46 @@
                     android:visibility="gone" />
 
                 <TextView
+                    android:id="@+id/settingsDangerZoneSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/settings_danger_zone_section"
+                    android:textColor="@color/dangerZone"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/settingsDangerZoneNote"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_danger_zone_note"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/resetFarmDataButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:backgroundTint="@color/dangerZone"
+                    android:minHeight="48dp"
+                    android:text="@string/reset_farm_data_action"
+                    android:textColor="@android:color/white"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/deleteFarmButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:backgroundTint="@color/dangerZone"
+                    android:minHeight="48dp"
+                    android:text="@string/delete_farm_action"
+                    android:textColor="@android:color/white"
+                    android:visibility="gone" />
+
+                <TextView
                     android:id="@+id/settingsDataSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

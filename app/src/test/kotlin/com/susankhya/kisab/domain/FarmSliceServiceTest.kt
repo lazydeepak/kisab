@@ -1568,4 +1568,87 @@ class FarmSliceServiceTest {
         assertEquals(settlement.id, again.settlements.single().id)
         assertEquals(7000L, farm.settlements.outstandingMinorFor(farm.trades.single()))
     }
+
+    @Test
+    fun resetFarmDataClearsAllRecordsAndKeepsFarmIdentity() {
+        val farm = service.createFarm("Demo Farm", currencyCode = "NPR")
+        service.addEntry(farm.id, FarmEntry(FarmEntryKind.LIVESTOCK, "Goat", 3))
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 5000,
+                description = "Feed purchase",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        service.addTradeWithInitialSettlement(
+            farm.id,
+            TradeDraft(type = TradeType.SALE, partyId = party.id, totalMinor = 5000, occurredAt = "2024-01-01T12:00:00Z"),
+            initialSettlementMinor = 2000
+        )
+
+        service.resetFarmData(farm.id)
+
+        val reset = service.loadFarm(farm.id)
+        assertNotNull(reset)
+        assertEquals(farm.id, reset?.id)
+        assertEquals("Demo Farm", reset?.name)
+        assertEquals("NPR", reset?.currencyCode)
+        assertEquals(0, reset?.entries?.size)
+        assertEquals(0, reset?.transactions?.size)
+        assertEquals(0, reset?.parties?.size)
+        assertEquals(0, reset?.trades?.size)
+        assertEquals(0, reset?.settlements?.size)
+        assertEquals(farm.id, service.currentFarmId())
+    }
+
+    @Test
+    fun resetFarmDataRequiresAnExistingFarm() {
+        try {
+            service.resetFarmData("farm-missing")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Unknown farm: farm-missing", exception.message)
+        }
+    }
+
+    @Test
+    fun deleteFarmRemovesFarmAndReturnsToNoFarmState() {
+        val farm = service.createFarm("Demo Farm", currencyCode = "NPR")
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        service.addTradeWithInitialSettlement(
+            farm.id,
+            TradeDraft(type = TradeType.SALE, partyId = party.id, totalMinor = 5000, occurredAt = "2024-01-01T12:00:00Z"),
+            initialSettlementMinor = 2000
+        )
+
+        service.deleteFarm(farm.id)
+
+        assertNull(service.loadFarm(farm.id))
+        assertNull(service.currentFarmId())
+    }
+
+    @Test
+    fun deleteFarmKeepsCurrentFarmWhenDeletingAnotherFarm() {
+        val first = service.createFarm("First")
+        val second = service.createFarm("Second")
+
+        service.deleteFarm(first.id)
+
+        assertNull(service.loadFarm(first.id))
+        assertEquals(second.id, service.currentFarmId())
+    }
+
+    @Test
+    fun deleteFarmRequiresAnExistingFarm() {
+        try {
+            service.deleteFarm("farm-missing")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Unknown farm: farm-missing", exception.message)
+        }
+    }
 }

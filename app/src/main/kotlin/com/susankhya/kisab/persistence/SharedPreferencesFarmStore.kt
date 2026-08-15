@@ -32,6 +32,12 @@ class SharedPreferencesFarmStore(context: Context) : FarmStore {
         prefs.edit().remove(PREF_CURRENT_FARM_ID).remove(PREF_FARM_STATE).commit()
     }
 
+    override fun deleteFarm(farmId: String) {
+        if (prefs.getString(PREF_CURRENT_FARM_ID, null) == farmId) {
+            prefs.edit().remove(PREF_CURRENT_FARM_ID).remove(PREF_FARM_STATE).commit()
+        }
+    }
+
     companion object {
         private const val PREFS_NAME = "kisab_farm_store"
         private const val PREF_CURRENT_FARM_ID = "current_farm_id"

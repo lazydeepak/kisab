@@ -393,6 +393,19 @@
     <string name="settings_data_offline_note">Kisab keeps your farm data on this device. Export a backup to keep a copy.</string>
     <string name="settings_data_no_farm_note">Create a farm on the Home tab to export a backup.</string>
 
+    <string name="settings_danger_zone_section">Danger Zone</string>
+    <string name="settings_danger_zone_note">Actions here permanently alter or remove farm data.</string>
+    <string name="reset_farm_data_action">Reset farm data</string>
+    <string name="delete_farm_action">Delete farm</string>
+    <string name="action_continue">Continue</string>
+    <string name="dialog_reset_farm_title">Reset farm data?</string>
+    <string name="dialog_reset_farm_message">This clears every entry, transaction, party, sale, purchase, and payment in the farm. The farm name and currency are kept.\n\nThis cannot be undone.</string>
+    <string name="dialog_delete_farm_title">Delete farm?</string>
+    <string name="dialog_delete_farm_message">This permanently removes the farm and all of its data, including the farm name and currency. Backup files you exported earlier are not affected.\n\nThis cannot be undone.</string>
+    <string name="dialog_delete_farm_typed_message_format">Type the farm name to confirm: %1$s</string>
+    <string name="toast_farm_data_reset">Farm data reset</string>
+    <string name="toast_farm_deleted">Farm deleted</string>
+
     <string name="settings_about_version_format">Kisab %1$s</string>
     <string name="settings_about_privacy_note">Kisab stores farm data on this device unless you export or restore a backup.</string>
     <string name="dialog_about_title">About Kisab</string>

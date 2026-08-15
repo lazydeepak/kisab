@@ -8,10 +8,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.LocaleList
+import android.text.Editable
+import android.text.InputType
 import android.text.SpannableString
 import android.text.Spanned
-import android.text.style.RelativeSizeSpan
+import android.text.TextWatcher
 import android.text.format.DateFormat
+import android.text.style.RelativeSizeSpan
 import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -304,6 +307,10 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var settingsDataNoFarmText: TextView
     private lateinit var settingsExportBackupButton: Button
     private lateinit var settingsImportBackupButton: Button
+    private lateinit var settingsDangerZoneSection: TextView
+    private lateinit var settingsDangerZoneNote: TextView
+    private lateinit var resetFarmDataButton: Button
+    private lateinit var deleteFarmButton: Button
     private lateinit var settingsAboutVersionText: TextView
     private lateinit var settingsAppearanceSection: TextView
     private lateinit var settingsFarmSection: TextView
@@ -768,6 +775,10 @@ class FarmActivity : AppCompatActivity() {
         settingsDataNoFarmText = findViewById(R.id.settingsDataNoFarmText)
         settingsExportBackupButton = findViewById(R.id.settingsExportBackupButton)
         settingsImportBackupButton = findViewById(R.id.settingsImportBackupButton)
+        settingsDangerZoneSection = findViewById(R.id.settingsDangerZoneSection)
+        settingsDangerZoneNote = findViewById(R.id.settingsDangerZoneNote)
+        resetFarmDataButton = findViewById(R.id.resetFarmDataButton)
+        deleteFarmButton = findViewById(R.id.deleteFarmButton)
         settingsAboutVersionText = findViewById(R.id.settingsAboutVersionText)
         settingsAppearanceSection = findViewById(R.id.settingsAppearanceSection)
         settingsFarmSection = findViewById(R.id.settingsFarmSection)
@@ -958,6 +969,8 @@ class FarmActivity : AppCompatActivity() {
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
         changeSettingsCurrencyButton.setOnClickListener { showSettingsCurrencyChooser() }
+        resetFarmDataButton.setOnClickListener { showResetFarmDataConfirmation() }
+        deleteFarmButton.setOnClickListener { showDeleteFarmConfirmation() }
         settingsTextSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (!fromUser || textSizeChangeSuppressed) return
@@ -3127,6 +3140,89 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
+    // --- Danger Zone ----------------------------------------------------------
+
+    private fun showResetFarmDataConfirmation() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_reset_farm_title))
+            .setMessage(string(R.string.dialog_reset_farm_message))
+            .setPositiveButton(string(R.string.reset_farm_data_action)) { _, _ -> performResetFarmData(farm) }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .show()
+    }
+
+    private fun performResetFarmData(farm: FarmState) {
+        closeEditor()
+        try {
+            service.resetFarmData(farm.id)
+            render()
+            showToast(R.string.toast_farm_data_reset)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "reset farm data failed")
+            render()
+        }
+    }
+
+    private fun showDeleteFarmConfirmation() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_delete_farm_title))
+            .setMessage(string(R.string.dialog_delete_farm_message))
+            .setPositiveButton(string(R.string.action_continue)) { _, _ -> showDeleteFarmTypedConfirmation(farm) }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .show()
+    }
+
+    private fun showDeleteFarmTypedConfirmation(farm: FarmState) {
+        val input = EditText(this).apply {
+            isSingleLine = true
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            hint = farm.name
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_delete_farm_title))
+            .setMessage(string(R.string.dialog_delete_farm_typed_message_format, farm.name))
+            .setView(input)
+            .setPositiveButton(string(R.string.delete_farm_action), null)
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .create()
+        dialog.setOnShowListener {
+            val confirmButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            confirmButton.isEnabled = false
+            input.addTextChangedListener(object : TextWatcher {
+                override fun afterTextChanged(text: Editable?) {
+                    confirmButton.isEnabled = text?.toString()?.trim()?.equals(farm.name, ignoreCase = true) == true
+                }
+
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            })
+            confirmButton.setOnClickListener {
+                dialog.dismiss()
+                performDeleteFarm(farm)
+            }
+        }
+        dialog.show()
+    }
+
+    private fun performDeleteFarm(farm: FarmState) {
+        closeEditor()
+        try {
+            service.deleteFarm(farm.id)
+            currentFarmId = service.currentFarmId()
+            render()
+            showToast(R.string.toast_farm_deleted)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "delete farm failed")
+            currentFarmId = service.currentFarmId()
+            render()
+        }
+    }
+
     private fun updateDateTimeDisplay() {
         val occurredAt = editorState?.occurredAt ?: return
         val now = OffsetDateTime.now()
@@ -3314,6 +3410,10 @@ class FarmActivity : AppCompatActivity() {
         settingsDataNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
         settingsExportBackupButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsImportBackupButton.visibility = View.VISIBLE
+        settingsDangerZoneSection.visibility = if (farm == null) View.GONE else View.VISIBLE
+        settingsDangerZoneNote.visibility = if (farm == null) View.GONE else View.VISIBLE
+        resetFarmDataButton.visibility = if (farm == null) View.GONE else View.VISIBLE
+        deleteFarmButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
         syncLanguageSelection()
         syncTextSizeSelection()

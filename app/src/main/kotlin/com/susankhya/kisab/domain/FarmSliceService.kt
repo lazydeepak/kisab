@@ -11,6 +11,7 @@ interface FarmStore {
     fun setCurrentFarmId(farmId: String)
     fun currentFarmId(): String?
     fun clear()
+    fun deleteFarm(farmId: String)
 }
 
 class InMemoryFarmStore : FarmStore {
@@ -34,6 +35,11 @@ class InMemoryFarmStore : FarmStore {
         farms.clear()
         currentFarmId = null
     }
+
+    override fun deleteFarm(farmId: String) {
+        farms.remove(farmId)
+        if (currentFarmId == farmId) currentFarmId = null
+    }
 }
 
 class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
@@ -49,6 +55,36 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
     fun loadFarm(farmId: String): FarmState? = store.loadFarm(farmId)
 
     fun currentFarmId(): String? = store.currentFarmId()
+
+    /**
+     * Clears every operational/accounting record the farm owns (entries,
+     * transactions, parties, trades, settlements) while preserving the farm's
+     * identity, name, currency and schema version. App-local preferences are
+     * owned outside [FarmStore] and are untouched.
+     */
+    fun resetFarmData(farmId: String) {
+        val farm = getFarm(farmId)
+        val reset = farm.copy(
+            entries = mutableListOf(),
+            transactions = mutableListOf(),
+            parties = mutableListOf(),
+            trades = mutableListOf(),
+            settlements = mutableListOf()
+        )
+        FarmStateValidator.validateFarm(reset)
+        store.saveFarm(reset)
+    }
+
+    /**
+     * Permanently removes the farm and everything it owns. After this call the
+     * farm can no longer be loaded and the current farm id, if it pointed at
+     * this farm, is cleared so the app returns to its initial no-farm state.
+     * Externally exported backup files are never touched here.
+     */
+    fun deleteFarm(farmId: String) {
+        getFarm(farmId)
+        store.deleteFarm(farmId)
+    }
 
     fun addEntry(farmId: String, entry: FarmEntry) {
         val farm = getFarm(farmId)

@@ -4,4 +4,5 @@
     <color name="bottomNavContent">#53645A</color>
     <color name="bottomNavSelectedContent">#1B5E20</color>
     <color name="bottomNavSelectedBackground">#C8E6C9</color>
+    <color name="dangerZone">#C62828</color>
 </resources>
