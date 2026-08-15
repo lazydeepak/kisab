@@ -3320,29 +3320,44 @@ class FarmActivity : AppCompatActivity() {
         } ?: string(R.string.dialog_reset_backup_gate_none)
         val messageRes = if (forDelete) R.string.dialog_delete_backup_gate_message else R.string.dialog_reset_backup_gate_message
         val titleRes = if (forDelete) R.string.dialog_delete_backup_gate_title else R.string.dialog_reset_backup_gate_title
-        val backupNowButton = Button(this).apply { text = string(R.string.reset_backup_now_action) }
-        val existingBackupButton = Button(this).apply { text = string(R.string.reset_backup_existing_action) }
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        val backupNowButton = Button(this).apply {
+            text = string(R.string.reset_backup_now_action)
+            minHeight = dp(52)
         }
-        container.addView(
-            TextView(this).apply {
-                text = string(messageRes) + "\n\n" + gateDetail
-                textSize = 16f
-                setPadding(0, 0, 0, dp(16))
-            }
-        )
-        container.addView(backupNowButton)
-        container.addView(
-            existingBackupButton,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = dp(8) }
-        )
+        val existingBackupButton = Button(this).apply {
+            text = string(R.string.reset_backup_existing_action)
+            minHeight = dp(52)
+        }
+        val messageView = TextView(this).apply {
+            text = string(messageRes) + "\n\n" + gateDetail
+            setLineSpacing(0f, 1.15f)
+            setPadding(0, 0, 0, dp(12))
+        }
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(backupNowButton)
+            addView(
+                existingBackupButton,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(10) }
+            )
+        }
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            addView(
+                LinearLayout(this@FarmActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(4), 0, dp(4), 0)
+                    addView(messageView)
+                    addView(actions)
+                }
+            )
+        }
         val dialog = AlertDialog.Builder(this)
             .setTitle(string(titleRes))
-            .setView(container)
+            .setView(scroll)
             .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
                 if (forDelete) deleteFlow.cancel() else resetFlow.cancel()
             }
@@ -3364,17 +3379,19 @@ class FarmActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun showResetTypedConfirmation() {
         val input = EditText(this).apply {
             isSingleLine = true
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            minHeight = dp(52)
         }
+        val body = typedConfirmationBody(string(R.string.dialog_reset_typed_message), input)
         val dialog = AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_reset_typed_title))
-            .setMessage(string(R.string.dialog_reset_typed_message))
-            .setView(input)
+            .setView(body)
             .setPositiveButton(string(R.string.reset_farm_data_action), null)
             .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
             .setOnCancelListener { resetFlow.cancel() }
@@ -3398,6 +3415,8 @@ class FarmActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+        scaleDialogContent(dialog)
+        input.requestFocus()
     }
 
     /** Resolves the pending backup-gate export result without new backup code. */
@@ -3505,11 +3524,12 @@ class FarmActivity : AppCompatActivity() {
         val input = EditText(this).apply {
             isSingleLine = true
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            minHeight = dp(52)
         }
+        val body = typedConfirmationBody(string(R.string.dialog_delete_farm_typed_message), input)
         val dialog = AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_delete_farm_typed_title))
-            .setMessage(string(R.string.dialog_delete_farm_typed_message))
-            .setView(input)
+            .setView(body)
             .setPositiveButton(string(R.string.delete_farm_action), null)
             .setNegativeButton(string(R.string.action_cancel)) { _, _ -> deleteFlow.cancel() }
             .setOnCancelListener { deleteFlow.cancel() }
@@ -3533,6 +3553,32 @@ class FarmActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+        scaleDialogContent(dialog)
+        input.requestFocus()
+    }
+
+    /** Scrollable message + keyword field so 36sp + keyboard keep actions reachable. */
+    private fun typedConfirmationBody(message: String, input: EditText): View {
+        val messageView = TextView(this).apply {
+            text = message
+            setLineSpacing(0f, 1.15f)
+        }
+        val column = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(4), 0, dp(4), 0)
+            addView(messageView)
+            addView(
+                input,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(12) }
+            )
+        }
+        return ScrollView(this).apply {
+            isFillViewport = true
+            addView(column)
+        }
     }
 
     private fun performDeleteManagedFarm() {
@@ -3783,40 +3829,56 @@ class FarmActivity : AppCompatActivity() {
         val activeId = service.currentFarmId()
         farmsEmptyText.visibility = if (visibleIds.isEmpty()) View.VISIBLE else View.GONE
         farmsEmptyText.text = string(R.string.farms_empty_text)
+        val secondaryColor = getColor(R.color.textSecondary)
+        val badgeTextColor = getColor(R.color.farmActiveBadgeText)
         for (farmId in visibleIds) {
             val farm = service.loadFarm(farmId) ?: continue
             val isActive = farm.id == activeId
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(dp(12), dp(12), dp(12), dp(12))
+                setPadding(dp(16), dp(14), dp(16), dp(14))
+                minimumHeight = dp(56)
                 isClickable = true
                 isFocusable = true
+                background = getDrawable(R.drawable.bg_farm_list_row)
             }
             val nameView = TextView(this).apply {
                 text = farm.name
-                textSize = 18f
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setLineSpacing(0f, 1.1f)
             }
-            val currencyLabel = FarmCurrencies.label(farm.currencyCode, presentationLocale)
             row.addView(nameView)
             if (isActive) {
-                row.addView(TextView(this).apply {
+                val badge = TextView(this).apply {
                     text = string(R.string.farm_active_badge)
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
-                })
-            }
-            row.addView(TextView(this).apply {
-                text = if (isActive) {
-                    string(R.string.farm_row_active_subtitle_format, currencyLabel)
-                } else {
-                    currencyLabel
+                    setTextColor(badgeTextColor)
+                    background = getDrawable(R.drawable.bg_farm_active_badge)
+                    // Keep badge subordinate to the farm name (not color-only).
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = dp(8) }
                 }
-            })
+                row.addView(badge)
+            }
+            val currencyLabel = FarmCurrencies.label(farm.currencyCode, presentationLocale)
+            row.addView(
+                TextView(this).apply {
+                    text = currencyLabel
+                    setTextColor(secondaryColor)
+                    setLineSpacing(0f, 1.1f)
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = dp(6) }
+                }
+            )
             row.setOnClickListener { openFarmDetails(farm.id) }
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = dp(8) }
+            ).apply { bottomMargin = dp(12) }
             farmsListContainer.addView(row, lp)
         }
     }
@@ -3833,6 +3895,9 @@ class FarmActivity : AppCompatActivity() {
         farmDetailsCurrencyText.text = FarmCurrencies.label(farm.currencyCode, presentationLocale)
         farmDetailsActiveStatusText.text = string(
             if (isActive) R.string.farm_active_status else R.string.farm_inactive_status
+        )
+        farmDetailsActiveStatusText.setTextColor(
+            getColor(if (isActive) R.color.farmActiveBadgeText else R.color.textSecondary)
         )
         farmDetailsSwitchButton.visibility = if (isActive) View.GONE else View.VISIBLE
     }
@@ -3948,6 +4013,13 @@ class FarmActivity : AppCompatActivity() {
     private fun applyAppTextSize() {
         val scale = textSizePreferences.load().toFloat() / AppTextSize.DEFAULT_SP
         applyTextScale(shellRoot, scale)
+    }
+
+    /** Dialog windows sit outside [shellRoot]; scale their content with the same app text size. */
+    private fun scaleDialogContent(dialog: AlertDialog) {
+        val root = dialog.window?.decorView ?: return
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.DEFAULT_SP
+        applyTextScale(root, scale)
     }
 
     private fun applyTextScale(view: View, scale: Float) {

@@ -5,4 +5,13 @@
     <color name="bottomNavContent">#a7c2ad</color>
     <color name="bottomNavSelectedContent">#c8e6c9</color>
     <color name="bottomNavSelectedBackground">#2e4a35</color>
+    <color name="dangerZone">#C62828</color>
+    <color name="dangerZoneLabel">#EF9A9A</color>
+    <color name="dangerZoneContainer">#3E2727</color>
+    <color name="textSecondary">#B0B8B0</color>
+    <color name="farmRowStroke">#3A4F3E</color>
+    <color name="farmRowBackground">#1A241C</color>
+    <color name="farmActiveBadgeBackground">#2E4A35</color>
+    <color name="farmActiveBadgeText">#C8E6C9</color>
+    <color name="sectionDivider">#3A4A3E</color>
 </resources>

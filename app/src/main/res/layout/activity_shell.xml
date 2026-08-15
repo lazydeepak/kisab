@@ -1759,13 +1759,15 @@
             android:id="@+id/farmsScreen"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
             android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -1778,21 +1780,23 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:textColor="@color/textSecondary"
                     android:visibility="gone" />
 
                 <LinearLayout
                     android:id="@+id/farmsListContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="16dp"
                     android:orientation="vertical" />
 
                 <Button
                     android:id="@+id/addFarmButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:minHeight="48dp"
+                    android:layout_marginTop="20dp"
+                    android:minHeight="52dp"
                     android:text="@string/add_farm_action" />
             </LinearLayout>
         </ScrollView>
@@ -1801,13 +1805,16 @@
             android:id="@+id/farmDetailsScreen"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
             android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp"
+                android:paddingBottom="32dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -1818,7 +1825,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="20dp"
                     android:text="@string/settings_farm_name_label"
                     android:textStyle="bold" />
 
@@ -1826,20 +1833,21 @@
                     android:id="@+id/farmDetailsNameText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.1" />
 
                 <Button
                     android:id="@+id/farmDetailsRenameButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:minHeight="48dp"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
                     android:text="@string/settings_rename_farm_action" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="20dp"
                     android:text="@string/farm_currency_label"
                     android:textStyle="bold" />
 
@@ -1847,65 +1855,86 @@
                     android:id="@+id/farmDetailsCurrencyText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.1"
+                    android:textColor="@color/textSecondary" />
 
                 <Button
                     android:id="@+id/farmDetailsChangeCurrencyButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:minHeight="48dp"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
                     android:text="@string/change_currency_action" />
 
                 <TextView
                     android:id="@+id/farmDetailsActiveStatusText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp" />
+                    android:layout_marginTop="20dp"
+                    android:lineSpacingMultiplier="1.15" />
 
                 <Button
                     android:id="@+id/farmDetailsSwitchButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:minHeight="48dp"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
                     android:text="@string/switch_to_farm_action"
                     android:visibility="gone" />
 
-                <TextView
-                    android:id="@+id/farmDetailsDangerZoneSection"
+                <View
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="@string/settings_danger_zone_section"
-                    android:textColor="@color/dangerZone"
-                    android:textStyle="bold" />
+                    android:layout_height="1dp"
+                    android:layout_marginTop="28dp"
+                    android:background="@color/sectionDivider" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/settings_danger_zone_note" />
-
-                <Button
-                    android:id="@+id/farmDetailsResetButton"
+                <LinearLayout
+                    android:id="@+id/farmDetailsDangerZonePanel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:backgroundTint="@color/dangerZone"
-                    android:minHeight="48dp"
-                    android:text="@string/reset_farm_data_action"
-                    android:textColor="@android:color/white" />
+                    android:background="@drawable/bg_danger_zone_panel"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <Button
-                    android:id="@+id/farmDetailsDeleteButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:backgroundTint="@color/dangerZone"
-                    android:minHeight="48dp"
-                    android:text="@string/delete_farm_action"
-                    android:textColor="@android:color/white" />
+                    <TextView
+                        android:id="@+id/farmDetailsDangerZoneSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_danger_zone_section"
+                        android:textColor="@color/dangerZoneLabel"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/farmDetailsDangerZoneNote"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingMultiplier="1.2"
+                        android:text="@string/settings_danger_zone_note"
+                        android:textColor="@color/textSecondary" />
+
+                    <Button
+                        android:id="@+id/farmDetailsResetButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:backgroundTint="@color/dangerZone"
+                        android:minHeight="52dp"
+                        android:text="@string/reset_farm_data_action"
+                        android:textColor="@android:color/white" />
+
+                    <Button
+                        android:id="@+id/farmDetailsDeleteButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="@color/dangerZone"
+                        android:minHeight="52dp"
+                        android:text="@string/delete_farm_action"
+                        android:textColor="@android:color/white" />
+                </LinearLayout>
             </LinearLayout>
         </ScrollView>
 
@@ -1913,13 +1942,16 @@
             android:id="@+id/addFarmScreen"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
             android:visibility="gone">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp"
+                android:paddingBottom="32dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -1930,7 +1962,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="20dp"
                     android:text="@string/settings_farm_name_label"
                     android:textStyle="bold" />
 
@@ -1941,12 +1973,12 @@
                     android:layout_marginTop="8dp"
                     android:hint="@string/farm_name_hint"
                     android:inputType="textCapWords"
-                    android:minHeight="48dp" />
+                    android:minHeight="52dp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="20dp"
                     android:text="@string/farm_currency_label"
                     android:textStyle="bold" />
 
@@ -1954,22 +1986,24 @@
                     android:id="@+id/addFarmCurrencyText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.1"
+                    android:textColor="@color/textSecondary" />
 
                 <Button
                     android:id="@+id/addFarmChangeCurrencyButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:minHeight="48dp"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
                     android:text="@string/change_currency_action" />
 
                 <Button
                     android:id="@+id/addFarmCreateButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:minHeight="48dp"
+                    android:layout_marginTop="28dp"
+                    android:minHeight="52dp"
                     android:text="@string/create_farm_action" />
             </LinearLayout>
         </ScrollView>
