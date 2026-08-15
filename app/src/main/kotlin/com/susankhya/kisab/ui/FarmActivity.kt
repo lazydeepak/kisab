@@ -74,6 +74,8 @@ import com.susankhya.kisab.domain.FarmProduct
 import com.susankhya.kisab.domain.ProductSaleDetail
 import com.susankhya.kisab.domain.ProductSaleHistory
 import com.susankhya.kisab.domain.ProductUnit
+import com.susankhya.kisab.domain.FarmSupply
+import com.susankhya.kisab.domain.SupplyUsageDraft
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeDraft
@@ -440,6 +442,9 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var importBackupButton: Button
     private lateinit var quickSaleButton: Button
     private lateinit var receivedMoneyButton: Button
+    private lateinit var supplyPurchaseButton: Button
+    private lateinit var supplyUsageButton: Button
+    private lateinit var supplyStockButton: Button
 
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
@@ -978,6 +983,9 @@ class FarmActivity : AppCompatActivity() {
         importBackupButton = findViewById(R.id.importBackupButton)
         quickSaleButton = findViewById(R.id.quickSaleButton)
         receivedMoneyButton = findViewById(R.id.receivedMoneyButton)
+        supplyPurchaseButton = findViewById(R.id.supplyPurchaseButton)
+        supplyUsageButton = findViewById(R.id.supplyUsageButton)
+        supplyStockButton = findViewById(R.id.supplyStockButton)
 
         entryKindSpinner.adapter = ArrayAdapter(
             this,
@@ -1113,6 +1121,9 @@ class FarmActivity : AppCompatActivity() {
         importBackupButton.setOnClickListener { importBackup() }
         quickSaleButton.setOnClickListener { showQuickSaleDialog() }
         receivedMoneyButton.setOnClickListener { showReceivedMoneyDialog() }
+        supplyPurchaseButton.setOnClickListener { showSupplyPurchaseDialog() }
+        supplyUsageButton.setOnClickListener { showSupplyUsageDialog() }
+        supplyStockButton.setOnClickListener { showSupplyStockDialog() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
         settingsAboutUpdateButton.setOnClickListener { checkForPrivateAppUpdate() }
@@ -3484,6 +3495,124 @@ class FarmActivity : AppCompatActivity() {
         }
         dialog.show()
     }
+
+    private fun showSupplyPurchaseDialog() {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val supplies = service.supplies(farmId)
+        if (supplies.isEmpty()) {
+            showSupplyCreationDialog { showSupplyPurchaseDialog() }
+            return
+        }
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val supplySpinner = Spinner(this)
+        supplySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, supplies.map { it.name })
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val quantityInput = EditText(this).apply { hint = string(R.string.supply_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val unitText = TextView(this)
+        val costInput = EditText(this).apply { hint = string(R.string.supply_cost); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val noteInput = EditText(this).apply { hint = string(R.string.supply_note) }
+        content.addView(supplySpinner); content.addView(quantityInput); content.addView(unitText); content.addView(costInput); content.addView(noteInput)
+        fun refreshUnit() { supplies.getOrNull(supplySpinner.selectedItemPosition)?.let { unitText.text = supplyUnitLabel(it.unit, it.customUnitLabel) } }
+        supplySpinner.onItemSelectedListener = simpleItemSelectedListener { refreshUnit() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_purchase_title).setView(content)
+            .setNeutralButton(R.string.supply_add) { _, _ -> showSupplyCreationDialog { showSupplyPurchaseDialog() } }
+            .setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val supply = supplies.getOrNull(supplySpinner.selectedItemPosition) ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.supply_quantity_invalid)
+                val cost = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), costInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor
+                    ?: return@setOnClickListener showToast(R.string.supply_cost_invalid)
+                try {
+                    service.addSupplyPurchase(
+                        farmId, supply.id, quantity, supply.unit, cost, TransactionCategory.SUPPLIES,
+                        OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                        noteInput.text?.toString().orEmpty().ifBlank { supply.name }
+                    )
+                    dialog.dismiss(); render(); showToast(R.string.supply_saved)
+                } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
+            }
+        }
+        dialog.show(); refreshUnit()
+    }
+
+    private fun showSupplyUsageDialog() {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val supplies = service.supplies(farmId)
+        if (supplies.isEmpty()) return showToast(R.string.supply_empty)
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val supplySpinner = Spinner(this)
+        supplySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, supplies.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val balanceText = TextView(this)
+        val quantityInput = EditText(this).apply { hint = string(R.string.supply_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val noteInput = EditText(this).apply { hint = string(R.string.supply_note) }
+        content.addView(supplySpinner); content.addView(balanceText); content.addView(quantityInput); content.addView(noteInput)
+        fun refreshBalance() { supplies.getOrNull(supplySpinner.selectedItemPosition)?.let { balanceText.text = string(R.string.supply_remaining_format, it.name, formatQuantity(service.supplyAvailable(farmId, it.id))) } }
+        supplySpinner.onItemSelectedListener = simpleItemSelectedListener { refreshBalance() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_usage_title).setView(content).setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val supply = supplies.getOrNull(supplySpinner.selectedItemPosition) ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.supply_quantity_invalid)
+                try {
+                    service.addSupplyUsage(farmId, SupplyUsageDraft(supply.id, quantity, supply.unit, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), noteInput.text?.toString().orEmpty()))
+                    dialog.dismiss(); render(); showToast(R.string.supply_used_saved)
+                } catch (exception: Exception) {
+                    if (exception.message?.contains("exceeds available") == true) showToast(R.string.supply_usage_too_high)
+                    else Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show(); refreshBalance()
+    }
+
+    private fun showSupplyStockDialog() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val message = if (farm.supplies.isEmpty()) string(R.string.supply_empty) else farm.supplies.sortedBy { it.name.lowercase() }.joinToString("\n\n") { supply ->
+            val purchases = farm.supplyPurchaseDetails.filter { it.supplyId == supply.id }.sumOf { it.quantity }
+            val used = farm.supplyUsages.filter { it.supplyId == supply.id }.sumOf { it.quantity }
+            string(R.string.supply_remaining_format, supply.name, formatQuantity(purchases.subtract(used))) +
+                "\n" + string(R.string.supply_activity_format, formatQuantity(purchases), formatQuantity(used))
+        }
+        AlertDialog.Builder(this).setTitle(R.string.supply_stock_title).setMessage(message).setPositiveButton(R.string.action_done, null).show()
+    }
+
+    private fun showSupplyCreationDialog(afterSave: (FarmSupply) -> Unit) {
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val nameInput = EditText(this).apply { hint = string(R.string.supply_name_hint) }
+        val units = listOf(ProductUnit.KILOGRAM, ProductUnit.LITRE, ProductUnit.BAG, ProductUnit.PACKET, ProductUnit.BOTTLE, ProductUnit.PIECE)
+        val unitSpinner = Spinner(this)
+        unitSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, units.map { supplyUnitLabel(it, "") }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        content.addView(nameInput); content.addView(unitSpinner)
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_add).setView(content).setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val farmId = currentFarmId ?: return@setOnClickListener
+                val name = nameInput.text?.toString()?.trim().orEmpty()
+                if (name.isBlank()) return@setOnClickListener showToast(R.string.supply_name_required)
+                try {
+                    val supply = service.addSupply(farmId, name, units[unitSpinner.selectedItemPosition])
+                    dialog.dismiss(); showToast(R.string.supply_add_saved); afterSave(supply)
+                } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun supplyUnitLabel(unit: ProductUnit, customLabel: String): String = when (unit) {
+        ProductUnit.LITRE -> string(R.string.supply_unit_litre)
+        ProductUnit.KILOGRAM -> string(R.string.supply_unit_kilogram)
+        ProductUnit.PIECE -> string(R.string.supply_unit_piece)
+        ProductUnit.BAG -> string(R.string.supply_unit_bag)
+        ProductUnit.PACKET -> string(R.string.supply_unit_packet)
+        ProductUnit.BOTTLE -> string(R.string.supply_unit_bottle)
+        ProductUnit.CUSTOM -> customLabel
+    }
+
+    private fun formatQuantity(quantity: BigDecimal): String = quantity.stripTrailingZeros().toPlainString()
 
     private fun showQuickSaleSavedDialog(customerId: String, productId: String, rateMinor: Long) {
         AlertDialog.Builder(this)

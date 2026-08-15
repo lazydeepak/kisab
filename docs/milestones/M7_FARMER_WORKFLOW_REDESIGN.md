@@ -325,6 +325,47 @@ This slice should be intentionally narrow. It should not simultaneously introduc
 - Quick Sale is generic across products and units; no dairy-specific branch, stock mutation, or production record is created.
 - Rate suggestions are deliberately deferred until a small, safe lookup can be added without changing the accounting authority.
 
+## M7.2 Farm Supplies & Simple Stock
+
+M7.2 extends the farmer workflow with `किनेँ`, `प्रयोग गरेँ`, and `बाँकी` for generic farm supplies. It deliberately does not introduce warehouse or ERP concepts.
+
+### Final domain decision
+
+- `FarmSupply` is a farm-local reusable supply definition with a name and governed unit.
+- `SupplyPurchaseDetail` explains stock-in and links to exactly one existing EXPENSE `FarmTransaction`.
+- `SupplyUsage` is a stock-out movement with quantity, time, and optional note.
+- Current stock is derived as total valid purchase quantity minus total valid usage quantity.
+- No mutable current quantity is stored and no unit conversion is attempted; 10 kg and 2 bags remain different quantities.
+
+### Accounting integration
+
+One farmer purchase action atomically creates:
+
+1. one existing EXPENSE transaction, which remains the financial authority; and
+2. one linked `SupplyPurchaseDetail`, which records physical stock-in.
+
+The same purchase is never entered twice. The default first-slice expense category is the existing `SUPPLIES` category. Supplier credit/purchase-trade workflows remain deferred.
+
+Usage creates only a `SupplyUsage`; it does not create an expense. Usage greater than derived available stock is rejected before persistence, so stock cannot become negative.
+
+### Schema and migration
+
+Farm persistence advances from v7 to v8 by appending supplies, purchase details, and usage movements. Existing v7 and older farms decode with empty supply collections. Existing expenses, trades, settlements, products, and product-sale details remain unchanged. Backup round-trips include the new farm-owned data. Reset Farm Data preserves reusable supply definitions but clears purchase details and usages; Delete Farm removes everything with the farm.
+
+### Farmer-facing surface
+
+Home adds compact daily actions:
+
+- `किनेँ` / Bought
+- `प्रयोग गरेँ` / Used
+- `बाँकी` / Remaining
+
+The Remaining view shows each supply's derived quantity and the bought/used totals. It does not expose SKU, inventory valuation, procurement, stock-ledger, or warehouse terminology.
+
+### Explicit M7.2 deferrals
+
+No stock categories, batch/lot tracking, expiry dates, unit conversion, inventory valuation, purchase orders, reorder automation, barcode, recurring purchase, voice, production, livestock, supplier-management redesign, account, cloud, sync, premium, ads, or Firebase/backend work is included.
+
 ## M7.1 usability decisions
 
 - Recent customer and product ordering is derived from existing SALE Trade/ProductSaleDetail history; no analytics or recommendation state is stored.

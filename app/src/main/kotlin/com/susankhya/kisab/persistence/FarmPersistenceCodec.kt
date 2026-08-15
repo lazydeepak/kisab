@@ -9,6 +9,9 @@ import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyRole
 import com.susankhya.kisab.domain.ProductSaleDetail
 import com.susankhya.kisab.domain.ProductUnit
+import com.susankhya.kisab.domain.FarmSupply
+import com.susankhya.kisab.domain.SupplyPurchaseDetail
+import com.susankhya.kisab.domain.SupplyUsage
 import com.susankhya.kisab.domain.Settlement
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeType
@@ -44,7 +47,7 @@ import java.util.UUID
  * payload, so settlements and older schemas flow through existing backups.
  */
 object FarmPersistenceCodec {
-    const val CURRENT_SCHEMA_VERSION = 7
+    const val CURRENT_SCHEMA_VERSION = 8
 
     private const val FIELD_SEPARATOR = "\u001F"
     private const val RECORD_SEPARATOR = "\u001E"
@@ -119,6 +122,30 @@ object FarmPersistenceCodec {
             detail.customUnitLabel,
             detail.rateMinor.toString()
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
+        append(FIELD_SEPARATOR)
+        append(farm.supplies.joinToString(RECORD_SEPARATOR) { supply -> listOf(
+            supply.id,
+            supply.name,
+            supply.unit.name,
+            supply.customUnitLabel
+        ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
+        append(FIELD_SEPARATOR)
+        append(farm.supplyPurchaseDetails.joinToString(RECORD_SEPARATOR) { detail -> listOf(
+            detail.transactionId,
+            detail.supplyId,
+            detail.quantity.toPlainString(),
+            detail.unit.name,
+            detail.customUnitLabel
+        ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
+        append(FIELD_SEPARATOR)
+        append(farm.supplyUsages.joinToString(RECORD_SEPARATOR) { usage -> listOf(
+            usage.id,
+            usage.supplyId,
+            usage.quantity.toPlainString(),
+            usage.unit.name,
+            usage.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+            usage.note
+        ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
     }
 
     fun decode(encoded: String): FarmState = decodeOrNull(encoded)
@@ -127,7 +154,7 @@ object FarmPersistenceCodec {
     fun decodeOrNull(encoded: String): FarmState? {
         return try {
             val legacyParts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex())
-            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7")) {
+            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8")) {
                 decodeLegacy(legacyParts)
             } else {
                 val fields = encoded.split(FIELD_SEPARATOR)
@@ -143,6 +170,7 @@ object FarmPersistenceCodec {
                     5 -> decodeSchema5X(fields)
                     6 -> decodeSchema6(fields)
                     7 -> decodeSchema7(fields)
+                    8 -> decodeSchema8(fields)
                     else -> null
                 }
             }
@@ -234,6 +262,45 @@ object FarmPersistenceCodec {
             schemaVersion = CURRENT_SCHEMA_VERSION
         )
     }
+
+    private fun decodeSchema8(fields: List<String>): FarmState {
+        require(fields.size >= 14) { "Invalid persisted farm data" }
+        val base = decodeSchema7(fields.take(11))
+        return base.copy(
+            supplies = decodeSupplies(fields[11]),
+            supplyPurchaseDetails = decodeSupplyPurchaseDetails(fields[12]),
+            supplyUsages = decodeSupplyUsages(fields[13]),
+            schemaVersion = CURRENT_SCHEMA_VERSION
+        )
+    }
+
+    private fun decodeSupplies(encoded: String): MutableList<FarmSupply> =
+        encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->
+            val parts = value.split(TRANSACTION_FIELD_SEPARATOR)
+            require(parts.size == 4) { "Invalid supply payload" }
+            FarmSupply(parts[0], parts[1], ProductUnit.valueOf(parts[2]), parts[3])
+        }?.toMutableList() ?: mutableListOf()
+
+    private fun decodeSupplyPurchaseDetails(encoded: String): MutableList<SupplyPurchaseDetail> =
+        encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->
+            val parts = value.split(TRANSACTION_FIELD_SEPARATOR)
+            require(parts.size == 5) { "Invalid supply purchase payload" }
+            SupplyPurchaseDetail(parts[0], parts[1], BigDecimal(parts[2]), ProductUnit.valueOf(parts[3]), parts[4])
+        }?.toMutableList() ?: mutableListOf()
+
+    private fun decodeSupplyUsages(encoded: String): MutableList<SupplyUsage> =
+        encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->
+            val parts = value.split(TRANSACTION_FIELD_SEPARATOR)
+            require(parts.size == 6) { "Invalid supply usage payload" }
+            SupplyUsage(
+                id = parts[0],
+                supplyId = parts[1],
+                quantity = BigDecimal(parts[2]),
+                unit = ProductUnit.valueOf(parts[3]),
+                occurredAt = java.time.OffsetDateTime.parse(parts[4], DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                note = parts[5]
+            )
+        }?.toMutableList() ?: mutableListOf()
 
     private fun decodeProducts(encoded: String): MutableList<FarmProduct> =
         encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { product ->

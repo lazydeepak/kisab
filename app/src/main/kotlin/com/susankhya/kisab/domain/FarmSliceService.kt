@@ -95,7 +95,9 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
             parties = mutableListOf(),
             trades = mutableListOf(),
             settlements = mutableListOf(),
-            productSaleDetails = mutableListOf()
+            productSaleDetails = mutableListOf(),
+            supplyPurchaseDetails = mutableListOf(),
+            supplyUsages = mutableListOf()
         )
         FarmStateValidator.validateFarm(reset)
         store.saveFarm(reset)
@@ -123,6 +125,71 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
 
     fun product(farmId: String, productId: String): FarmProduct? =
         getFarm(farmId).products.firstOrNull { it.id == productId }
+
+    fun addSupply(farmId: String, name: String, unit: ProductUnit, customUnitLabel: String = ""): FarmSupply {
+        val farm = getFarm(farmId)
+        val supply = FarmSupply("supply-${UUID.randomUUID()}", name.trim(), unit, customUnitLabel.trim())
+        require(farm.supplies.none { it.name.equals(supply.name, ignoreCase = true) }) {
+            "A supply with this name already exists"
+        }
+        val updated = farm.copy(supplies = (farm.supplies + supply).toMutableList())
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return supply
+    }
+
+    fun supplies(farmId: String): List<FarmSupply> = getFarm(farmId).supplies.sortedBy { it.name.lowercase() }
+
+    fun supply(farmId: String, supplyId: String): FarmSupply? = getFarm(farmId).supplies.firstOrNull { it.id == supplyId }
+
+    fun supplyAvailable(farmId: String, supplyId: String): BigDecimal = getFarm(farmId).supplyQuantityAvailable(supplyId)
+
+    fun addSupplyPurchase(
+        farmId: String,
+        supplyId: String,
+        quantity: BigDecimal,
+        unit: ProductUnit,
+        amountMinor: Long,
+        category: TransactionCategory,
+        occurredAt: String,
+        description: String
+    ): FarmTransaction {
+        require(category.type == TransactionType.EXPENSE) { "Supply purchase must be an expense category" }
+        val farm = getFarm(farmId)
+        val supply = farm.supplies.firstOrNull { it.id == supplyId }
+            ?: throw IllegalArgumentException("Supply not found: $supplyId")
+        require(supply.unit == unit) { "Supply unit does not match" }
+        val transaction = FarmTransactionDraft(
+            type = TransactionType.EXPENSE,
+            category = category,
+            amountMinor = amountMinor,
+            description = description.trim().ifBlank { supply.name },
+            occurredAt = occurredAt
+        ).toTransaction("tx-${UUID.randomUUID()}")
+        val detail = SupplyPurchaseDetail(transaction.id, supply.id, quantity, unit, supply.customUnitLabel)
+        val updated = farm.copy(
+            transactions = (farm.transactions + transaction).toMutableList(),
+            supplyPurchaseDetails = (farm.supplyPurchaseDetails + detail).toMutableList()
+        )
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return transaction
+    }
+
+    fun addSupplyUsage(farmId: String, draft: SupplyUsageDraft): SupplyUsage {
+        val farm = getFarm(farmId)
+        val supply = farm.supplies.firstOrNull { it.id == draft.supplyId }
+            ?: throw IllegalArgumentException("Supply not found: ${draft.supplyId}")
+        require(supply.unit == draft.unit) { "Supply unit does not match" }
+        require(draft.quantity <= farm.supplyQuantityAvailable(supply.id)) {
+            "Usage exceeds available supply"
+        }
+        val usage = draft.toUsage("supply-usage-${UUID.randomUUID()}")
+        val updated = farm.copy(supplyUsages = (farm.supplyUsages + usage).toMutableList())
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return usage
+    }
 
     fun addProductSale(
         farmId: String,
@@ -535,8 +602,11 @@ data class FarmState(
     val trades: MutableList<Trade> = mutableListOf(),
     val settlements: MutableList<Settlement> = mutableListOf(),
     val products: MutableList<FarmProduct> = mutableListOf(),
-    val productSaleDetails: MutableList<ProductSaleDetail> = mutableListOf(),
-    val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
+        val productSaleDetails: MutableList<ProductSaleDetail> = mutableListOf(),
+        val supplies: MutableList<FarmSupply> = mutableListOf(),
+        val supplyPurchaseDetails: MutableList<SupplyPurchaseDetail> = mutableListOf(),
+        val supplyUsages: MutableList<SupplyUsage> = mutableListOf(),
+        val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
 ) {
     /**
      * Whether the farm already holds monetary records (transactions, trades or
@@ -548,7 +618,7 @@ data class FarmState(
 
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 7
+            const val CURRENT_FARM_SCHEMA_VERSION = 8
     }
 }
 

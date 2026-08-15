@@ -66,6 +66,36 @@
     <string name="received_money_failed">यो भुक्तानी राख्न सकिएन।</string>
     <string name="received_money_no_balance">यो ग्राहकबाट लिन बाँकी छैन।</string>
     <string name="received_money_overpayment">पाएको रकम ग्राहकको लिन बाँकी रकमभन्दा बढी छ।</string>
+    <string name="supply_purchase_action">किनेँ</string>
+    <string name="supply_usage_action">प्रयोग गरेँ</string>
+    <string name="supply_stock_action">बाँकी</string>
+    <string name="supply_purchase_title">किनेँ</string>
+    <string name="supply_usage_title">प्रयोग गरेँ</string>
+    <string name="supply_stock_title">सामान</string>
+    <string name="supply_name">सामान</string>
+    <string name="supply_quantity">मात्रा</string>
+    <string name="supply_cost">जम्मा खर्च</string>
+    <string name="supply_note">टिप्पणी (वैकल्पिक)</string>
+    <string name="supply_add">सामान थप्नुहोस्</string>
+    <string name="supply_name_hint">सामानको नाम</string>
+    <string name="supply_add_saved">सामान थपियो</string>
+    <string name="supply_saved">खरिद राखियो</string>
+    <string name="supply_used_saved">प्रयोग राखियो</string>
+    <string name="supply_name_required">सामानको नाम लेख्नुहोस्।</string>
+    <string name="supply_quantity_invalid">सही सकारात्मक मात्रा लेख्नुहोस्।</string>
+    <string name="supply_cost_invalid">सही सकारात्मक खर्च लेख्नुहोस्।</string>
+    <string name="supply_usage_too_high">यति सामान बाँकी छैन।</string>
+    <string name="supply_empty">अझै सामान छैन। फार्मका लागि केही किन्दा थप्नुहोस्।</string>
+    <string name="supply_remaining_format">%1$s
+%2$s बाँकी</string>
+    <string name="supply_activity_format">किनेको: %1$s
+प्रयोग: %2$s</string>
+    <string name="supply_unit_litre">लि. / लिटर</string>
+    <string name="supply_unit_kilogram">केजी / किलो</string>
+    <string name="supply_unit_piece">वटा</string>
+    <string name="supply_unit_bag">बोरा</string>
+    <string name="supply_unit_packet">प्याकेट</string>
+    <string name="supply_unit_bottle">बोतल</string>
     <string name="product_unit_litre">लि. / लिटर</string>
     <string name="product_unit_kilogram">केजी / किलो</string>
     <string name="product_unit_piece">वटा</string>

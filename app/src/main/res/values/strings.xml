@@ -67,6 +67,36 @@ Remaining: %2$s</string>
     <string name="received_money_failed">Could not save this payment.</string>
     <string name="received_money_no_balance">This customer has no money outstanding.</string>
     <string name="received_money_overpayment">The received amount is greater than the customer outstanding balance.</string>
+    <string name="supply_purchase_action">Bought</string>
+    <string name="supply_usage_action">Used</string>
+    <string name="supply_stock_action">Remaining</string>
+    <string name="supply_purchase_title">Bought</string>
+    <string name="supply_usage_title">Used</string>
+    <string name="supply_stock_title">Supplies</string>
+    <string name="supply_name">Supply</string>
+    <string name="supply_quantity">Quantity</string>
+    <string name="supply_cost">Total cost</string>
+    <string name="supply_note">Note (optional)</string>
+    <string name="supply_add">Add supply</string>
+    <string name="supply_name_hint">Supply name</string>
+    <string name="supply_add_saved">Supply added</string>
+    <string name="supply_saved">Purchase saved</string>
+    <string name="supply_used_saved">Usage saved</string>
+    <string name="supply_name_required">Enter a supply name.</string>
+    <string name="supply_quantity_invalid">Enter a valid positive quantity.</string>
+    <string name="supply_cost_invalid">Enter a valid positive cost.</string>
+    <string name="supply_usage_too_high">You do not have that much available.</string>
+    <string name="supply_empty">No supplies yet. Add one when you buy something for the farm.</string>
+    <string name="supply_remaining_format">%1$s
+%2$s remaining</string>
+    <string name="supply_activity_format">Bought: %1$s
+Used: %2$s</string>
+    <string name="supply_unit_litre">L / litre</string>
+    <string name="supply_unit_kilogram">kg / kilogram</string>
+    <string name="supply_unit_piece">piece</string>
+    <string name="supply_unit_bag">bag</string>
+    <string name="supply_unit_packet">packet</string>
+    <string name="supply_unit_bottle">bottle</string>
     <string name="product_unit_litre">L / litre</string>
     <string name="product_unit_kilogram">kg / kilogram</string>
     <string name="product_unit_piece">piece</string>
