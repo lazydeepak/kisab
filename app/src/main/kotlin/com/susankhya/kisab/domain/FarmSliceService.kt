@@ -3,6 +3,7 @@ package com.susankhya.kisab.domain
 import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
@@ -97,7 +98,8 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
             settlements = mutableListOf(),
             productSaleDetails = mutableListOf(),
             supplyPurchaseDetails = mutableListOf(),
-            supplyUsages = mutableListOf()
+            supplyUsages = mutableListOf(),
+            productionRecords = mutableListOf()
         )
         FarmStateValidator.validateFarm(reset)
         store.saveFarm(reset)
@@ -190,6 +192,50 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         store.saveFarm(updated)
         return usage
     }
+
+    fun addProductionRecord(farmId: String, draft: ProductionRecordDraft, zone: ZoneId): ProductionRecord {
+        val farm = getFarm(farmId)
+        val product = farm.products.firstOrNull { it.id == draft.productId }
+            ?: throw IllegalArgumentException("Production product not found: ${draft.productId}")
+        require(product.defaultUnit == draft.unit) { "Production unit does not match product" }
+        val candidate = draft.toRecord("production-${UUID.randomUUID()}")
+        val localDate = candidate.occurredAt.atZoneSameInstant(zone).toLocalDate()
+        val existing = farm.productionRecords.firstOrNull {
+            it.productId == candidate.productId &&
+                it.session == candidate.session &&
+                it.session != ProductionSession.OTHER &&
+                it.occurredAt.atZoneSameInstant(zone).toLocalDate() == localDate
+        }
+        val records = farm.productionRecords.toMutableList()
+        if (existing == null) records += candidate
+        else records[records.indexOf(existing)] = candidate.copy(id = existing.id)
+        val updated = farm.copy(productionRecords = records)
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return records.first { it.id == candidate.id || it.id == existing?.id }
+    }
+
+    fun updateProductionRecord(farmId: String, recordId: String, draft: ProductionRecordDraft): ProductionRecord {
+        val farm = getFarm(farmId)
+        require(farm.productionRecords.any { it.id == recordId }) { "Production record not found: $recordId" }
+        val record = draft.toRecord(recordId)
+        val updatedRecords = farm.productionRecords.toMutableList()
+        updatedRecords[updatedRecords.indexOfFirst { it.id == recordId }] = record
+        val updated = farm.copy(productionRecords = updatedRecords)
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return record
+    }
+
+    fun deleteProductionRecord(farmId: String, recordId: String) {
+        val farm = getFarm(farmId)
+        val updated = farm.productionRecords.filterNot { it.id == recordId }.toMutableList()
+        require(updated.size < farm.productionRecords.size) { "Production record not found: $recordId" }
+        store.saveFarm(farm.copy(productionRecords = updated))
+    }
+
+    fun productionForDay(farmId: String, date: java.time.LocalDate, zone: ZoneId): List<ProductionRecord> =
+        getFarm(farmId).productionForDay(date, zone)
 
     fun addProductSale(
         farmId: String,
@@ -602,11 +648,12 @@ data class FarmState(
     val trades: MutableList<Trade> = mutableListOf(),
     val settlements: MutableList<Settlement> = mutableListOf(),
     val products: MutableList<FarmProduct> = mutableListOf(),
-        val productSaleDetails: MutableList<ProductSaleDetail> = mutableListOf(),
-        val supplies: MutableList<FarmSupply> = mutableListOf(),
-        val supplyPurchaseDetails: MutableList<SupplyPurchaseDetail> = mutableListOf(),
-        val supplyUsages: MutableList<SupplyUsage> = mutableListOf(),
-        val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
+    val productSaleDetails: MutableList<ProductSaleDetail> = mutableListOf(),
+    val supplies: MutableList<FarmSupply> = mutableListOf(),
+    val supplyPurchaseDetails: MutableList<SupplyPurchaseDetail> = mutableListOf(),
+    val supplyUsages: MutableList<SupplyUsage> = mutableListOf(),
+    val productionRecords: MutableList<ProductionRecord> = mutableListOf(),
+    val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
 ) {
     /**
      * Whether the farm already holds monetary records (transactions, trades or
@@ -618,7 +665,7 @@ data class FarmState(
 
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-            const val CURRENT_FARM_SCHEMA_VERSION = 8
+        const val CURRENT_FARM_SCHEMA_VERSION = 9
     }
 }
 

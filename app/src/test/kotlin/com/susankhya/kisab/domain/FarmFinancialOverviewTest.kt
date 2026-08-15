@@ -609,20 +609,20 @@ class FarmFinancialOverviewTest {
         )
 
         val farm = service.loadFarm(service.currentFarmId()!!)!!
-        assertEquals(8, farm.schemaVersion)
-        assertEquals(8, FarmState.CURRENT_FARM_SCHEMA_VERSION)
+        assertEquals(9, farm.schemaVersion)
+        assertEquals(9, FarmState.CURRENT_FARM_SCHEMA_VERSION)
 
         // Persistence codec: encode → decode → project → re-encode is byte-stable.
         val encodedPersistence = FarmPersistenceCodec.encode(farm)
         val decoded = FarmPersistenceCodec.decode(encodedPersistence)
-        assertEquals(8, decoded.schemaVersion)
+        assertEquals(9, decoded.schemaVersion)
         buildFarmFinancialOverview(decoded, FinancialPeriodPreset.ALL_TIME, now, zone)
         assertEquals(encodedPersistence, FarmPersistenceCodec.encode(decoded))
 
         // Backup envelope: encode → decode → project → re-encode is byte-stable.
         val encodedBackup = FarmBackupCodec.encode(farm, exportedAt = fixedExportedAt)
         val envelope = FarmBackupCodec.decode(encodedBackup)
-        assertEquals(8, envelope.farm.schemaVersion)
+        assertEquals(9, envelope.farm.schemaVersion)
         buildFarmFinancialOverview(envelope.farm, FinancialPeriodPreset.ALL_TIME, now, zone)
         assertEquals(encodedBackup, FarmBackupCodec.encode(envelope.farm, exportedAt = fixedExportedAt))
     }

@@ -4,6 +4,7 @@ import android.app.DatePickerDialog
 import android.app.LocaleManager
 import android.app.TimePickerDialog
 import android.content.Intent
+import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
@@ -76,6 +77,9 @@ import com.susankhya.kisab.domain.ProductSaleHistory
 import com.susankhya.kisab.domain.ProductUnit
 import com.susankhya.kisab.domain.FarmSupply
 import com.susankhya.kisab.domain.SupplyUsageDraft
+import com.susankhya.kisab.domain.ProductionRecordDraft
+import com.susankhya.kisab.domain.ProductionSession
+import com.susankhya.kisab.domain.productionForDay
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeDraft
@@ -445,6 +449,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var supplyPurchaseButton: Button
     private lateinit var supplyUsageButton: Button
     private lateinit var supplyStockButton: Button
+    private lateinit var productionButton: Button
 
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
@@ -986,6 +991,7 @@ class FarmActivity : AppCompatActivity() {
         supplyPurchaseButton = findViewById(R.id.supplyPurchaseButton)
         supplyUsageButton = findViewById(R.id.supplyUsageButton)
         supplyStockButton = findViewById(R.id.supplyStockButton)
+        productionButton = findViewById(R.id.productionButton)
 
         entryKindSpinner.adapter = ArrayAdapter(
             this,
@@ -1124,6 +1130,7 @@ class FarmActivity : AppCompatActivity() {
         supplyPurchaseButton.setOnClickListener { showSupplyPurchaseDialog() }
         supplyUsageButton.setOnClickListener { showSupplyUsageDialog() }
         supplyStockButton.setOnClickListener { showSupplyStockDialog() }
+        productionButton.setOnClickListener { showProductionDialog() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
         settingsAboutUpdateButton.setOnClickListener { checkForPrivateAppUpdate() }
@@ -3613,6 +3620,81 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun formatQuantity(quantity: BigDecimal): String = quantity.stripTrailingZeros().toPlainString()
+
+    private fun showProductionDialog() {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val products = service.products(farmId)
+        if (products.isEmpty()) {
+            showProductCreationDialog { showProductionDialog() }
+            return
+        }
+        val today = OffsetDateTime.now(deviceZone).toLocalDate()
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val todaySummary = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
+        val productSpinner = Spinner(this)
+        productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val unitText = TextView(this)
+        val quantityInput = EditText(this).apply { hint = string(R.string.production_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val sessionGroup = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
+        val morning = RadioButton(this).apply { text = string(R.string.production_morning) }
+        val evening = RadioButton(this).apply { text = string(R.string.production_evening) }
+        val other = RadioButton(this).apply { text = string(R.string.production_other) }
+        sessionGroup.addView(morning); sessionGroup.addView(evening); sessionGroup.addView(other); morning.isChecked = true
+        val records = farm.productionForDay(today, deviceZone)
+        fun sessionOf(): ProductionSession = when { morning.isChecked -> ProductionSession.MORNING; evening.isChecked -> ProductionSession.EVENING; else -> ProductionSession.OTHER }
+        fun selectedProduct(): FarmProduct? = products.getOrNull(productSpinner.selectedItemPosition)
+        fun refreshSummary() {
+            val lines = products.mapNotNull { product ->
+                val total = records.filter { it.productId == product.id }.fold(BigDecimal.ZERO) { sum, record -> sum.add(record.quantity) }
+                total.takeIf { it > BigDecimal.ZERO }?.let { string(R.string.production_total_format, product.name, "${formatQuantity(it)} ${productUnitLabel(product.defaultUnit, product.customUnitLabel)}") }
+            }
+            todaySummary.text = if (lines.isEmpty()) string(R.string.production_empty) else lines.joinToString("\n\n")
+        }
+        fun refreshUnitAndExisting() {
+            val product = selectedProduct() ?: return
+            unitText.text = productUnitLabel(product.defaultUnit, product.customUnitLabel)
+            val existing = records.firstOrNull { it.productId == product.id && it.session == sessionOf() }
+            quantityInput.setText(existing?.quantity?.let(::formatQuantity).orEmpty())
+        }
+        content.addView(todaySummary); content.addView(labelText(R.string.production_product)); content.addView(productSpinner)
+        content.addView(quantityInput); content.addView(unitText); content.addView(sessionGroup)
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.production_title).setView(content)
+            .setNeutralButton(R.string.production_add_product) { _, _ -> showProductCreationDialog { showProductionDialog() } }
+            .setPositiveButton(R.string.production_save, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val product = selectedProduct() ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.production_quantity_invalid)
+                val existing = records.firstOrNull { it.productId == product.id && it.session == sessionOf() }
+                try {
+                    service.addProductionRecord(
+                        farmId,
+                        ProductionRecordDraft(product.id, quantity, product.defaultUnit, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), sessionOf()),
+                        deviceZone
+                    )
+                    dialog.dismiss(); render(); showToast(if (existing == null) R.string.production_saved else R.string.production_updated)
+                } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
+            }
+        }
+        productSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshUnitAndExisting() }
+        sessionGroup.setOnCheckedChangeListener { _, _ -> refreshUnitAndExisting() }
+        dialog.show(); refreshSummary(); refreshUnitAndExisting()
+        if (records.isNotEmpty()) {
+            dialog.setOnDismissListener { }
+            content.setOnClickListener { refreshSummary() }
+        }
+        // Existing records remain editable through the same session upsert. Delete is exposed by the compact edit action below.
+        records.firstOrNull()?.let { first ->
+            dialog.setButton(AlertDialog.BUTTON_NEUTRAL, string(R.string.production_delete), DialogInterface.OnClickListener { _, _ ->
+                AlertDialog.Builder(this).setTitle(R.string.production_delete_title).setMessage(R.string.production_delete_message)
+                    .setPositiveButton(R.string.production_delete) { _, _ ->
+                        service.deleteProductionRecord(farmId, first.id); dialog.dismiss(); render(); showToast(R.string.production_deleted)
+                    }.setNegativeButton(R.string.action_cancel, null).show()
+            })
+        }
+    }
 
     private fun showQuickSaleSavedDialog(customerId: String, productId: String, rateMinor: Long) {
         AlertDialog.Builder(this)

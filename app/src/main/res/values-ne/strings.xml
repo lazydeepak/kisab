@@ -96,6 +96,27 @@
     <string name="supply_unit_bag">बोरा</string>
     <string name="supply_unit_packet">प्याकेट</string>
     <string name="supply_unit_bottle">बोतल</string>
+    <string name="production_action">उत्पादन</string>
+    <string name="production_title">उत्पादन</string>
+    <string name="production_today_title">आजको उत्पादन</string>
+    <string name="production_product">उत्पादन</string>
+    <string name="production_quantity">मात्रा</string>
+    <string name="production_morning">बिहान</string>
+    <string name="production_evening">बेलुका</string>
+    <string name="production_other">अन्य</string>
+    <string name="production_save">राख्नुहोस्</string>
+    <string name="production_saved">उत्पादन राखियो</string>
+    <string name="production_updated">उत्पादन सच्याइयो</string>
+    <string name="production_deleted">उत्पादन हटाइयो</string>
+    <string name="production_empty">आजको उत्पादन छैन।</string>
+    <string name="production_quantity_invalid">सही सकारात्मक मात्रा लेख्नुहोस्।</string>
+    <string name="production_add_product">उत्पादन थप्नुहोस्</string>
+    <string name="production_delete_title">उत्पादन रेकर्ड हटाउने?</string>
+    <string name="production_delete_message">यसले यही उत्पादन रेकर्ड मात्र हटाउँछ।</string>
+    <string name="production_delete">हटाउनुहोस्</string>
+    <string name="production_total_format">%1$s
+जम्मा %2$s</string>
+    <string name="production_record_format">%1$s: %2$s %3$s</string>
     <string name="product_unit_litre">लि. / लिटर</string>
     <string name="product_unit_kilogram">केजी / किलो</string>
     <string name="product_unit_piece">वटा</string>

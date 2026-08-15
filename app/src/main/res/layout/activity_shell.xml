@@ -248,6 +248,14 @@
                     android:text="@string/supply_stock_action" />
             </LinearLayout>
 
+            <Button
+                android:id="@+id/productionButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="@string/production_action" />
+
             <androidx.appcompat.widget.LinearLayoutCompat
                 android:id="@+id/transactionEditorContainer"
                 android:layout_width="match_parent"

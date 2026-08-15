@@ -97,6 +97,27 @@ Used: %2$s</string>
     <string name="supply_unit_bag">bag</string>
     <string name="supply_unit_packet">packet</string>
     <string name="supply_unit_bottle">bottle</string>
+    <string name="production_action">Production</string>
+    <string name="production_title">Production</string>
+    <string name="production_today_title">Today production</string>
+    <string name="production_product">Product</string>
+    <string name="production_quantity">Quantity</string>
+    <string name="production_morning">Morning</string>
+    <string name="production_evening">Evening</string>
+    <string name="production_other">Other</string>
+    <string name="production_save">Save</string>
+    <string name="production_saved">Production saved</string>
+    <string name="production_updated">Production updated</string>
+    <string name="production_deleted">Production deleted</string>
+    <string name="production_empty">No production recorded today.</string>
+    <string name="production_quantity_invalid">Enter a valid positive quantity.</string>
+    <string name="production_add_product">Add product</string>
+    <string name="production_delete_title">Delete production record?</string>
+    <string name="production_delete_message">This removes only this production record.</string>
+    <string name="production_delete">Delete</string>
+    <string name="production_total_format">%1$s
+%2$s total</string>
+    <string name="production_record_format">%1$s: %2$s %3$s</string>
     <string name="product_unit_litre">L / litre</string>
     <string name="product_unit_kilogram">kg / kilogram</string>
     <string name="product_unit_piece">piece</string>

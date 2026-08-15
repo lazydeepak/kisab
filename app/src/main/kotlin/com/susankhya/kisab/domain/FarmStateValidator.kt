@@ -65,6 +65,16 @@ object FarmStateValidator {
                 "Supply stock cannot be negative: ${supply.id}"
             }
         }
+        farm.productionRecords.forEach { record ->
+            require(farm.products.any { it.id == record.productId }) {
+                "Production product not found: ${record.productId}"
+            }
+            require(farm.products.first { it.id == record.productId }.defaultUnit == record.unit) {
+                "Production unit does not match product"
+            }
+        }
+        val productionIds = farm.productionRecords.map { it.id }
+        require(productionIds.size == productionIds.toSet().size) { "Production IDs must be unique" }
     }
 
     fun validateParty(party: Party) {

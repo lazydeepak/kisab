@@ -12,6 +12,8 @@ import com.susankhya.kisab.domain.ProductUnit
 import com.susankhya.kisab.domain.FarmSupply
 import com.susankhya.kisab.domain.SupplyPurchaseDetail
 import com.susankhya.kisab.domain.SupplyUsage
+import com.susankhya.kisab.domain.ProductionRecord
+import com.susankhya.kisab.domain.ProductionSession
 import com.susankhya.kisab.domain.Settlement
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeType
@@ -47,7 +49,7 @@ import java.util.UUID
  * payload, so settlements and older schemas flow through existing backups.
  */
 object FarmPersistenceCodec {
-    const val CURRENT_SCHEMA_VERSION = 8
+    const val CURRENT_SCHEMA_VERSION = 9
 
     private const val FIELD_SEPARATOR = "\u001F"
     private const val RECORD_SEPARATOR = "\u001E"
@@ -146,6 +148,16 @@ object FarmPersistenceCodec {
             usage.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
             usage.note
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
+        append(FIELD_SEPARATOR)
+        append(farm.productionRecords.joinToString(RECORD_SEPARATOR) { record -> listOf(
+            record.id,
+            record.productId,
+            record.quantity.toPlainString(),
+            record.unit.name,
+            record.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+            record.session.name,
+            record.note
+        ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
     }
 
     fun decode(encoded: String): FarmState = decodeOrNull(encoded)
@@ -154,7 +166,7 @@ object FarmPersistenceCodec {
     fun decodeOrNull(encoded: String): FarmState? {
         return try {
             val legacyParts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex())
-            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8")) {
+            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8") && !legacyParts[0].startsWith("9")) {
                 decodeLegacy(legacyParts)
             } else {
                 val fields = encoded.split(FIELD_SEPARATOR)
@@ -171,6 +183,7 @@ object FarmPersistenceCodec {
                     6 -> decodeSchema6(fields)
                     7 -> decodeSchema7(fields)
                     8 -> decodeSchema8(fields)
+                    9 -> decodeSchema9(fields)
                     else -> null
                 }
             }
@@ -273,6 +286,27 @@ object FarmPersistenceCodec {
             schemaVersion = CURRENT_SCHEMA_VERSION
         )
     }
+
+    private fun decodeSchema9(fields: List<String>): FarmState =
+        decodeSchema8(fields.take(14)).copy(
+            productionRecords = decodeProductionRecords(fields[14]),
+            schemaVersion = CURRENT_SCHEMA_VERSION
+        )
+
+    private fun decodeProductionRecords(encoded: String): MutableList<ProductionRecord> =
+        encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->
+            val parts = value.split(TRANSACTION_FIELD_SEPARATOR)
+            require(parts.size == 7) { "Invalid production payload" }
+            ProductionRecord(
+                id = parts[0],
+                productId = parts[1],
+                quantity = BigDecimal(parts[2]),
+                unit = ProductUnit.valueOf(parts[3]),
+                occurredAt = OffsetDateTime.parse(parts[4], DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                session = ProductionSession.valueOf(parts[5]),
+                note = parts[6]
+            )
+        }?.toMutableList() ?: mutableListOf()
 
     private fun decodeSupplies(encoded: String): MutableList<FarmSupply> =
         encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->

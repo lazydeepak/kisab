@@ -325,6 +325,20 @@ This slice should be intentionally narrow. It should not simultaneously introduc
 - Quick Sale is generic across products and units; no dairy-specific branch, stock mutation, or production record is created.
 - Rate suggestions are deliberately deferred until a small, safe lookup can be added without changing the accounting authority.
 
+## M7.3 Production Recording
+
+M7.3 adds a small operational production record. It reuses `FarmProduct` and `ProductUnit`: milk, eggs, tomatoes, grain, and other outputs use the same product identity already available to sales. No duplicate dairy-only output model is introduced.
+
+`ProductionRecord` stores product id, exact decimal quantity, matching unit, timestamp, optional session (`MORNING`, `EVENING`, `OTHER`), and optional note. Production is not a transaction, sale, settlement, supply movement, income, expense, or stock balance.
+
+The Production Home action defaults to today and now. Morning and Evening are convenient named sessions; Other permits generic records. For a product + local day + Morning/Evening session, a second entry updates the existing record instead of silently creating a duplicate. Other records may occur multiple times. Local-day grouping uses the existing device timezone conventions.
+
+Today's summary totals records by product and shows session-independent quantities. Production does not affect Financial Overview, Home cash, PartyLedger, receivables, payables, or supply stock. Production minus sales is explicitly deferred because home use, processing, spoilage, feeding, and transfers are not modeled yet.
+
+Farm schema advances from v8 to v9 by appending production records. Older farms decode with an empty production collection; backup round-trips preserve records; reset clears production while preserving reusable products; deleting a farm removes production with the farm.
+
+Editing a Morning/Evening record uses the same session upsert behavior. Erroneous records can be deleted with confirmation. Charts, reconciliation, processing, waste, home consumption, animal feeding, forecasting, livestock, and production reports remain future work.
+
 ## M7.2 Farm Supplies & Simple Stock
 
 M7.2 extends the farmer workflow with `किनेँ`, `प्रयोग गरेँ`, and `बाँकी` for generic farm supplies. It deliberately does not introduce warehouse or ERP concepts.
