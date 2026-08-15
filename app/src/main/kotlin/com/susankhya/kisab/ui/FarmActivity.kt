@@ -57,6 +57,7 @@ import com.susankhya.kisab.domain.FinancialPeriodPreset
 import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.domain.ArithmeticOperation
 import com.susankhya.kisab.domain.KisanCalculators
+import com.susankhya.kisab.domain.LocalUserService
 import com.susankhya.kisab.domain.LandUnit
 import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyDraft
@@ -83,6 +84,7 @@ import com.susankhya.kisab.persistence.SharedPreferencesAppAppearancePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesAppTextSizePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesBackupFreshnessStore
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
+import com.susankhya.kisab.persistence.SharedPreferencesLocalUserStore
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.YearMonth
@@ -96,6 +98,7 @@ import java.util.Locale
 class FarmActivity : AppCompatActivity() {
     private lateinit var store: SharedPreferencesFarmStore
     private lateinit var service: FarmSliceService
+    private lateinit var localUserService: LocalUserService
     internal lateinit var backupFileAdapter: FarmBackupFileAdapter
 
     private enum class Destination { HOME, HISAB_KITAB, HISAB, SETTINGS }
@@ -414,6 +417,8 @@ class FarmActivity : AppCompatActivity() {
 
         store = SharedPreferencesFarmStore(applicationContext)
         service = FarmSliceService(store)
+        localUserService = LocalUserService(SharedPreferencesLocalUserStore(applicationContext))
+        localUserService.migrateExistingInstall(service.currentFarmId())
         backupFileAdapter = AndroidStorageAccessFrameworkBackupFileAdapter(applicationContext)
         languagePreferences = SharedPreferencesAppLanguagePreferences(applicationContext)
         textSizePreferences = SharedPreferencesAppTextSizePreferences(applicationContext)
@@ -2864,7 +2869,8 @@ class FarmActivity : AppCompatActivity() {
             return
         }
         try {
-            service.createFarm(name, createFarmCurrencyCode)
+            val farm = service.createFarm(name, createFarmCurrencyCode)
+            localUserService.associateFarm(farm.id)
             render()
             showToast(R.string.toast_farm_created)
         } catch (exception: Exception) {
@@ -3417,6 +3423,7 @@ class FarmActivity : AppCompatActivity() {
         closeEditor()
         try {
             service.deleteFarm(farm.id)
+            localUserService.disassociateFarm(farm.id)
             currentFarmId = service.currentFarmId()
             render()
             showToast(R.string.toast_farm_deleted)
@@ -3818,7 +3825,12 @@ class FarmActivity : AppCompatActivity() {
 
     private fun replaceFarmWith(farm: FarmState) {
         closeEditor()
+        val previousFarmId = service.currentFarmId()
         store.saveFarm(farm)
+        if (previousFarmId != null && previousFarmId != farm.id) {
+            localUserService.disassociateFarm(previousFarmId)
+        }
+        localUserService.associateFarm(farm.id)
         currentFarmId = farm.id
         render()
         showToast(R.string.toast_farm_restored)
