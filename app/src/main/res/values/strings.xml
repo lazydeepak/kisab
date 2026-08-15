@@ -384,6 +384,13 @@
     <string name="farm_row_subtitle_format">%1$s · %2$s</string>
     <string name="farm_row_active_subtitle_format">%1$s · Active</string>
 
+    <string name="settings_account_section">Account</string>
+    <string name="settings_account_status_local_only">Local only</string>
+    <string name="settings_account_status_connected">Connected</string>
+    <string name="settings_account_local_only_detail">Kisab works on this device without signing in. Your farm data stays here. Use Data → Backup to keep a copy.</string>
+    <string name="settings_account_connected_detail">This device is linked to your Kisab account. Farm data on this device still works offline.</string>
+    <string name="settings_account_sign_in_required">Sign-in required to use online features.</string>
+
     <string name="settings_app_section">App</string>
     <string name="settings_appearance_section">Appearance</string>
     <string name="settings_farm_section">Farm</string>

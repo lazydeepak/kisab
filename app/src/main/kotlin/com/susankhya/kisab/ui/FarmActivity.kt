@@ -58,6 +58,8 @@ import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.domain.ArithmeticOperation
 import com.susankhya.kisab.domain.KisanCalculators
 import com.susankhya.kisab.domain.FarmManagement
+import com.susankhya.kisab.domain.AccountLink
+import com.susankhya.kisab.domain.AccountLinkService
 import com.susankhya.kisab.domain.LocalUserService
 import com.susankhya.kisab.domain.LandUnit
 import com.susankhya.kisab.domain.Party
@@ -85,6 +87,7 @@ import com.susankhya.kisab.persistence.SharedPreferencesAppAppearancePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesAppTextSizePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesBackupFreshnessStore
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
+import com.susankhya.kisab.persistence.SharedPreferencesAccountLinkStore
 import com.susankhya.kisab.persistence.SharedPreferencesLocalUserStore
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -100,6 +103,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var store: SharedPreferencesFarmStore
     private lateinit var service: FarmSliceService
     private lateinit var localUserService: LocalUserService
+    private lateinit var accountLinkService: AccountLinkService
     internal lateinit var backupFileAdapter: FarmBackupFileAdapter
 
     private enum class Destination { HOME, HISAB_KITAB, HISAB, SETTINGS, FARMS, FARM_DETAILS, ADD_FARM }
@@ -311,6 +315,10 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var settingsAboutVersionText: TextView
     private lateinit var settingsAppearanceSection: TextView
     private lateinit var settingsDataSection: TextView
+    private lateinit var settingsAccountSection: TextView
+    private lateinit var settingsAccountStatusLabel: TextView
+    private lateinit var settingsAccountStatusDetail: TextView
+    private lateinit var settingsAccountSignInRequiredText: TextView
     private lateinit var farmsScreen: ScrollView
     private lateinit var farmsListContainer: LinearLayout
     private lateinit var farmsEmptyText: TextView
@@ -433,6 +441,7 @@ class FarmActivity : AppCompatActivity() {
         service = FarmSliceService(store)
         localUserService = LocalUserService(SharedPreferencesLocalUserStore(applicationContext))
         localUserService.migrateExistingInstall(service.currentFarmId())
+        accountLinkService = AccountLinkService(SharedPreferencesAccountLinkStore(applicationContext))
         backupFileAdapter = AndroidStorageAccessFrameworkBackupFileAdapter(applicationContext)
         languagePreferences = SharedPreferencesAppLanguagePreferences(applicationContext)
         textSizePreferences = SharedPreferencesAppTextSizePreferences(applicationContext)
@@ -815,6 +824,10 @@ class FarmActivity : AppCompatActivity() {
         settingsAboutVersionText = findViewById(R.id.settingsAboutVersionText)
         settingsAppearanceSection = findViewById(R.id.settingsAppearanceSection)
         settingsDataSection = findViewById(R.id.settingsDataSection)
+        settingsAccountSection = findViewById(R.id.settingsAccountSection)
+        settingsAccountStatusLabel = findViewById(R.id.settingsAccountStatusLabel)
+        settingsAccountStatusDetail = findViewById(R.id.settingsAccountStatusDetail)
+        settingsAccountSignInRequiredText = findViewById(R.id.settingsAccountSignInRequiredText)
         farmsScreen = findViewById(R.id.farmsScreen)
         farmsListContainer = findViewById(R.id.farmsListContainer)
         farmsEmptyText = findViewById(R.id.farmsEmptyText)
@@ -3697,9 +3710,36 @@ class FarmActivity : AppCompatActivity() {
         settingsExportBackupButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsImportBackupButton.visibility = View.VISIBLE
         settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
+        renderAccountSettingsSection()
         syncLanguageSelection()
         syncTextSizeSelection()
         syncAppearanceSelection()
+    }
+
+    /**
+     * Account section shows only real link state. Session is not read here
+     * (secure storage is suspend); linked without a known session stays Connected
+     * and does not show "Sign-in required" until a reliable session probe exists.
+     */
+    private fun renderAccountSettingsSection() {
+        val user = localUserService.ensureLocalUser()
+        val link = accountLinkService.linkState(user.userId)
+        val ui = AccountSettingsPresentation.uiState(link, hasActiveSession = null)
+        when (ui.status) {
+            AccountConnectionStatus.LOCAL_ONLY -> {
+                settingsAccountStatusLabel.text = string(R.string.settings_account_status_local_only)
+                settingsAccountStatusDetail.text = string(R.string.settings_account_local_only_detail)
+            }
+            AccountConnectionStatus.CONNECTED -> {
+                settingsAccountStatusLabel.text = string(R.string.settings_account_status_connected)
+                settingsAccountStatusDetail.text = string(R.string.settings_account_connected_detail)
+            }
+        }
+        settingsAccountSignInRequiredText.visibility =
+            if (ui.showSignInRequired) View.VISIBLE else View.GONE
+        if (ui.showSignInRequired) {
+            settingsAccountSignInRequiredText.text = string(R.string.settings_account_sign_in_required)
+        }
     }
 
     private fun renderFarmsList() {

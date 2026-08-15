@@ -380,6 +380,13 @@
     <string name="farm_row_subtitle_format">%1$s · %2$s</string>
     <string name="farm_row_active_subtitle_format">%1$s · सक्रिय</string>
 
+    <string name="settings_account_section">खाता</string>
+    <string name="settings_account_status_local_only">स्थानीय मात्र</string>
+    <string name="settings_account_status_connected">जोडिएको</string>
+    <string name="settings_account_local_only_detail">किसाब साइन इन बिना यस उपकरणमा चल्छ। तपाईंको फार्म डेटा यहीँ रहन्छ। प्रतिलिपि राख्न डेटा → ब्याकअप प्रयोग गर्नुहोस्।</string>
+    <string name="settings_account_connected_detail">यो उपकरण तपाईंको किसाब खातासँग जोडिएको छ। यस उपकरणको फार्म डेटा अफलाइन पनि चल्छ।</string>
+    <string name="settings_account_sign_in_required">अनलाइन सुविधा प्रयोग गर्न साइन इन आवश्यक छ।</string>
+
     <string name="settings_app_section">एप</string>
     <string name="settings_appearance_section">देखावट</string>
     <string name="settings_farm_section">फार्म</string>

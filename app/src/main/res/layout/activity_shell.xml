@@ -1488,8 +1488,36 @@
                 android:padding="24dp">
 
                 <TextView
+                    android:id="@+id/settingsAccountSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:text="@string/settings_account_section"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settingsAccountStatusLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settingsAccountStatusDetail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:id="@+id/settingsAccountSignInRequiredText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
                     android:text="@string/settings_app_section"
                     android:textStyle="bold" />
 
