@@ -84,6 +84,25 @@
 
     <string name="dialog_delete_transaction_title">Delete transaction</string>
     <string name="dialog_delete_transaction_message">Delete this transaction permanently?</string>
+    <string name="dialog_import_update_title">Update existing farm?</string>
+    <string name="dialog_import_add_title">Add new farm?</string>
+    <string name="dialog_import_update_headline">Update existing farm</string>
+    <string name="dialog_import_add_headline">Add new farm</string>
+    <string name="dialog_import_backup_farm_line_format">Backup farm: %1$s</string>
+    <string name="dialog_import_local_farm_line_format">Current on this device: %1$s</string>
+    <string name="dialog_import_currency_line_format">Currency: %1$s</string>
+    <string name="dialog_import_exported_at_line_format">Backup made: %1$s</string>
+    <string name="dialog_import_summary_line_format">In backup — entries: %1$s, transactions: %2$s, balance: %3$s</string>
+    <string name="dialog_import_update_note">The existing farm on this device will be replaced by this backup. Other farms are not changed.</string>
+    <string name="dialog_import_add_note">This farm will be added. Your other farms stay as they are.</string>
+    <string name="dialog_import_diff_name_format">Name will change from “%1$s” to “%2$s”.</string>
+    <string name="dialog_import_diff_currency_format">Currency will change from %1$s to %2$s.</string>
+    <string name="dialog_import_diff_records_format">Records on device: %1$s. Records in backup: %2$s.</string>
+    <string name="action_update_farm">Update farm</string>
+    <string name="action_add_imported_farm">Add farm</string>
+    <string name="toast_farm_updated_from_backup">Farm updated from backup</string>
+    <string name="toast_farm_added_from_backup">Farm added from backup</string>
+    <!-- Kept for any residual references; prefer dialog_import_* above. -->
     <string name="dialog_replace_farm_title">Import this farm?</string>
     <string name="dialog_import_backup_message_format">Import backup for %1$s?\n\n%2$s\n\n%3$s</string>
     <string name="dialog_import_replace_existing_note">This farm already exists on this device. Import will update that farm only. Other farms are not changed.</string>

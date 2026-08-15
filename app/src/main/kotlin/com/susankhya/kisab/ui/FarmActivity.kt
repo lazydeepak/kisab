@@ -4201,7 +4201,13 @@ class FarmActivity : AppCompatActivity() {
     internal fun handleImportedBackupContent(content: String) {
         try {
             val envelope = FarmBackupCodec.decode(content)
-            showImportConfirmation(envelope.farm)
+            val localFarm = service.loadFarm(envelope.farm.id)
+            val preview = FarmImportPreviewFactory.build(
+                backupFarm = envelope.farm,
+                localFarm = localFarm,
+                exportedAt = envelope.exportedAt
+            )
+            showImportConfirmation(envelope.farm, preview)
         } catch (exception: FarmBackupException) {
             showValidationMessage(FarmUiError.fromBackupFailure(exception).resourceId)
         } catch (exception: Exception) {
@@ -4209,22 +4215,27 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
-    private fun showImportConfirmation(farm: FarmState) {
-        val summary = buildImportedFarmSummary(farm)
-        val exists = service.loadFarm(farm.id) != null
-        val note = string(
-            if (exists) R.string.dialog_import_replace_existing_note
-            else R.string.dialog_import_add_new_note
-        )
+    private fun showImportConfirmation(farm: FarmState, preview: FarmImportPreview) {
+        val message = buildImportPreviewMessage(farm, preview)
+        val titleRes = if (preview.isUpdate) {
+            R.string.dialog_import_update_title
+        } else {
+            R.string.dialog_import_add_title
+        }
+        val actionRes = if (preview.isUpdate) {
+            R.string.action_update_farm
+        } else {
+            R.string.action_add_imported_farm
+        }
         AlertDialog.Builder(this)
-            .setTitle(string(R.string.dialog_replace_farm_title))
-            .setMessage(string(R.string.dialog_import_backup_message_format, farm.name, summary, note))
-            .setPositiveButton(string(R.string.action_import_farm)) { _, _ ->
+            .setTitle(string(titleRes))
+            .setMessage(message)
+            .setPositiveButton(string(actionRes)) { _, _ ->
                 if (editorState != null && isEditorDirty()) {
-                    showDiscardDialog { replaceFarmWith(farm) }
+                    showDiscardDialog { replaceFarmWith(farm, preview.isUpdate) }
                 } else {
                     closeEditor()
-                    replaceFarmWith(farm)
+                    replaceFarmWith(farm, preview.isUpdate)
                 }
             }
             .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
@@ -4233,7 +4244,74 @@ class FarmActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun replaceFarmWith(farm: FarmState) {
+    internal fun buildImportPreviewMessage(farm: FarmState, preview: FarmImportPreview): String {
+        val lines = mutableListOf<String>()
+        lines += string(
+            if (preview.isUpdate) R.string.dialog_import_update_headline
+            else R.string.dialog_import_add_headline
+        )
+        lines += ""
+        lines += string(R.string.dialog_import_backup_farm_line_format, preview.backupFarmName)
+        preview.localFarmNameIfDifferent?.let { localName ->
+            lines += string(R.string.dialog_import_local_farm_line_format, localName)
+        }
+        lines += string(
+            R.string.dialog_import_currency_line_format,
+            FarmCurrencies.label(preview.backupCurrencyCode, presentationLocale)
+        )
+        preview.backupExportedAt?.let { exportedAt ->
+            lines += string(
+                R.string.dialog_import_exported_at_line_format,
+                timePresentation.displayDateTime(presentationLocale, deviceZone, exportedAt)
+            )
+        }
+        val balanceText = try {
+            formatMoney(farm.currencyCode, FarmTotals.of(farm.transactions).balanceMinor)
+        } catch (exception: ArithmeticException) {
+            Log.e(LOG_TAG, "imported farm totals overflow", exception)
+            formatMoney(farm.currencyCode, 0L)
+        }
+        lines += string(
+            R.string.dialog_import_summary_line_format,
+            formatCount(preview.backupEntryCount),
+            formatCount(preview.backupTransactionCount),
+            balanceText
+        )
+        preview.diffHints?.let { diff ->
+            if (diff.nameChanged && preview.localFarmNameIfDifferent != null) {
+                lines += string(
+                    R.string.dialog_import_diff_name_format,
+                    preview.localFarmNameIfDifferent,
+                    preview.backupFarmName
+                )
+            }
+            if (diff.currencyChanged) {
+                val localFarm = service.loadFarm(farm.id)
+                if (localFarm != null) {
+                    lines += string(
+                        R.string.dialog_import_diff_currency_format,
+                        FarmCurrencies.label(localFarm.currencyCode, presentationLocale),
+                        FarmCurrencies.label(preview.backupCurrencyCode, presentationLocale)
+                    )
+                }
+            }
+            if (diff.recordCountChanged) {
+                lines += string(
+                    R.string.dialog_import_diff_records_format,
+                    formatCount(diff.localRecordCount),
+                    formatCount(diff.backupRecordCount)
+                )
+            }
+        }
+        lines += ""
+        lines += string(
+            if (preview.isUpdate) R.string.dialog_import_update_note
+            else R.string.dialog_import_add_note
+        )
+        return lines.joinToString("\n")
+    }
+
+    private fun replaceFarmWith(farm: FarmState, isUpdate: Boolean) {
         if (!requireMutationsAllowed()) return
         closeEditor()
         // Multi-farm safe: same id updates that farm only; new id adds another farm.
@@ -4243,7 +4321,10 @@ class FarmActivity : AppCompatActivity() {
             localUserService.associateFarm(farm.id)
             currentFarmId = farm.id
             render()
-            showToast(R.string.toast_farm_restored)
+            showToast(
+                if (isUpdate) R.string.toast_farm_updated_from_backup
+                else R.string.toast_farm_added_from_backup
+            )
         } catch (exception: Exception) {
             showUnexpectedFailure(exception, "import farm failed")
             currentFarmId = service.currentFarmId()

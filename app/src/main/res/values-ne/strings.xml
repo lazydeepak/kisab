@@ -83,6 +83,24 @@
 
     <string name="dialog_delete_transaction_title">लेनदेन मेटाउनुहोस्</string>
     <string name="dialog_delete_transaction_message">के यो लेनदेन स्थायी रूपमा मेटाउने?</string>
+    <string name="dialog_import_update_title">अवस्थित फार्म अद्यावधिक गर्ने?</string>
+    <string name="dialog_import_add_title">नयाँ फार्म थप्ने?</string>
+    <string name="dialog_import_update_headline">अवस्थित फार्म अद्यावधिक</string>
+    <string name="dialog_import_add_headline">नयाँ फार्म थप्ने</string>
+    <string name="dialog_import_backup_farm_line_format">ब्याकअप फार्म: %1$s</string>
+    <string name="dialog_import_local_farm_line_format">यस उपकरणमा अहिले: %1$s</string>
+    <string name="dialog_import_currency_line_format">मुद्रा: %1$s</string>
+    <string name="dialog_import_exported_at_line_format">ब्याकअप मिति: %1$s</string>
+    <string name="dialog_import_summary_line_format">ब्याकअपमा — प्रविष्टि: %1$s, लेनदेन: %2$s, बाँकी: %3$s</string>
+    <string name="dialog_import_update_note">यस उपकरणको अवस्थित फार्म यस ब्याकअपले प्रतिस्थापन हुनेछ। अन्य फार्महरू परिवर्तन हुँदैनन्।</string>
+    <string name="dialog_import_add_note">यो फार्म थपिनेछ। तपाईंका अन्य फार्महरू जस्ताको तस्तै रहन्छन्।</string>
+    <string name="dialog_import_diff_name_format">नाम “%1$s” बाट “%2$s” मा बदलिनेछ।</string>
+    <string name="dialog_import_diff_currency_format">मुद्रा %1$s बाट %2$s मा बदलिनेछ।</string>
+    <string name="dialog_import_diff_records_format">उपकरणमा रेकर्ड: %1$s। ब्याकअपमा रेकर्ड: %2$s।</string>
+    <string name="action_update_farm">फार्म अद्यावधिक गर्नुहोस्</string>
+    <string name="action_add_imported_farm">फार्म थप्नुहोस्</string>
+    <string name="toast_farm_updated_from_backup">ब्याकअपबाट फार्म अद्यावधिक भयो</string>
+    <string name="toast_farm_added_from_backup">ब्याकअपबाट फार्म थपियो</string>
     <string name="dialog_replace_farm_title">यो फार्म आयात गर्ने?</string>
     <string name="dialog_import_backup_message_format">%1$s को ब्याकअप आयात गर्ने?\n\n%2$s\n\n%3$s</string>
     <string name="dialog_import_replace_existing_note">यो फार्म यस उपकरणमा पहिले नै छ। आयातले त्यही फार्म मात्र अद्यावधिक गर्नेछ। अन्य फार्महरू परिवर्तन हुँदैनन्।</string>
