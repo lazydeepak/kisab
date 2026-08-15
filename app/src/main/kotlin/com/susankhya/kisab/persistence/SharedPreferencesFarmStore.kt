@@ -4,43 +4,49 @@ import android.content.Context
 import com.susankhya.kisab.domain.FarmState
 import com.susankhya.kisab.domain.FarmStore
 
+/**
+ * Production [FarmStore]: multi-farm SharedPreferences layout with legacy
+ * single-farm migration. All critical writes use synchronous [commit].
+ */
 class SharedPreferencesFarmStore(context: Context) : FarmStore {
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val delegate = MultiFarmStore(SharedPreferencesMultiFarmBackend(context))
 
-    override fun loadFarm(farmId: String): FarmState? {
-        val persistedFarmId = prefs.getString(PREF_CURRENT_FARM_ID, null) ?: return null
-        if (persistedFarmId != farmId) return null
+    override fun loadFarm(farmId: String): FarmState? = delegate.loadFarm(farmId)
 
-        val encoded = prefs.getString(PREF_FARM_STATE, null) ?: return null
-        return FarmPersistenceCodec.decodeOrNull(encoded)
-    }
+    override fun saveFarm(farm: FarmState) = delegate.saveFarm(farm)
 
-    override fun saveFarm(farm: FarmState) {
-        prefs.edit()
-            .putString(PREF_CURRENT_FARM_ID, farm.id)
-            .putString(PREF_FARM_STATE, FarmPersistenceCodec.encode(farm))
-            .commit()
-    }
+    override fun setCurrentFarmId(farmId: String) = delegate.setCurrentFarmId(farmId)
 
-    override fun setCurrentFarmId(farmId: String) {
-        prefs.edit().putString(PREF_CURRENT_FARM_ID, farmId).commit()
-    }
+    override fun currentFarmId(): String? = delegate.currentFarmId()
 
-    override fun currentFarmId(): String? = prefs.getString(PREF_CURRENT_FARM_ID, null)
+    override fun clear() = delegate.clear()
 
-    override fun clear() {
-        prefs.edit().remove(PREF_CURRENT_FARM_ID).remove(PREF_FARM_STATE).commit()
-    }
+    override fun deleteFarm(farmId: String) = delegate.deleteFarm(farmId)
 
-    override fun deleteFarm(farmId: String) {
-        if (prefs.getString(PREF_CURRENT_FARM_ID, null) == farmId) {
-            prefs.edit().remove(PREF_CURRENT_FARM_ID).remove(PREF_FARM_STATE).commit()
+    override fun farmIds(): List<String> = delegate.farmIds()
+
+    private class SharedPreferencesMultiFarmBackend(
+        context: Context
+    ) : MultiFarmStoreBackend {
+        private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        override fun getString(key: String): String? = prefs.getString(key, null)
+
+        override fun commit(puts: Map<String, String>, removes: Set<String>): Boolean {
+            val editor = prefs.edit()
+            for ((key, value) in puts) {
+                editor.putString(key, value)
+            }
+            for (key in removes) {
+                editor.remove(key)
+            }
+            return editor.commit()
         }
-    }
 
-    companion object {
-        private const val PREFS_NAME = "kisab_farm_store"
-        private const val PREF_CURRENT_FARM_ID = "current_farm_id"
-        private const val PREF_FARM_STATE = "farm_state"
+        override fun allKeys(): Set<String> = prefs.all.keys.filterNotNull().toSet()
+
+        companion object {
+            private const val PREFS_NAME = "kisab_farm_store"
+        }
     }
 }

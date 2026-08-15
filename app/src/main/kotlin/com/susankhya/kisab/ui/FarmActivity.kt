@@ -3825,15 +3825,19 @@ class FarmActivity : AppCompatActivity() {
 
     private fun replaceFarmWith(farm: FarmState) {
         closeEditor()
-        val previousFarmId = service.currentFarmId()
-        store.saveFarm(farm)
-        if (previousFarmId != null && previousFarmId != farm.id) {
-            localUserService.disassociateFarm(previousFarmId)
+        // Multi-farm safe: same id updates that farm only; new id adds another farm.
+        // Other local farms are never wiped. Ownership of other farms is unchanged.
+        try {
+            service.importFarm(farm)
+            localUserService.associateFarm(farm.id)
+            currentFarmId = farm.id
+            render()
+            showToast(R.string.toast_farm_restored)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "import farm failed")
+            currentFarmId = service.currentFarmId()
+            render()
         }
-        localUserService.associateFarm(farm.id)
-        currentFarmId = farm.id
-        render()
-        showToast(R.string.toast_farm_restored)
     }
 
     private fun buildImportedFarmSummary(farm: FarmState): String {

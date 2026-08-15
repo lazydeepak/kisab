@@ -12,6 +12,9 @@ interface FarmStore {
     fun currentFarmId(): String?
     fun clear()
     fun deleteFarm(farmId: String)
+
+    /** Stable local farm ids in insertion order. Empty when none. */
+    fun farmIds(): List<String>
 }
 
 class InMemoryFarmStore : FarmStore {
@@ -22,14 +25,15 @@ class InMemoryFarmStore : FarmStore {
 
     override fun saveFarm(farm: FarmState) {
         farms[farm.id] = farm
-        currentFarmId = farm.id
     }
 
     override fun setCurrentFarmId(farmId: String) {
+        require(farmId in farms) { "Unknown farm: $farmId" }
         currentFarmId = farmId
     }
 
-    override fun currentFarmId(): String? = currentFarmId
+    override fun currentFarmId(): String? =
+        currentFarmId?.takeIf { it in farms }
 
     override fun clear() {
         farms.clear()
@@ -40,6 +44,8 @@ class InMemoryFarmStore : FarmStore {
         farms.remove(farmId)
         if (currentFarmId == farmId) currentFarmId = null
     }
+
+    override fun farmIds(): List<String> = farms.keys.toList()
 }
 
 class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
@@ -55,6 +61,24 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
     fun loadFarm(farmId: String): FarmState? = store.loadFarm(farmId)
 
     fun currentFarmId(): String? = store.currentFarmId()
+
+    fun setCurrentFarmId(farmId: String) {
+        store.setCurrentFarmId(farmId)
+    }
+
+    /** Locally persisted farm ids (insertion order). Foundation for Farm Management. */
+    fun farmIds(): List<String> = store.farmIds()
+
+    /**
+     * Persists [farm] without deleting other farms. Same id replaces that farm only;
+     * a new id is added. Makes [farm] the current farm.
+     */
+    fun importFarm(farm: FarmState): FarmState {
+        FarmStateValidator.validateFarm(farm)
+        store.saveFarm(farm)
+        store.setCurrentFarmId(farm.id)
+        return farm
+    }
 
     /**
      * Clears every operational/accounting record the farm owns (entries,
