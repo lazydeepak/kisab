@@ -47,6 +47,7 @@ import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import com.susankhya.kisab.BuildConfig
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntry
@@ -106,6 +107,15 @@ import com.susankhya.kisab.release.PrivateBuildAccessStage
 import com.susankhya.kisab.release.PrivateBuildExpiryGate
 import com.susankhya.kisab.release.PrivateBuildExpirySnapshot
 import com.susankhya.kisab.persistence.SharedPreferencesLocalUserStore
+import com.susankhya.kisab.update.ApkDownloader
+import com.susankhya.kisab.update.ApkInstaller
+import com.susankhya.kisab.update.StaticManifestUpdateSource
+import com.susankhya.kisab.update.UpdateCheckResult
+import com.susankhya.kisab.update.UpdateInfo
+import com.susankhya.kisab.update.VersionInfo
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.YearMonth
@@ -335,6 +345,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var settingsImportBackupButton: Button
     private lateinit var settingsAboutSection: View
     private lateinit var settingsAboutVersionText: TextView
+    private lateinit var settingsAboutUpdateStatusText: TextView
+    private lateinit var settingsAboutUpdateButton: Button
     private lateinit var settingsAppearanceSection: TextView
     private lateinit var settingsDataSection: TextView
     private lateinit var settingsAccountSection: TextView
@@ -873,6 +885,8 @@ class FarmActivity : AppCompatActivity() {
         settingsImportBackupButton = findViewById(R.id.settingsImportBackupButton)
         settingsAboutSection = findViewById(R.id.settingsAboutSection)
         settingsAboutVersionText = findViewById(R.id.settingsAboutVersionText)
+        settingsAboutUpdateStatusText = findViewById(R.id.settingsAboutUpdateStatusText)
+        settingsAboutUpdateButton = findViewById(R.id.settingsAboutUpdateButton)
         settingsAppearanceSection = findViewById(R.id.settingsAppearanceSection)
         settingsDataSection = findViewById(R.id.settingsDataSection)
         settingsAccountSection = findViewById(R.id.settingsAccountSection)
@@ -1090,6 +1104,7 @@ class FarmActivity : AppCompatActivity() {
         importBackupButton.setOnClickListener { importBackup() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
+        settingsAboutUpdateButton.setOnClickListener { checkForPrivateAppUpdate() }
         settingsNotificationsActionButton.setOnClickListener { onNotificationsActionClicked() }
         notificationUpdatesOnRadio.setOnCheckedChangeListener { _, isChecked ->
             if (!notificationSelectionSuppressed && isChecked) {
@@ -3850,6 +3865,11 @@ class FarmActivity : AppCompatActivity() {
         settingsExportBackupButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsImportBackupButton.visibility = View.VISIBLE
         settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
+        settingsAboutUpdateStatusText.text = if (BuildConfig.PRIVATE_UPDATE_MANIFEST_URL.isBlank()) {
+            string(R.string.update_status_unable_to_check)
+        } else {
+            string(R.string.update_status_up_to_date)
+        }
         renderAccountSettingsSection()
         renderNotificationsSettings()
         syncLanguageSelection()
@@ -4285,11 +4305,110 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun showPrivateBuildUpdateInfo() {
+        checkForPrivateAppUpdate(showDialogWhenNoUpdate = true)
+    }
+
+    private fun checkForPrivateAppUpdate(showDialogWhenNoUpdate: Boolean = false) {
+        val source = StaticManifestUpdateSource(BuildConfig.PRIVATE_UPDATE_MANIFEST_URL.takeIf { it.isNotBlank() })
+        val current = VersionInfo(appVersionCode(), appVersionName())
+        settingsAboutUpdateStatusText.text = string(R.string.update_status_checking)
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { source.checkForUpdate(current) }
+            when (result) {
+                is UpdateCheckResult.UpdateAvailable -> {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_update_available)
+                    showUpdateDialog(current, result.info)
+                }
+                UpdateCheckResult.NoUpdate -> {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_up_to_date)
+                    if (showDialogWhenNoUpdate) {
+                        showNoUpdateDialog(current)
+                    }
+                }
+                UpdateCheckResult.UnableToCheck -> {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_unable_to_check)
+                    if (showDialogWhenNoUpdate) {
+                        showUnableToCheckDialog(current)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showNoUpdateDialog(current: VersionInfo) {
         AlertDialog.Builder(this)
-            .setTitle(R.string.private_build_expiry_update_info_title)
-            .setMessage(R.string.private_build_expiry_update_info_message)
-            .setPositiveButton(R.string.action_done, null)
+            .setTitle(R.string.update_dialog_title)
+            .setMessage(
+                string(R.string.update_dialog_current_version, current.versionName) + "\n\n" +
+                    string(R.string.update_dialog_no_update_message)
+            )
+            .setPositiveButton(R.string.update_dialog_done_action, null)
             .show()
+    }
+
+    private fun showUnableToCheckDialog(current: VersionInfo) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.update_dialog_title)
+            .setMessage(
+                string(R.string.update_dialog_current_version, current.versionName) + "\n\n" +
+                    string(R.string.update_dialog_unable_to_check_message)
+            )
+            .setPositiveButton(R.string.update_dialog_done_action, null)
+            .show()
+    }
+
+    private fun showUpdateDialog(current: VersionInfo, update: UpdateInfo) {
+        val notes = update.releaseNotes?.takeIf { it.isNotBlank() }
+        val published = update.publishedAt?.takeIf { it.isNotBlank() }
+        val details = buildString {
+            append(string(R.string.update_dialog_current_version, current.versionName))
+            append("\n")
+            append(string(R.string.update_dialog_new_version, update.versionName))
+            if (published != null) {
+                append("\n")
+                append(string(R.string.update_published_label))
+                append(": ")
+                append(published)
+            }
+            append("\n\n")
+            append(string(R.string.update_dialog_saved_note))
+            if (!notes.isNullOrBlank()) {
+                append("\n\n")
+                append(string(R.string.update_release_notes_label))
+                append(":\n")
+                append(notes)
+            }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.update_dialog_title)
+            .setMessage(details)
+            .setPositiveButton(R.string.update_dialog_download_action) { _, _ ->
+                startPrivateApkDownload(update)
+            }
+            .setNegativeButton(R.string.update_dialog_done_action, null)
+            .show()
+    }
+
+    private fun startPrivateApkDownload(update: UpdateInfo) {
+        val installer = ApkInstaller(this)
+        if (!installer.hasInstallPermission()) {
+            showToast(R.string.update_install_permission_required)
+            installer.openSettingsForInstallPermission()
+            return
+        }
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                ApkDownloader(this@FarmActivity).download(update.apkUrl, update.sha256)
+            }
+            if (result.isSuccess && result.file != null) {
+                val launched = installer.launchInstall(result.file)
+                if (!launched) {
+                    showToast(R.string.update_download_failed)
+                }
+            } else {
+                showToast(if (result.error == "checksum mismatch") R.string.update_download_invalid else R.string.update_download_failed)
+            }
+        }
     }
 
     private fun privateBuildExpiryAboutSuffix(): String {
@@ -4304,6 +4423,15 @@ class FarmActivity : AppCompatActivity() {
                 deviceZone
             )
             "\n\n" + string(R.string.private_build_expiry_about_line_format, dateText)
+        }
+    }
+
+    private fun appVersionCode(): Long {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageManager.getPackageInfo(packageName, 0).longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageInfo(packageName, 0).versionCode.toLong()
         }
     }
 

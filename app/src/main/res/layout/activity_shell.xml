@@ -1834,6 +1834,21 @@
                     android:layout_marginTop="8dp" />
 
                 <TextView
+                    android:id="@+id/settingsAboutUpdateStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_about_update_status_unknown" />
+
+                <Button
+                    android:id="@+id/settingsAboutUpdateButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:minHeight="48dp"
+                    android:text="@string/settings_about_check_for_updates" />
+
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"

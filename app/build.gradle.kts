@@ -47,6 +47,7 @@ android {
         // Safe defaults: expiry machinery off unless a build type opts in.
         buildConfigField("boolean", "PRIVATE_BUILD_EXPIRY_ENABLED", "false")
         buildConfigField("long", "PRIVATE_BUILD_EXPIRES_AT_EPOCH_MILLIS", "0L")
+        buildConfigField("String", "PRIVATE_UPDATE_MANIFEST_URL", "\"\"")
     }
 
     signingConfigs {
@@ -204,6 +205,7 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.0")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 
     androidTestImplementation("androidx.test:runner:1.7.0")

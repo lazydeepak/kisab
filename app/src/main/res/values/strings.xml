@@ -468,8 +468,33 @@
     <string name="toast_farm_deleted">Farm deleted</string>
 
     <string name="settings_about_version_format">Kisab %1$s</string>
+    <string name="settings_about_update_status_unknown">Update status: checking is not configured yet.</string>
+    <string name="settings_about_check_for_updates">Check for updates</string>
     <string name="settings_about_privacy_note">Kisab stores farm data on this device unless you export or restore a backup.</string>
     <string name="dialog_about_title">About Kisab</string>
+
+    <string name="update_status_up_to_date">Update status: Up to date</string>
+    <string name="update_status_update_available">Update status: Update available</string>
+    <string name="update_status_unable_to_check">Update status: Unable to check</string>
+    <string name="update_status_checking">Update status: Checking…</string>
+    <string name="update_dialog_title">Update Kisab</string>
+    <string name="update_dialog_current_version">Current version: %1$s</string>
+    <string name="update_dialog_new_version">New version: %1$s</string>
+    <string name="update_dialog_saved_note">Your farm data stays on this device when you update.</string>
+    <string name="update_dialog_no_update_message">Your Kisab install is up to date.</string>
+    <string name="update_dialog_unable_to_check_message">Kisab cannot check the private update feed right now.</string>
+    <string name="update_dialog_download_action">Download update</string>
+    <string name="update_dialog_install_action">Install update</string>
+    <string name="update_dialog_check_action">Check again</string>
+    <string name="update_dialog_done_action">Done</string>
+    <string name="update_download_failed">Download failed. Please try again.</string>
+    <string name="update_download_invalid">The downloaded update file is invalid.</string>
+    <string name="update_install_permission_required">Install permission is required to update from this private APK source.</string>
+    <string name="update_open_install_settings">Open settings</string>
+    <string name="update_download_in_progress">Downloading update…</string>
+    <string name="update_manifest_missing_url">No private update feed is configured for this build.</string>
+    <string name="update_release_notes_label">Release notes</string>
+    <string name="update_published_label">Published</string>
 
     <string name="private_build_expiry_banner_expired">This Kisab version has expired. You can still view and back up your data. Install a newer version to continue editing.</string>
     <string name="private_build_expiry_banner_critical_format">This Kisab version expires in %1$d days. Please update when a newer version is available.</string>

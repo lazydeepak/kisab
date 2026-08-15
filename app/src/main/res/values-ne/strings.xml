@@ -463,8 +463,33 @@
     <string name="toast_farm_deleted">फार्म मेटाइयो</string>
 
     <string name="settings_about_version_format">किसाब %1$s</string>
+    <string name="settings_about_update_status_unknown">अद्यावधिक स्थिति: अझै जाँच गरिएको छैन।</string>
+    <string name="settings_about_check_for_updates">अद्यावधिक जाँच गर्नुहोस्</string>
     <string name="settings_about_privacy_note">किसाबले फार्म डेटा यही उपकरणमा राख्छ, जबसम्म तपाईं ब्याकअप निर्यात वा पुनर्स्थापना गर्नुहुन्न।</string>
     <string name="dialog_about_title">किसाबको बारेमा</string>
+
+    <string name="update_status_up_to_date">अद्यावधिक स्थिति: नयाँ संस्करण छैन</string>
+    <string name="update_status_update_available">अद्यावधिक स्थिति: नयाँ संस्करण उपलब्ध छ</string>
+    <string name="update_status_unable_to_check">अद्यावधिक स्थिति: जाँच गर्न सकिएन</string>
+    <string name="update_status_checking">अद्यावधिक स्थिति: जाँच हुँदैछ…</string>
+    <string name="update_dialog_title">किसाब अद्यावधिक गर्नुहोस्</string>
+    <string name="update_dialog_current_version">हालको संस्करण: %1$s</string>
+    <string name="update_dialog_new_version">नयाँ संस्करण: %1$s</string>
+    <string name="update_dialog_saved_note">अद्यावधिक गर्दा तपाईंको फार्म डेटा यसै उपकरणमा रहन्छ।</string>
+    <string name="update_dialog_no_update_message">तपाईंको किसाब संस्करण नवीनतम छ।</string>
+    <string name="update_dialog_unable_to_check_message">यो निजी अद्यावधिक फिड जाँच गर्न सकिएन।</string>
+    <string name="update_dialog_download_action">अद्यावधिक डाउनलोड गर्नुहोस्</string>
+    <string name="update_dialog_install_action">अद्यावधिक जडान गर्नुहोस्</string>
+    <string name="update_dialog_check_action">फेरि जाँच गर्नुहोस्</string>
+    <string name="update_dialog_done_action">भयो</string>
+    <string name="update_download_failed">डाउनलोड असफल भयो। फेरि प्रयास गर्नुहोस्।</string>
+    <string name="update_download_invalid">डाउनलोड गरिएको अद्यावधिक फाइल अमान्य छ।</string>
+    <string name="update_install_permission_required">यो निजी APK स्रोतबाट अद्यावधिक गर्न इन्स्टल अनुमति आवश्यक छ।</string>
+    <string name="update_open_install_settings">सेटिङ खोल्नुहोस्</string>
+    <string name="update_download_in_progress">अद्यावधिक डाउनलोड हुँदैछ…</string>
+    <string name="update_manifest_missing_url">यो बिल्डका लागि कुनै निजी अद्यावधिक फिड कन्फिगर गरिएको छैन।</string>
+    <string name="update_release_notes_label">रिलिज नोट</string>
+    <string name="update_published_label">प्रकाशित</string>
 
     <string name="private_build_expiry_banner_expired">यो किसाब संस्करणको म्याद सकिएको छ। तपाईं अझै डेटा हेर्न र ब्याकअप गर्न सक्नुहुन्छ। सम्पादन जारी राख्न नयाँ संस्करण जडान गर्नुहोस्।</string>
     <string name="private_build_expiry_banner_critical_format">यो किसाब संस्करण %1$d दिनमा सकिन्छ। नयाँ संस्करण उपलब्ध हुँदा अद्यावधिक गर्नुहोस्।</string>
