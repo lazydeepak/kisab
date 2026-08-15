@@ -18,6 +18,12 @@ val hasReleaseSigning = listOf(
 
 val appVersionCode = 3
 val appVersionName = "0.2.0"
+val configuredUpdateManifestUrl = providers.gradleProperty("kisab.privateUpdateManifestUrl")
+    .orNull
+    ?.trim()
+    .orEmpty()
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
 
 // Private-build expiry: immutable compile-time millis for this APK (not install date).
 // Override with -Pkisab.privateBuildExpiresAtEpochMillis=... and/or
@@ -47,7 +53,7 @@ android {
         // Safe defaults: expiry machinery off unless a build type opts in.
         buildConfigField("boolean", "PRIVATE_BUILD_EXPIRY_ENABLED", "false")
         buildConfigField("long", "PRIVATE_BUILD_EXPIRES_AT_EPOCH_MILLIS", "0L")
-        buildConfigField("String", "PRIVATE_UPDATE_MANIFEST_URL", "\"\"")
+        buildConfigField("String", "PRIVATE_UPDATE_MANIFEST_URL", "\"$configuredUpdateManifestUrl\"")
     }
 
     signingConfigs {

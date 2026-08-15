@@ -60,6 +60,19 @@ class PrivateApkUpdateLogicTest {
     }
 
     @Test
+    fun manifestWithoutChecksumIsRejected() {
+        val manifest = """
+            {
+              "versionCode": 21,
+              "versionName": "0.3.0",
+              "apkUrl": "https://example.test/kisab.apk"
+            }
+        """.trimIndent()
+
+        assertTrue(UpdateManifest.parse(manifest) == null)
+    }
+
+    @Test
     fun integrityCheckRejectsMismatchedSha256() {
         val expected = "aa".repeat(32)
         assertTrue(UpdateIntegrityVerifier.sha256Matches("hello world".toByteArray(), expected) == false)

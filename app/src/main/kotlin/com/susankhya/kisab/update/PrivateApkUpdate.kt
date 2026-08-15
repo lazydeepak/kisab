@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import android.content.pm.PackageManager
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -37,7 +38,8 @@ data class UpdateInfo(
         require(versionCode > 0L) { "versionCode must be positive" }
         require(versionName.isNotBlank()) { "versionName is required" }
         require(apkUrl.isNotBlank()) { "apkUrl is required" }
-        require(isSupportedApkUrl(apkUrl)) { "apkUrl must use http or https" }
+        require(isSupportedHttpsUrl(apkUrl)) { "apkUrl must use https" }
+        require(isValidSha256(sha256)) { "sha256 must be a 64-character hexadecimal digest" }
     }
 
     fun isNewerThan(current: VersionInfo): Boolean = versionCode > current.versionCode
@@ -85,7 +87,8 @@ data class UpdateManifest(
                 val releaseNotes = root.optString("releaseNotes", "").trim().ifBlank { null }
                 val publishedAt = root.optString("publishedAt", "").trim().ifBlank { null }
                 if (versionCode <= 0L || versionName.isBlank() || apkUrl.isBlank()) return null
-                if (!isSupportedApkUrl(apkUrl)) return null
+                if (!isSupportedHttpsUrl(apkUrl)) return null
+                if (!isValidSha256(sha256)) return null
                 UpdateManifest(
                     versionCode = versionCode,
                     versionName = versionName,
@@ -111,7 +114,7 @@ class StaticManifestUpdateSource(
 ) : UpdateSource {
     override fun checkForUpdate(currentVersion: VersionInfo): UpdateCheckResult {
         val url = manifestUrl?.trim().orEmpty()
-        if (url.isBlank()) return UpdateCheckResult.UnableToCheck
+        if (!isSupportedHttpsUrl(url)) return UpdateCheckResult.UnableToCheck
         val manifest = fetcher.fetch(url) ?: return UpdateCheckResult.UnableToCheck
         return UpdateDecision.evaluate(currentVersion, manifest.asUpdateInfo())
     }
@@ -144,10 +147,11 @@ object HttpManifestFetcher : ManifestFetcher {
 
 object UpdateIntegrityVerifier {
     fun sha256Matches(bytes: ByteArray, expectedHex: String?): Boolean {
-        if (expectedHex.isNullOrBlank()) return false
+        val normalizedExpected = expectedHex?.trim() ?: return false
+        if (!isValidSha256(normalizedExpected)) return false
         val computed = MessageDigest.getInstance("SHA-256").digest(bytes)
             .joinToString("") { "%02x".format(it) }
-        return computed.equals(expectedHex.trim().lowercase(), ignoreCase = true)
+        return computed.equals(normalizedExpected.lowercase(), ignoreCase = true)
     }
 
     fun sha256Matches(file: File, expectedHex: String?): Boolean =
@@ -167,10 +171,12 @@ class ApkDownloader(
     private val cacheName: String = "kisab-private-update.apk"
 ) {
     fun download(url: String, expectedSha256: String? = null): ApkDownloadResult {
-        if (!isSupportedApkUrl(url)) return ApkDownloadResult(null, "unsupported url")
+        if (!isSupportedHttpsUrl(url)) return ApkDownloadResult(null, "unsupported url")
+        if (!isValidSha256(expectedSha256)) return ApkDownloadResult(null, "checksum unavailable")
         return try {
             val file = File(context.cacheDir, cacheName)
             file.delete()
+            var keepFile = false
             val connection = URL(url).openConnection() as? HttpURLConnection ?: return ApkDownloadResult(null, "download unavailable")
             try {
                 connection.connectTimeout = UPDATE_MANIFEST_TIMEOUT_MS
@@ -189,11 +195,13 @@ class ApkDownloader(
                     file.readBytes()
                 }
                 if (bytes.isEmpty()) return ApkDownloadResult(null, "empty apk")
-                val checksumVerified = expectedSha256.isNullOrBlank() || UpdateIntegrityVerifier.sha256Matches(bytes, expectedSha256)
+                val checksumVerified = UpdateIntegrityVerifier.sha256Matches(bytes, expectedSha256)
                 if (!checksumVerified) return ApkDownloadResult(null, "checksum mismatch")
+                keepFile = true
                 ApkDownloadResult(file, checksumVerified = true)
             } finally {
                 connection.disconnect()
+                if (!keepFile) file.delete()
             }
         } catch (_: Throwable) {
             ApkDownloadResult(null, "download failed")
@@ -218,7 +226,7 @@ class ApkInstaller(private val context: Context) {
     }
 
     fun launchInstall(file: File): Boolean {
-        if (!file.exists() || file.length() <= 0L) return false
+        if (!file.exists() || file.length() <= 0L || !isExpectedApk(file)) return false
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")
@@ -233,10 +241,26 @@ class ApkInstaller(private val context: Context) {
             false
         }
     }
+
+    private fun isExpectedApk(file: File): Boolean {
+        val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.getPackageArchiveInfo(
+                file.path,
+                PackageManager.PackageInfoFlags.of(0)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageArchiveInfo(file.path, 0)
+        }
+        return packageInfo?.packageName == context.packageName
+    }
 }
 
-private fun isSupportedApkUrl(rawUrl: String): Boolean {
+private fun isSupportedHttpsUrl(rawUrl: String): Boolean {
     val normalized = rawUrl.trim()
     if (normalized.isBlank()) return false
     return normalized.startsWith("https://") && normalized.length > "https://".length
 }
+
+private fun isValidSha256(value: String?): Boolean =
+    value?.matches(Regex("[0-9a-fA-F]{64}")) == true

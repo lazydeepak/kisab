@@ -477,6 +477,10 @@
     <string name="update_status_update_available">Update status: Update available</string>
     <string name="update_status_unable_to_check">Update status: Unable to check</string>
     <string name="update_status_checking">Update status: Checking…</string>
+    <string name="update_status_download_in_progress">Update status: Downloading</string>
+    <string name="update_status_install_ready">Update status: Ready to install</string>
+    <string name="update_status_install_permission_required">Update status: Install permission required</string>
+    <string name="update_status_failed">Update status: Update failed</string>
     <string name="update_dialog_title">Update Kisab</string>
     <string name="update_dialog_current_version">Current version: %1$s</string>
     <string name="update_dialog_new_version">New version: %1$s</string>

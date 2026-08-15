@@ -472,6 +472,10 @@
     <string name="update_status_update_available">अद्यावधिक स्थिति: नयाँ संस्करण उपलब्ध छ</string>
     <string name="update_status_unable_to_check">अद्यावधिक स्थिति: जाँच गर्न सकिएन</string>
     <string name="update_status_checking">अद्यावधिक स्थिति: जाँच हुँदैछ…</string>
+    <string name="update_status_download_in_progress">अद्यावधिक स्थिति: डाउनलोड हुँदैछ</string>
+    <string name="update_status_install_ready">अद्यावधिक स्थिति: जडान गर्न तयार</string>
+    <string name="update_status_install_permission_required">अद्यावधिक स्थिति: इन्स्टल अनुमति आवश्यक</string>
+    <string name="update_status_failed">अद्यावधिक स्थिति: अद्यावधिक असफल</string>
     <string name="update_dialog_title">किसाब अद्यावधिक गर्नुहोस्</string>
     <string name="update_dialog_current_version">हालको संस्करण: %1$s</string>
     <string name="update_dialog_new_version">नयाँ संस्करण: %1$s</string>

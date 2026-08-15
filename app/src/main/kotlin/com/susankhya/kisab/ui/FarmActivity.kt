@@ -3866,7 +3866,7 @@ class FarmActivity : AppCompatActivity() {
         settingsImportBackupButton.visibility = View.VISIBLE
         settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
         settingsAboutUpdateStatusText.text = if (BuildConfig.PRIVATE_UPDATE_MANIFEST_URL.isBlank()) {
-            string(R.string.update_status_unable_to_check)
+            string(R.string.settings_about_update_status_unknown)
         } else {
             string(R.string.update_status_up_to_date)
         }
@@ -4392,10 +4392,12 @@ class FarmActivity : AppCompatActivity() {
     private fun startPrivateApkDownload(update: UpdateInfo) {
         val installer = ApkInstaller(this)
         if (!installer.hasInstallPermission()) {
+            settingsAboutUpdateStatusText.text = string(R.string.update_status_install_permission_required)
             showToast(R.string.update_install_permission_required)
             installer.openSettingsForInstallPermission()
             return
         }
+        settingsAboutUpdateStatusText.text = string(R.string.update_status_download_in_progress)
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 ApkDownloader(this@FarmActivity).download(update.apkUrl, update.sha256)
@@ -4403,9 +4405,13 @@ class FarmActivity : AppCompatActivity() {
             if (result.isSuccess && result.file != null) {
                 val launched = installer.launchInstall(result.file)
                 if (!launched) {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_failed)
                     showToast(R.string.update_download_failed)
+                } else {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_install_ready)
                 }
             } else {
+                settingsAboutUpdateStatusText.text = string(R.string.update_status_failed)
                 showToast(if (result.error == "checksum mismatch") R.string.update_download_invalid else R.string.update_download_failed)
             }
         }
