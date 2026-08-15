@@ -79,6 +79,79 @@ The existing model already provides:
 
 The current gap is the farmer-facing composition. The UI exposes the model's structure: party selection, trade type, payment status, settlement editor, and financial sections. That is correct architecture but the wrong first mental model for a semi-literate farmer.
 
+## Model audit: generic sale primitive
+
+The current Trade/Settlement/PartyLedger model already supports most of the financial behavior:
+
+| Requirement | Current support | Audit result |
+| --- | --- | --- |
+| Customer or cash counterparty | `Trade.partyId` plus compatible `PartyRole` | Reuse |
+| Sale versus purchase direction | `Trade.type` | Reuse; the first slice creates SALE facts |
+| Total money owed | `Trade.totalMinor` | Reuse as the derived quantity × rate total |
+| Paid / unpaid / partial at creation | `addTradeWithInitialSettlement` | Reuse |
+| Later partial payments | `Settlement` records | Reuse as the source of truth |
+| Continuous customer balance | `PartyLedger` projection | Reuse |
+| Product | None | Add a small product/detail boundary |
+| Quantity and unit | None | Add to the product/detail boundary |
+| Rate | None; only total is stored | Add to the product/detail boundary |
+| Party-level payment without invoice choice | None; Settlement currently requires one trade | Add an allocation service operation |
+
+The conclusion is deliberate: do not replace `Trade` with a farmer-only sale object, and do not put stock quantities or production readings on `Trade`. `Trade` remains the financial obligation. A product-sale detail explains how that obligation was calculated.
+
+### Recommended generic data boundary
+
+For the first product sale slice, introduce these concepts conceptually:
+
+```kotlin
+data class FarmProduct(
+	val id: String,
+	val name: String,
+	val unit: ProductUnit
+)
+
+data class ProductSaleDetail(
+	val tradeId: String,
+	val productId: String,
+	val quantity: BigDecimal,
+	val unit: ProductUnit,
+	val rateMinor: Long
+)
+```
+
+The exact Kotlin representation remains an implementation decision, but these invariants should be fixed now:
+
+- `FarmProduct` is a farm-local catalog item, not an inventory balance.
+- `ProductUnit` supports `L`, `kg`, `बोरा`, `packet`, `bottle`, `वटा`, `piece`, `bundle`, and a custom-label path.
+- `quantity` is positive and normalized with enough precision for common farm quantities; it is not forced to an integer merely because milk examples use whole litres.
+- `rateMinor` is the price for one unit in the farm currency and must be positive.
+- `Trade.totalMinor` remains the authoritative money total and is calculated once from quantity × rate using explicit rounding rules.
+- `ProductSaleDetail.tradeId` anchors the detail to exactly one SALE `Trade`; deletion must not leave an orphan.
+- No stock-on-hand, purchase receipt, production reading, or automatic inventory mutation is created by this slice.
+
+Milk is simply `दूध` with unit `L`. गोबर, घिउ, eggs, and vegetables use the same primitive with different products and units. Recent rate suggestions are derived from prior sale details and are suggestions only; choosing one must never silently overwrite the farmer's entered rate.
+
+### Persistence and service boundary
+
+The current persistence schema is v6. The smallest safe evolution is a new schema append for farm-local products and product-sale details. Existing v6 farms decode with empty product/detail lists; existing Trade, Settlement, and PartyLedger facts remain valid. Backup round-trips must preserve both the financial fact and its product explanation.
+
+Do not encode product data into `Trade.description`: that would make product identity, quantity, unit, and rate unqueryable and make later stock or production work harder. Do not add stock fields to `FarmProduct` in this slice.
+
+The farmer-facing service seam should conceptually be:
+
+```text
+addProductSale(
+	farmId,
+	partyId?,
+	productId,
+	quantity,
+	rateMinor,
+	initialPaymentMinor?,
+	occurredAt
+) -> Trade
+```
+
+It validates the product, calculates the exact `totalMinor`, creates the SALE `Trade`, creates the linked `ProductSaleDetail`, optionally creates the opening `Settlement`, validates the complete resulting farm state once, and persists atomically. The existing lower-level `addTradeWithInitialSettlement` remains available to advanced/internal flows.
+
 ## Ten-scenario audit
 
 These scenarios are the discriminating check for the redesign. A future implementation slice is not ready until each scenario can be completed without accounting knowledge and without duplicate entry.
@@ -140,7 +213,7 @@ Opening a party shows the current total first, then a chronological explanation.
 - `खाता मिल्यो` / settled — only where the projection proves no balance remains; this is not a new accounting mutation.
 - Share Khata is future scope, but the row structure should leave room for a later text/image export.
 
-The underlying per-trade settlement model remains useful, but the farmer should not have to choose which trade received a partial payment unless allocation is genuinely ambiguous. The next design slice must decide and document the allocation rule before implementing `पैसा पाएँ` from a party Khata.
+The underlying per-trade settlement model remains useful, but the farmer should not have to choose which trade received a partial payment. The allocation rule is oldest outstanding SALE first, with trade timestamp ascending and trade id ascending as a stable tie-break.
 
 ## Fast entry contracts
 
@@ -158,7 +231,7 @@ Minimum path:
 → पुष्टि
 ```
 
-For a first slice, `product`, `quantity`, `unit`, and `rate` may be represented as an entry draft that derives the existing `Trade.totalMinor`. Product catalog persistence can be deliberately small and farm-local. The UI must preserve the existing sale/trade authority rather than create an independent sale ledger.
+For a first slice, `product`, `quantity`, `unit`, and `rate` are represented by the ProductSaleDetail boundary above and derive the existing `Trade.totalMinor`. Product catalog persistence is deliberately small and farm-local. The UI must preserve the existing sale/trade authority rather than create an independent sale ledger.
 
 ### Expense
 
@@ -185,13 +258,17 @@ Minimum path:
 → पुष्टि
 ```
 
-The domain currently anchors settlements to one trade. The workflow design must choose one of these before coding:
+The domain currently anchors settlements to one trade. A new party-level service operation should walk outstanding SALE trades for the party in oldest-first order and create one or more existing Settlement records until the entered amount is exhausted. The farmer sees one continuous payment event in Khata; the trade-level allocations remain underneath for auditability.
 
-1. Apply automatically to the oldest outstanding trade for that party and show the resulting allocation.
-2. Apply automatically to the most recent outstanding trade and show the allocation.
-3. Present a simple outstanding-items chooser only when more than one allocation is plausible.
+Rules for the first implementation:
 
-The choice must be deterministic, visible, reversible through existing settlement editing, and covered by tests.
+- Only outstanding SALE trades for that party are eligible for `पैसा पाएँ`.
+- The amount must be positive and must not exceed total outstanding receivable.
+- Overpayment is rejected atomically; no unapplied-money model is introduced yet.
+- All allocation settlements are written in one validated persistence transition or none are written.
+- A `BOTH` party keeps receive and pay directions separate; `पैसा पाएँ` never silently nets a purchase payable against a sale receivable.
+
+The choice is deterministic, visible in an expanded Khata detail, and covered by tests.
 
 ## Stock and production boundaries
 
@@ -226,12 +303,13 @@ The first build slice after this design record should be:
 
 1. Add a farmer-facing `बेचेँ` entry point from Home.
 2. Select or create a customer using familiar party rows.
-3. Select a farm product, initially allowing a small local product set such as दूध.
+3. Select a generic farm-local product, initially allowing a small local product set such as दूध.
 4. Enter quantity and unit.
 5. Reuse or enter a rate and derive the existing trade total.
 6. Choose `पैसा पाएँ` or `उधार`.
 7. Save through the existing Trade/Settlement authority.
 8. Return to the farmer-facing Khata and show the updated balance plus the arithmetic.
+9. Add `पैसा पाएँ` from Khata using oldest-outstanding-first allocation.
 
 This slice should be intentionally narrow. It should not simultaneously introduce full inventory, voice, photos, recurring schedules, animal records, cloud sync, or a new accounting subsystem.
 
@@ -240,6 +318,9 @@ This slice should be intentionally narrow. It should not simultaneously introduc
 - A new user can record a cash milk sale without seeing “Trade,” “Settlement,” or “Receivable.”
 - A new user can record a credit milk sale for a named customer in a short, tap-oriented flow.
 - A repeat customer can reuse the last product/rate suggestion.
+- Milk, eggs, vegetables, गोबर, and घिउ use the same sale primitive; none requires a dairy-specific code path.
+- A product sale persists queryable product, quantity, unit, and rate detail linked to the Trade.
+- A party payment creates deterministic oldest-first Settlement allocations without invoice selection in the primary UI.
 - The customer's Khata updates immediately and shows the sale in chronological history.
 - A partial payment remains visible as a payment event and produces a transparent current balance.
 - Existing `Trade`, `Settlement`, `PartyLedger`, backup, and migration tests remain authoritative and pass.
@@ -255,7 +336,7 @@ This slice should be intentionally narrow. It should not simultaneously introduc
 - Photo identity matching.
 - Automated recurring delivery schedules.
 - Customer messaging or shared Khata export.
-- Multi-trade settlement allocation without a documented rule.
+- A general unapplied-payment or multi-direction settlement model.
 - Profit claims that merge cash activity and trade obligations.
 - Replacing the rigorous domain model with a second farmer-only ledger.
 
@@ -266,9 +347,11 @@ The next coding task should begin with focused tests for:
 1. Product quantity × rate derives the expected minor-unit trade total.
 2. Cash and credit sale choices create the correct existing trade/settlement facts.
 3. Repeated customer defaults do not silently overwrite the farmer's chosen rate.
-4. Partial payment from Khata follows the selected deterministic allocation rule.
-5. Khata arithmetic matches the underlying authoritative facts.
-6. Backup round-trip preserves product, quantity, unit, and rate if those become persisted facts.
-7. EN/NE resource parity and 36sp UI rendering remain valid.
+4. Partial payment from Khata allocates oldest outstanding SALE trades first across multiple sales.
+5. Overpayment is rejected atomically with no partial settlements written.
+6. Khata arithmetic matches the underlying authoritative facts.
+7. Backup round-trip preserves product, quantity, unit, and rate.
+8. Existing v6 farms and old backups decode with empty product/detail lists.
+9. EN/NE resource parity and 36sp UI rendering remain valid.
 
 Only after this contract is accepted should the farmer-facing Home and sale flow be implemented.
