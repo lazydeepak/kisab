@@ -19,9 +19,23 @@ val hasReleaseSigning = listOf(
 val appVersionCode = 3
 val appVersionName = "0.2.0"
 
+// Private-build expiry: immutable compile-time millis for this APK (not install date).
+// Override with -Pkisab.privateBuildExpiresAtEpochMillis=... and/or
+// -Pkisab.privateBuildExpiryEnabled=true|false when packaging a private drop.
+val dayMillis = 24L * 60L * 60L * 1000L
+val buildTimeEpochMillis = System.currentTimeMillis()
+val configuredExpiryEnabled = providers.gradleProperty("kisab.privateBuildExpiryEnabled")
+    .map { it.equals("true", ignoreCase = true) }
+val configuredExpiryMillis = providers.gradleProperty("kisab.privateBuildExpiresAtEpochMillis")
+    .map { it.toLong() }
+
 android {
     namespace = "com.susankhya.kisab"
     compileSdk = 36
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "com.susankhya.kisab"
@@ -30,6 +44,9 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Safe defaults: expiry machinery off unless a build type opts in.
+        buildConfigField("boolean", "PRIVATE_BUILD_EXPIRY_ENABLED", "false")
+        buildConfigField("long", "PRIVATE_BUILD_EXPIRES_AT_EPOCH_MILLIS", "0L")
     }
 
     signingConfigs {
@@ -44,11 +61,26 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            // Developer/debug APKs: policy present but far in the future so daily work is not locked.
+            val debugExpiry = configuredExpiryMillis.orNull
+                ?: (buildTimeEpochMillis + 365L * dayMillis)
+            val debugEnabled = configuredExpiryEnabled.orNull ?: true
+            buildConfigField("boolean", "PRIVATE_BUILD_EXPIRY_ENABLED", debugEnabled.toString())
+            buildConfigField("long", "PRIVATE_BUILD_EXPIRES_AT_EPOCH_MILLIS", "${debugExpiry}L")
+        }
         getByName("release") {
             isMinifyEnabled = false
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            // Private/preview release drops: 90-day build lifetime unless overridden.
+            // Store/production builds can pass -Pkisab.privateBuildExpiryEnabled=false.
+            val releaseEnabled = configuredExpiryEnabled.orNull ?: true
+            val releaseExpiry = configuredExpiryMillis.orNull
+                ?: (buildTimeEpochMillis + 90L * dayMillis)
+            buildConfigField("boolean", "PRIVATE_BUILD_EXPIRY_ENABLED", releaseEnabled.toString())
+            buildConfigField("long", "PRIVATE_BUILD_EXPIRES_AT_EPOCH_MILLIS", "${releaseExpiry}L")
         }
     }
 

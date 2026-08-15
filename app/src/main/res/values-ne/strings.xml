@@ -447,4 +447,20 @@
     <string name="settings_about_version_format">किसाब %1$s</string>
     <string name="settings_about_privacy_note">किसाबले फार्म डेटा यही उपकरणमा राख्छ, जबसम्म तपाईं ब्याकअप निर्यात वा पुनर्स्थापना गर्नुहुन्न।</string>
     <string name="dialog_about_title">किसाबको बारेमा</string>
+
+    <string name="private_build_expiry_banner_expired">यो किसाब संस्करणको म्याद सकिएको छ। तपाईं अझै डेटा हेर्न र ब्याकअप गर्न सक्नुहुन्छ। सम्पादन जारी राख्न नयाँ संस्करण जडान गर्नुहोस्।</string>
+    <string name="private_build_expiry_banner_critical_format">यो किसाब संस्करण %1$d दिनमा सकिन्छ। नयाँ संस्करण उपलब्ध हुँदा अद्यावधिक गर्नुहोस्।</string>
+    <string name="private_build_expiry_dialog_warning_title">चाँडै अद्यावधिक गर्नुहोस्</string>
+    <string name="private_build_expiry_dialog_warning_message_format">यो किसाब संस्करण %1$d दिनमा (%2$s मा) सकिन्छ। नयाँ संस्करण उपलब्ध हुँदा अद्यावधिक गर्नुहोस्। तपाईंको फार्म डेटा यसै उपकरणमा रहन्छ।</string>
+    <string name="private_build_expiry_dialog_critical_title">चाँडै अद्यावधिक गर्नुहोस्</string>
+    <string name="private_build_expiry_dialog_critical_message_format">यो किसाब संस्करण %1$d दिनमा (%2$s मा) सकिन्छ। चाँडै नयाँ संस्करण जडान गर्नुहोस्। त्यसबेलासम्म काम गर्न सकिन्छ, र ब्याकअपका लागि डेटा उपलब्ध रहन्छ।</string>
+    <string name="private_build_expiry_dialog_expired_title">यो संस्करणको म्याद सकियो</string>
+    <string name="private_build_expiry_dialog_expired_message">यो किसाब संस्करणको म्याद सकिएको छ। तपाईं अझै फार्म हेर्न र ब्याकअप निर्यात गर्न सक्नुहुन्छ। रेकर्ड थप्न वा परिवर्तन गर्न नयाँ संस्करण जडान गर्नुहोस्।</string>
+    <string name="private_build_expiry_update_action">कसरी अद्यावधिक गर्ने</string>
+    <string name="private_build_expiry_update_info_title">किसाब अद्यावधिक गर्नुहोस्</string>
+    <string name="private_build_expiry_update_info_message">यो बिल्ड जुन निजी वितरण मार्गबाट आएको थियो, त्यहीबाट नयाँ किसाब APK जडान गर्नुहोस्। अद्यावधिक गर्दा तपाईंको फार्म डेटा यसै उपकरणमा रहन्छ।</string>
+    <string name="private_build_expiry_blocked_toast">यो किसाब संस्करणको म्याद सकिएको छ। डेटा हेर्न र ब्याकअप गर्न सकिन्छ, तर अद्यावधिक नगरेसम्म सम्पादन बन्द छ।</string>
+    <string name="private_build_expiry_about_line_format">यो बिल्ड %1$s मा सकिन्छ।</string>
+    <string name="private_build_expiry_about_expired">यो बिल्डको म्याद सकिएको छ। हेर्ने र ब्याकअप अझै काम गर्छ।</string>
+
 </resources>

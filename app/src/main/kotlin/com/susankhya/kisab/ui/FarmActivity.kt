@@ -45,6 +45,7 @@ import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.susankhya.kisab.BuildConfig
 import com.susankhya.kisab.R
 import com.susankhya.kisab.domain.FarmEntry
 import com.susankhya.kisab.domain.FarmEntryKind
@@ -88,6 +89,11 @@ import com.susankhya.kisab.persistence.SharedPreferencesAppTextSizePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesBackupFreshnessStore
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.persistence.SharedPreferencesAccountLinkStore
+import com.susankhya.kisab.persistence.SharedPreferencesPrivateBuildClockStore
+import com.susankhya.kisab.persistence.SharedPreferencesPrivateBuildWarningStore
+import com.susankhya.kisab.release.PrivateBuildAccessStage
+import com.susankhya.kisab.release.PrivateBuildExpiryGate
+import com.susankhya.kisab.release.PrivateBuildExpirySnapshot
 import com.susankhya.kisab.persistence.SharedPreferencesLocalUserStore
 import java.time.Instant
 import java.time.OffsetDateTime
@@ -104,6 +110,9 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var service: FarmSliceService
     private lateinit var localUserService: LocalUserService
     private lateinit var accountLinkService: AccountLinkService
+    private lateinit var privateBuildExpiryGate: PrivateBuildExpiryGate
+    private lateinit var privateBuildWarningStore: SharedPreferencesPrivateBuildWarningStore
+    private var privateBuildExpiryStartupHandled = false
     internal lateinit var backupFileAdapter: FarmBackupFileAdapter
 
     private enum class Destination { HOME, HISAB_KITAB, HISAB, SETTINGS, FARMS, FARM_DETAILS, ADD_FARM }
@@ -125,6 +134,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var shellAppBar: LinearLayout
     private lateinit var shellTitle: TextView
     private lateinit var shellMenuButton: ImageButton
+    private lateinit var privateBuildExpiryBanner: TextView
     private lateinit var bottomNavigation: LinearLayout
     private lateinit var navHomeItem: LinearLayout
     private lateinit var navHisabKitabItem: LinearLayout
@@ -442,6 +452,13 @@ class FarmActivity : AppCompatActivity() {
         localUserService = LocalUserService(SharedPreferencesLocalUserStore(applicationContext))
         localUserService.migrateExistingInstall(service.currentFarmId())
         accountLinkService = AccountLinkService(SharedPreferencesAccountLinkStore(applicationContext))
+        privateBuildWarningStore = SharedPreferencesPrivateBuildWarningStore(applicationContext)
+        privateBuildExpiryGate = PrivateBuildExpiryGate(
+            enabled = BuildConfig.PRIVATE_BUILD_EXPIRY_ENABLED,
+            expiresAtEpochMillis = BuildConfig.PRIVATE_BUILD_EXPIRES_AT_EPOCH_MILLIS,
+            deviceClock = clock,
+            clockStore = SharedPreferencesPrivateBuildClockStore(applicationContext)
+        )
         backupFileAdapter = AndroidStorageAccessFrameworkBackupFileAdapter(applicationContext)
         languagePreferences = SharedPreferencesAppLanguagePreferences(applicationContext)
         textSizePreferences = SharedPreferencesAppTextSizePreferences(applicationContext)
@@ -556,6 +573,7 @@ class FarmActivity : AppCompatActivity() {
         restoreFarmPlanningFrom(savedInstanceState)
         render()
         showDestination(currentDestination)
+        ensurePrivateBuildExpiryUi()
         restoreEditorFrom(savedInstanceState)
         restoreTradeEditorFrom(savedInstanceState)
         restoreSettlementEditorFrom(savedInstanceState)
@@ -649,6 +667,7 @@ class FarmActivity : AppCompatActivity() {
         scrollView = findViewById(R.id.scrollView)
         shellTitle = findViewById(R.id.shellTitle)
         shellMenuButton = findViewById(R.id.shellMenuButton)
+        privateBuildExpiryBanner = findViewById(R.id.privateBuildExpiryBanner)
         bottomNavigation = findViewById(R.id.bottomNavigation)
         navHomeItem = findViewById(R.id.navHomeItem)
         navHisabKitabItem = findViewById(R.id.navHisabKitabItem)
@@ -2013,6 +2032,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun saveTrade() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentTradeEditorState() ?: return
         val total = when (val result = moneyInputParser.parse(presentationLocale, currentFarmCurrency(), state.totalText)) {
@@ -2076,6 +2096,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun confirmDeleteTrade() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentTradeEditorState() ?: return
         if (state.mode != TradeEditorMode.EDIT) return
@@ -2406,6 +2427,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun saveSettlement() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentSettlementEditorState() ?: return
         val tradeId = settlementTargetTradeId ?: return
@@ -2457,6 +2479,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun confirmDeleteSettlement() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentSettlementEditorState() ?: return
         if (state.mode != SettlementEditorMode.EDIT) return
@@ -2639,6 +2662,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun saveParty() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val name = partyNameInput.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
@@ -2683,6 +2707,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun confirmDeleteParty() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val partyId = editingPartyId ?: return
         if (service.trades(farmId).any { it.partyId == partyId }) {
@@ -2924,6 +2949,7 @@ class FarmActivity : AppCompatActivity() {
         FarmOrdering.partyRoles[partyRoleSpinner.selectedItemPosition.coerceIn(0, FarmOrdering.partyRoles.size - 1)]
 
     private fun createFarm() {
+        if (!requireMutationsAllowed()) return
         val name = farmNameInput.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
             showValidationMessage(FarmUiError.FARM_NAME_REQUIRED.resourceId)
@@ -2940,6 +2966,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun addEntry() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val label = entryLabelInput.text?.toString()?.trim().orEmpty()
         if (label.isBlank()) {
@@ -3079,6 +3106,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun saveTransaction() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentEditorState() ?: return
         val farm = service.loadFarm(farmId)
@@ -3121,6 +3149,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun deleteTransaction() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentEditorState() ?: return
         if (state.mode != TransactionEditorMode.EDIT) return
@@ -3201,6 +3230,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun applyFarmCurrencyChange(code: String) {
+        if (!requireMutationsAllowed()) return
         val farmId = managedFarmId ?: currentFarmId ?: return showMissingFarmMessage()
         try {
             service.setFarmCurrency(farmId, code)
@@ -3244,6 +3274,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun performRenameFarm(farm: FarmState, name: String) {
+        if (!requireMutationsAllowed()) return
         try {
             service.renameFarm(farm.id, name)
             render()
@@ -3434,6 +3465,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun performResetFarmData() {
+        if (!requireMutationsAllowed()) return
         val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         closeEditor()
@@ -3504,6 +3536,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun performDeleteManagedFarm() {
+        if (!requireMutationsAllowed()) return
         val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         closeEditor()
@@ -3820,6 +3853,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun createFarmFromAddScreen() {
+        if (!requireMutationsAllowed()) return
         val name = addFarmNameInput.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
             showValidationMessage(FarmUiError.FARM_NAME_REQUIRED.resourceId)
@@ -3928,6 +3962,134 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
+
+    override fun onResume() {
+        super.onResume()
+        if (::privateBuildExpiryGate.isInitialized) {
+            val snapshot = privateBuildExpirySnapshot()
+            val dayKey = PrivateBuildExpiryPresentation.localDayKey(
+                snapshot.evaluationEpochMillis, deviceZone
+            )
+            val already = privateBuildWarningStore.lastWarningDayKey() == dayKey
+            updatePrivateBuildExpiryBanner(
+                snapshot,
+                PrivateBuildExpiryPresentation.uiHints(snapshot, already)
+            )
+        }
+    }
+
+    private fun privateBuildExpirySnapshot(): PrivateBuildExpirySnapshot =
+        privateBuildExpiryGate.snapshot()
+
+    private fun requireMutationsAllowed(): Boolean {
+        if (privateBuildExpiryGate.mutationsAllowed()) return true
+        showToast(R.string.private_build_expiry_blocked_toast)
+        return false
+    }
+
+    private fun ensurePrivateBuildExpiryUi() {
+        val snapshot = privateBuildExpirySnapshot()
+        val dayKey = PrivateBuildExpiryPresentation.localDayKey(
+            snapshot.evaluationEpochMillis,
+            deviceZone
+        )
+        val already = privateBuildWarningStore.lastWarningDayKey() == dayKey
+        val hints = PrivateBuildExpiryPresentation.uiHints(snapshot, already)
+        updatePrivateBuildExpiryBanner(snapshot, hints)
+        if (!privateBuildExpiryStartupHandled) {
+            privateBuildExpiryStartupHandled = true
+            if (hints.shouldShowStartupDialog) {
+                if (hints.kind == PrivateBuildExpiryPresentation.MessageKind.WARNING_DAYS_REMAINING) {
+                    privateBuildWarningStore.markWarningShown(dayKey)
+                }
+                showPrivateBuildExpiryDialog(snapshot, hints)
+            }
+        }
+    }
+
+    private fun updatePrivateBuildExpiryBanner(
+        snapshot: PrivateBuildExpirySnapshot,
+        hints: PrivateBuildExpiryPresentation.UiHints
+    ) {
+        if (!hints.showPersistentBanner) {
+            privateBuildExpiryBanner.visibility = View.GONE
+            return
+        }
+        privateBuildExpiryBanner.visibility = View.VISIBLE
+        privateBuildExpiryBanner.text = when (hints.kind) {
+            PrivateBuildExpiryPresentation.MessageKind.EXPIRED_BANNER ->
+                string(R.string.private_build_expiry_banner_expired)
+            PrivateBuildExpiryPresentation.MessageKind.CRITICAL_DAYS_REMAINING ->
+                string(
+                    R.string.private_build_expiry_banner_critical_format,
+                    snapshot.daysRemaining.toInt()
+                )
+            else -> string(R.string.private_build_expiry_banner_expired)
+        }
+        privateBuildExpiryBanner.setOnClickListener { showPrivateBuildUpdateInfo() }
+    }
+
+    private fun showPrivateBuildExpiryDialog(
+        snapshot: PrivateBuildExpirySnapshot,
+        hints: PrivateBuildExpiryPresentation.UiHints
+    ) {
+        val dateText = PrivateBuildExpiryPresentation.formatExpiryDate(
+            snapshot.expiresAtEpochMillis,
+            presentationLocale,
+            deviceZone
+        )
+        val (titleRes, message) = when (hints.kind) {
+            PrivateBuildExpiryPresentation.MessageKind.WARNING_DAYS_REMAINING ->
+                R.string.private_build_expiry_dialog_warning_title to string(
+                    R.string.private_build_expiry_dialog_warning_message_format,
+                    snapshot.daysRemaining.toInt(),
+                    dateText
+                )
+            PrivateBuildExpiryPresentation.MessageKind.CRITICAL_DAYS_REMAINING ->
+                R.string.private_build_expiry_dialog_critical_title to string(
+                    R.string.private_build_expiry_dialog_critical_message_format,
+                    snapshot.daysRemaining.toInt(),
+                    dateText
+                )
+            PrivateBuildExpiryPresentation.MessageKind.EXPIRED_BANNER ->
+                R.string.private_build_expiry_dialog_expired_title to string(
+                    R.string.private_build_expiry_dialog_expired_message
+                )
+            else -> return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(titleRes)
+            .setMessage(message)
+            .setPositiveButton(R.string.private_build_expiry_update_action) { _, _ ->
+                showPrivateBuildUpdateInfo()
+            }
+            .setNegativeButton(R.string.action_done, null)
+            .show()
+    }
+
+    private fun showPrivateBuildUpdateInfo() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.private_build_expiry_update_info_title)
+            .setMessage(R.string.private_build_expiry_update_info_message)
+            .setPositiveButton(R.string.action_done, null)
+            .show()
+    }
+
+    private fun privateBuildExpiryAboutSuffix(): String {
+        val snapshot = privateBuildExpirySnapshot()
+        if (!snapshot.enabled) return ""
+        return if (snapshot.stage == PrivateBuildAccessStage.EXPIRED) {
+            "\n\n" + string(R.string.private_build_expiry_about_expired)
+        } else {
+            val dateText = PrivateBuildExpiryPresentation.formatExpiryDate(
+                snapshot.expiresAtEpochMillis,
+                presentationLocale,
+                deviceZone
+            )
+            "\n\n" + string(R.string.private_build_expiry_about_line_format, dateText)
+        }
+    }
+
     private fun appVersionName(): String {
         val versionName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0)).versionName
@@ -3945,7 +4107,7 @@ class FarmActivity : AppCompatActivity() {
                 string(
                     R.string.settings_about_version_format,
                     appVersionName()
-                ) + "\n\n" + string(R.string.settings_about_privacy_note)
+                ) + "\n\n" + string(R.string.settings_about_privacy_note) + privateBuildExpiryAboutSuffix()
             )
             .setPositiveButton(R.string.action_done, null)
             .show()
@@ -4032,6 +4194,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun importBackup() {
+        if (!requireMutationsAllowed()) return
         openBackupDocumentLauncher.launch(arrayOf("application/octet-stream"))
     }
 
@@ -4071,6 +4234,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun replaceFarmWith(farm: FarmState) {
+        if (!requireMutationsAllowed()) return
         closeEditor()
         // Multi-farm safe: same id updates that farm only; new id adds another farm.
         // Other local farms are never wiped. Ownership of other farms is unchanged.

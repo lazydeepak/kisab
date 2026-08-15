@@ -451,4 +451,20 @@
     <string name="settings_about_version_format">Kisab %1$s</string>
     <string name="settings_about_privacy_note">Kisab stores farm data on this device unless you export or restore a backup.</string>
     <string name="dialog_about_title">About Kisab</string>
+
+    <string name="private_build_expiry_banner_expired">This Kisab version has expired. You can still view and back up your data. Install a newer version to continue editing.</string>
+    <string name="private_build_expiry_banner_critical_format">This Kisab version expires in %1$d days. Please update when a newer version is available.</string>
+    <string name="private_build_expiry_dialog_warning_title">Update available soon</string>
+    <string name="private_build_expiry_dialog_warning_message_format">This Kisab version expires in %1$d days (on %2$s). Please update when a newer version is available. Your farm data stays on this device.</string>
+    <string name="private_build_expiry_dialog_critical_title">Update soon</string>
+    <string name="private_build_expiry_dialog_critical_message_format">This Kisab version expires in %1$d days (on %2$s). Install a newer version soon. You can still work until then, and your data remains available for backup.</string>
+    <string name="private_build_expiry_dialog_expired_title">This version has expired</string>
+    <string name="private_build_expiry_dialog_expired_message">This Kisab version has expired. You can still view your farms and export a backup. Install a newer version to add or change records.</string>
+    <string name="private_build_expiry_update_action">How to update</string>
+    <string name="private_build_expiry_update_info_title">Update Kisab</string>
+    <string name="private_build_expiry_update_info_message">Install a newer Kisab APK from the same private distribution channel that provided this build. Your farm data stays on this device when you update.</string>
+    <string name="private_build_expiry_blocked_toast">This Kisab version has expired. You can view and back up data, but editing is turned off until you update.</string>
+    <string name="private_build_expiry_about_line_format">This build expires on %1$s.</string>
+    <string name="private_build_expiry_about_expired">This build has expired. Viewing and backup still work.</string>
+
 </resources>
