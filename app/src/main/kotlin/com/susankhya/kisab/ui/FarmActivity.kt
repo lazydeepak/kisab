@@ -80,6 +80,8 @@ import com.susankhya.kisab.domain.SupplyUsageDraft
 import com.susankhya.kisab.domain.ProductionRecordDraft
 import com.susankhya.kisab.domain.ProductionSession
 import com.susankhya.kisab.domain.productionForDay
+import com.susankhya.kisab.domain.ProductionAllocationDraft
+import com.susankhya.kisab.domain.ProductionAllocationType
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeDraft
@@ -3647,8 +3649,17 @@ class FarmActivity : AppCompatActivity() {
         fun selectedProduct(): FarmProduct? = products.getOrNull(productSpinner.selectedItemPosition)
         fun refreshSummary() {
             val lines = products.mapNotNull { product ->
-                val total = records.filter { it.productId == product.id }.fold(BigDecimal.ZERO) { sum, record -> sum.add(record.quantity) }
-                total.takeIf { it > BigDecimal.ZERO }?.let { string(R.string.production_total_format, product.name, "${formatQuantity(it)} ${productUnitLabel(product.defaultUnit, product.customUnitLabel)}") }
+                val reconciliation = service.productionReconciliation(farmId, product.id, today, deviceZone)
+                reconciliation.produced.takeIf { it > BigDecimal.ZERO }?.let {
+                    string(
+                        R.string.production_reconciliation_format,
+                        product.name,
+                        formatQuantity(reconciliation.produced),
+                        formatQuantity(reconciliation.sold),
+                        formatQuantity(reconciliation.unexplained),
+                        productUnitLabel(product.defaultUnit, product.customUnitLabel)
+                    )
+                }
             }
             todaySummary.text = if (lines.isEmpty()) string(R.string.production_empty) else lines.joinToString("\n\n")
         }
@@ -3658,7 +3669,8 @@ class FarmActivity : AppCompatActivity() {
             val existing = records.firstOrNull { it.productId == product.id && it.session == sessionOf() }
             quantityInput.setText(existing?.quantity?.let(::formatQuantity).orEmpty())
         }
-        content.addView(todaySummary); content.addView(labelText(R.string.production_product)); content.addView(productSpinner)
+        val allocationButton = Button(this).apply { text = string(R.string.production_allocate); minHeight = dp(48) }
+        content.addView(todaySummary); content.addView(allocationButton); content.addView(labelText(R.string.production_product)); content.addView(productSpinner)
         content.addView(quantityInput); content.addView(unitText); content.addView(sessionGroup)
         val dialog = AlertDialog.Builder(this).setTitle(R.string.production_title).setView(content)
             .setNeutralButton(R.string.production_add_product) { _, _ -> showProductCreationDialog { showProductionDialog() } }
@@ -3680,6 +3692,7 @@ class FarmActivity : AppCompatActivity() {
         }
         productSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshUnitAndExisting() }
         sessionGroup.setOnCheckedChangeListener { _, _ -> refreshUnitAndExisting() }
+        allocationButton.setOnClickListener { showProductionAllocationDialog() }
         dialog.show(); refreshSummary(); refreshUnitAndExisting()
         if (records.isNotEmpty()) {
             dialog.setOnDismissListener { }
@@ -3694,6 +3707,58 @@ class FarmActivity : AppCompatActivity() {
                     }.setNegativeButton(R.string.action_cancel, null).show()
             })
         }
+    }
+
+    private fun showProductionAllocationDialog() {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val products = service.products(farmId)
+        if (products.isEmpty()) return showToast(R.string.production_empty)
+        val date = OffsetDateTime.now(deviceZone).toLocalDate()
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val productSpinner = Spinner(this)
+        productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val unexplainedText = TextView(this)
+        val typeSpinner = Spinner(this)
+        val types = ProductionAllocationType.values().toList()
+        typeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, types.map { allocationTypeLabel(it) }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val quantityInput = EditText(this).apply { hint = string(R.string.production_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val noteInput = EditText(this).apply { hint = string(R.string.production_allocation_note) }
+        content.addView(productSpinner); content.addView(unexplainedText); content.addView(typeSpinner); content.addView(quantityInput); content.addView(noteInput)
+        fun refreshUnexplained() {
+            val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return
+            val reconciliation = service.productionReconciliation(farmId, product.id, date, deviceZone)
+            unexplainedText.text = string(R.string.production_unexplained_format, formatQuantity(reconciliation.unexplained), productUnitLabel(product.defaultUnit, product.customUnitLabel))
+        }
+        productSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshUnexplained() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.production_allocate_title).setView(content).setPositiveButton(R.string.production_save, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.production_quantity_invalid)
+                val type = types[typeSpinner.selectedItemPosition]
+                try {
+                    service.addProductionAllocation(
+                        farmId,
+                        ProductionAllocationDraft(product.id, quantity, product.defaultUnit, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), type, noteInput.text?.toString().orEmpty()),
+                        deviceZone
+                    )
+                    dialog.dismiss(); render(); showToast(R.string.production_allocation_saved)
+                } catch (exception: Exception) {
+                    if (exception.message?.contains("exceeds unexplained") == true) showToast(R.string.production_allocation_too_high)
+                    else Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show(); refreshUnexplained()
+    }
+
+    private fun allocationTypeLabel(type: ProductionAllocationType): String = when (type) {
+        ProductionAllocationType.HOME_USE -> string(R.string.production_home_use)
+        ProductionAllocationType.PROCESSING -> string(R.string.production_processing)
+        ProductionAllocationType.ANIMAL_FEED -> string(R.string.production_animal_feed)
+        ProductionAllocationType.WASTE -> string(R.string.production_waste)
+        ProductionAllocationType.OTHER -> string(R.string.production_other)
     }
 
     private fun showQuickSaleSavedDialog(customerId: String, productId: String, rateMinor: Long) {

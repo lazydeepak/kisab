@@ -75,6 +75,16 @@ object FarmStateValidator {
         }
         val productionIds = farm.productionRecords.map { it.id }
         require(productionIds.size == productionIds.toSet().size) { "Production IDs must be unique" }
+        farm.productionAllocations.forEach { allocation ->
+            require(farm.products.any { it.id == allocation.productId }) {
+                "Allocation product not found: ${allocation.productId}"
+            }
+            require(farm.products.first { it.id == allocation.productId }.defaultUnit == allocation.unit) {
+                "Allocation unit does not match product"
+            }
+        }
+        val allocationIds = farm.productionAllocations.map { it.id }
+        require(allocationIds.size == allocationIds.toSet().size) { "Allocation IDs must be unique" }
     }
 
     fun validateParty(party: Party) {

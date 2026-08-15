@@ -99,7 +99,8 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
             productSaleDetails = mutableListOf(),
             supplyPurchaseDetails = mutableListOf(),
             supplyUsages = mutableListOf(),
-            productionRecords = mutableListOf()
+            productionRecords = mutableListOf(),
+            productionAllocations = mutableListOf()
         )
         FarmStateValidator.validateFarm(reset)
         store.saveFarm(reset)
@@ -236,6 +237,47 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
 
     fun productionForDay(farmId: String, date: java.time.LocalDate, zone: ZoneId): List<ProductionRecord> =
         getFarm(farmId).productionForDay(date, zone)
+
+    fun productionReconciliation(farmId: String, productId: String, date: java.time.LocalDate, zone: ZoneId): ProductionReconciliation =
+        getFarm(farmId).productionReconciliation(productId, date, zone)
+
+    fun addProductionAllocation(farmId: String, draft: ProductionAllocationDraft, zone: ZoneId): ProductionAllocation {
+        val farm = getFarm(farmId)
+        val product = farm.products.firstOrNull { it.id == draft.productId }
+            ?: throw IllegalArgumentException("Allocation product not found: ${draft.productId}")
+        require(product.defaultUnit == draft.unit) { "Allocation unit does not match product" }
+        val allocation = draft.toAllocation("allocation-${UUID.randomUUID()}")
+        if (allocation.type != ProductionAllocationType.OTHER) {
+            val reconciliation = farm.productionReconciliation(allocation.productId, allocation.occurredAt.atZoneSameInstant(zone).toLocalDate(), zone)
+            require(allocation.quantity <= reconciliation.unexplained) { "Allocation exceeds unexplained production" }
+        }
+        val updated = farm.copy(productionAllocations = (farm.productionAllocations + allocation).toMutableList())
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return allocation
+    }
+
+    fun updateProductionAllocation(farmId: String, allocationId: String, draft: ProductionAllocationDraft, zone: ZoneId): ProductionAllocation {
+        val farm = getFarm(farmId)
+        require(farm.productionAllocations.any { it.id == allocationId }) { "Allocation not found: $allocationId" }
+        val allocation = draft.toAllocation(allocationId)
+        val without = farm.copy(productionAllocations = farm.productionAllocations.filterNot { it.id == allocationId }.toMutableList())
+        if (allocation.type != ProductionAllocationType.OTHER) {
+            val reconciliation = without.productionReconciliation(allocation.productId, allocation.occurredAt.atZoneSameInstant(zone).toLocalDate(), zone)
+            require(allocation.quantity <= reconciliation.unexplained) { "Allocation exceeds unexplained production" }
+        }
+        val updated = without.copy(productionAllocations = (without.productionAllocations + allocation).toMutableList())
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return allocation
+    }
+
+    fun deleteProductionAllocation(farmId: String, allocationId: String) {
+        val farm = getFarm(farmId)
+        val updated = farm.productionAllocations.filterNot { it.id == allocationId }.toMutableList()
+        require(updated.size < farm.productionAllocations.size) { "Allocation not found: $allocationId" }
+        store.saveFarm(farm.copy(productionAllocations = updated))
+    }
 
     fun addProductSale(
         farmId: String,
@@ -653,6 +695,7 @@ data class FarmState(
     val supplyPurchaseDetails: MutableList<SupplyPurchaseDetail> = mutableListOf(),
     val supplyUsages: MutableList<SupplyUsage> = mutableListOf(),
     val productionRecords: MutableList<ProductionRecord> = mutableListOf(),
+    val productionAllocations: MutableList<ProductionAllocation> = mutableListOf(),
     val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
 ) {
     /**
@@ -665,7 +708,7 @@ data class FarmState(
 
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 9
+        const val CURRENT_FARM_SCHEMA_VERSION = 10
     }
 }
 

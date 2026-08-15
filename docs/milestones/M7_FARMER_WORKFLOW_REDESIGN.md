@@ -339,6 +339,31 @@ Farm schema advances from v8 to v9 by appending production records. Older farms 
 
 Editing a Morning/Evening record uses the same session upsert behavior. Erroneous records can be deleted with confirmation. Charts, reconciliation, processing, waste, home consumption, animal feeding, forecasting, livestock, and production reports remain future work.
 
+## M7.4 Production Allocation
+
+M7.4 explains where produced output went without turning production into inventory. `ProductionAllocation` references the same `FarmProduct` and `ProductUnit` and records a quantity, local timestamp, type, and optional note. Types are generic: `HOME_USE`, `PROCESSING`, `ANIMAL_FEED`, `WASTE`, and `OTHER`.
+
+Daily reconciliation is derived only when units match exactly:
+
+```text
+produced
+- sold from matching ProductSaleDetail + Trade facts
+- home use
+- processing
+- animal feed
+- waste
+- other
+= unexplained
+```
+
+Sales are never duplicated as allocations and are never inferred from descriptions. Unit conversion is not attempted. A mismatch is surfaced as non-reconcilable rather than calculated falsely. Existing sales may make the result negative; the UI reports the inconsistency instead of clamping or rewriting sale history. New non-OTHER allocation entry is rejected when it exceeds current unexplained quantity.
+
+The farmer-facing Production dialog includes today's total and a `प्रयोग` path for allocation. Processing does not create ghee/yogurt outputs, animal feed does not create livestock records, and waste has no financial-loss calculation. Allocations are operational and financially neutral: they do not affect cash, Trade, Settlement, PartyLedger, or Financial Overview.
+
+Farm schema advances from v9 to v10 by appending allocation records. Older farms decode with empty allocations; backup round-trips preserve them; reset clears production and allocations while preserving products; delete removes them with the farm. Multiple allocations of the same type on a day are allowed.
+
+True inventory, produced-versus-sold stock, transformation recipes/yields, spoilage accounting, home-consumption accounting, animal feeding, forecasting, charts, and reports remain deferred.
+
 ## M7.2 Farm Supplies & Simple Stock
 
 M7.2 extends the farmer workflow with `किनेँ`, `प्रयोग गरेँ`, and `बाँकी` for generic farm supplies. It deliberately does not introduce warehouse or ERP concepts.

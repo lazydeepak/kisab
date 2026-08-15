@@ -118,6 +118,20 @@ Used: %2$s</string>
     <string name="production_total_format">%1$s
 %2$s total</string>
     <string name="production_record_format">%1$s: %2$s %3$s</string>
+    <string name="production_allocate">Use produced</string>
+    <string name="production_allocate_title">Use produced</string>
+    <string name="production_allocation_note">Note (optional)</string>
+    <string name="production_unexplained_format">Unexplained: %1$s %2$s</string>
+    <string name="production_reconciliation_format">%1$s
+Produced: %2$s %5$s
+Sold: %3$s %5$s
+Unexplained: %4$s %5$s</string>
+    <string name="production_home_use">At home</string>
+    <string name="production_processing">Processing</string>
+    <string name="production_animal_feed">Fed to animals</string>
+    <string name="production_waste">Spoiled / loss</string>
+    <string name="production_allocation_saved">Use recorded</string>
+    <string name="production_allocation_too_high">That is more than the unexplained amount.</string>
     <string name="product_unit_litre">L / litre</string>
     <string name="product_unit_kilogram">kg / kilogram</string>
     <string name="product_unit_piece">piece</string>
