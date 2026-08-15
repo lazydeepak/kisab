@@ -132,6 +132,17 @@ Unexplained: %4$s %5$s</string>
     <string name="production_waste">Spoiled / loss</string>
     <string name="production_allocation_saved">Use recorded</string>
     <string name="production_allocation_too_high">That is more than the unexplained amount.</string>
+    <string name="farmer_overview_today_title">Today</string>
+    <string name="farmer_overview_month_action">This month</string>
+    <string name="farmer_overview_production_format">Production: %1$s</string>
+    <string name="farmer_overview_sales_format">Sales: %1$s</string>
+    <string name="farmer_overview_received_format">Money received: %1$s</string>
+    <string name="farmer_overview_expenses_format">Expenses: %1$s</string>
+    <string name="farmer_overview_receivable_format">To receive: %1$s</string>
+    <string name="farmer_overview_credit_sales_format">Credit sales today: %1$s</string>
+    <string name="farmer_overview_unexplained_format">Unexplained: %1$s</string>
+    <string name="farmer_overview_supplies_format">Supplies: %1$s</string>
+    <string name="farmer_overview_month_title">This month</string>
     <string name="product_unit_litre">L / litre</string>
     <string name="product_unit_kilogram">kg / kilogram</string>
     <string name="product_unit_piece">piece</string>

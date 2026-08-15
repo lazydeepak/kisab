@@ -364,6 +364,31 @@ Farm schema advances from v9 to v10 by appending allocation records. Older farms
 
 True inventory, produced-versus-sold stock, transformation recipes/yields, spoilage accounting, home-consumption accounting, animal feeding, forecasting, charts, and reports remain deferred.
 
+## M7.5 Farmer Daily / Monthly Overview
+
+M7.5 adds `FarmerOverview` as a pure, non-persisted read model over existing FarmState authorities. No schema change was made: FarmState remains schema 10, and no daily/monthly totals, cached balances, or summary records are stored.
+
+### Metric definitions
+
+- **Sales**: SALE Trade totals whose Trade timestamp falls in the local day/month.
+- **Money received**: Settlement amounts linked to SALE Trades whose Settlement timestamp falls in the local day/month.
+- **Expenses**: EXPENSE FarmTransaction amounts in the local day/month. Supply purchases are counted once through their existing expense transaction.
+- **Customer receivable**: current sum of PartyLedger SALE outstanding balances across customer-compatible parties. This is a current point-in-time balance, not a monthly flow.
+- **आज उधार बिक्री**: today's SALE total minus settlements recorded at the Trade's creation timestamp. This is credit created by today's sale events, not a misleading receivable delta.
+- **Production**: ProductionRecord quantities grouped by product for the local day/month.
+- **Unexplained production**: today's ProductionReconciliation unexplained quantity when present; negative values remain visible as inconsistency.
+- **Supplies remaining**: derived supply purchase quantity minus usage quantity.
+
+The overview never shows profit, margin, or a combined earnings claim. Sales, cash received, expenses, and current receivable remain separate facts.
+
+### Farmer-facing surface
+
+Home shows a compact Today block with production, sales, money received, expenses, current `लिन बाँकी`, today's credit sales, unexplained production, and remaining supplies when relevant. `यो महिना` opens the current local-calendar-month summary with production, sales, money received, expenses, receivable, and supplies.
+
+Daily and monthly boundaries use the existing device timezone conventions. No custom-date report builder, chart, PDF, tax report, or accounting statement was added.
+
+Device evidence: the final APK installed on ZA22374XPC with `adb install -r`; the Nepali Home surface showed `उत्पादन`, derived Today metrics, and `यो महिना`. The full temporary-data overview mutation scenario was covered by focused read-model tests; the real farm was not mutated.
+
 ## M7.2 Farm Supplies & Simple Stock
 
 M7.2 extends the farmer workflow with `किनेँ`, `प्रयोग गरेँ`, and `बाँकी` for generic farm supplies. It deliberately does not introduce warehouse or ERP concepts.

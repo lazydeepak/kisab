@@ -131,6 +131,17 @@
     <string name="production_waste">बिग्रियो / नोक्सान</string>
     <string name="production_allocation_saved">प्रयोग राखियो</string>
     <string name="production_allocation_too_high">यो नखुलेको मात्राभन्दा बढी छ।</string>
+    <string name="farmer_overview_today_title">आज</string>
+    <string name="farmer_overview_month_action">यो महिना</string>
+    <string name="farmer_overview_production_format">उत्पादन: %1$s</string>
+    <string name="farmer_overview_sales_format">बिक्री: %1$s</string>
+    <string name="farmer_overview_received_format">पैसा आएको: %1$s</string>
+    <string name="farmer_overview_expenses_format">खर्च: %1$s</string>
+    <string name="farmer_overview_receivable_format">लिन बाँकी: %1$s</string>
+    <string name="farmer_overview_credit_sales_format">आज उधार बिक्री: %1$s</string>
+    <string name="farmer_overview_unexplained_format">नखुलेको: %1$s</string>
+    <string name="farmer_overview_supplies_format">बाँकी सामान: %1$s</string>
+    <string name="farmer_overview_month_title">यो महिना</string>
     <string name="product_unit_litre">लि. / लिटर</string>
     <string name="product_unit_kilogram">केजी / किलो</string>
     <string name="product_unit_piece">वटा</string>

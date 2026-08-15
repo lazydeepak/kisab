@@ -256,6 +256,21 @@
                 android:minHeight="56dp"
                 android:text="@string/production_action" />
 
+            <TextView
+                android:id="@+id/farmerOverviewTodayText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/farmerOverviewMonthButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="48dp"
+                android:text="@string/farmer_overview_month_action" />
+
             <androidx.appcompat.widget.LinearLayoutCompat
                 android:id="@+id/transactionEditorContainer"
                 android:layout_width="match_parent"

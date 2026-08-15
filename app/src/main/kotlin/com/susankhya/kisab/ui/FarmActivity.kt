@@ -82,6 +82,7 @@ import com.susankhya.kisab.domain.ProductionSession
 import com.susankhya.kisab.domain.productionForDay
 import com.susankhya.kisab.domain.ProductionAllocationDraft
 import com.susankhya.kisab.domain.ProductionAllocationType
+import com.susankhya.kisab.domain.farmerOverview
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeDraft
@@ -452,6 +453,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var supplyUsageButton: Button
     private lateinit var supplyStockButton: Button
     private lateinit var productionButton: Button
+    private lateinit var farmerOverviewTodayText: TextView
+    private lateinit var farmerOverviewMonthButton: Button
 
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
@@ -994,6 +997,8 @@ class FarmActivity : AppCompatActivity() {
         supplyUsageButton = findViewById(R.id.supplyUsageButton)
         supplyStockButton = findViewById(R.id.supplyStockButton)
         productionButton = findViewById(R.id.productionButton)
+        farmerOverviewTodayText = findViewById(R.id.farmerOverviewTodayText)
+        farmerOverviewMonthButton = findViewById(R.id.farmerOverviewMonthButton)
 
         entryKindSpinner.adapter = ArrayAdapter(
             this,
@@ -1133,6 +1138,7 @@ class FarmActivity : AppCompatActivity() {
         supplyUsageButton.setOnClickListener { showSupplyUsageDialog() }
         supplyStockButton.setOnClickListener { showSupplyStockDialog() }
         productionButton.setOnClickListener { showProductionDialog() }
+        farmerOverviewMonthButton.setOnClickListener { showFarmerMonthDialog() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
         settingsAboutUpdateButton.setOnClickListener { checkForPrivateAppUpdate() }
@@ -4536,9 +4542,46 @@ class FarmActivity : AppCompatActivity() {
         balanceText.text = string(R.string.overview_balance_format, formatMoney(currency, totals.balanceMinor))
         incomeText.text = string(R.string.overview_income_format, formatMoney(currency, totals.incomeMinor))
         expensesText.text = string(R.string.overview_expenses_format, formatMoney(currency, totals.expensesMinor))
+        renderFarmerOverview(farm)
         firstActionPrompt.visibility = if (farm.transactions.isEmpty()) View.VISIBLE else View.GONE
         renderRecentTransactions(farm, currency)
         renderFarmTools(farm, currency, totals)
+    }
+
+    private fun renderFarmerOverview(farm: FarmState) {
+        val overview = farm.farmerOverview(OffsetDateTime.now(deviceZone), deviceZone).daily
+        val lines = mutableListOf<String>(string(R.string.farmer_overview_today_title))
+        overview.production.forEach { production ->
+            lines += string(R.string.farmer_overview_production_format, "${production.name}: ${formatQuantity(production.quantity)} ${productUnitLabel(production.unit, "")}")
+            if (production.unexplained != null && production.unexplained != BigDecimal.ZERO) {
+                lines += string(R.string.farmer_overview_unexplained_format, "${production.name} ${formatQuantity(production.unexplained)} ${productUnitLabel(production.unit, "")}")
+            }
+        }
+        lines += string(R.string.farmer_overview_sales_format, formatMoney(farm.currencyCode, overview.salesMinor))
+        lines += string(R.string.farmer_overview_received_format, formatMoney(farm.currencyCode, overview.moneyReceivedMinor))
+        lines += string(R.string.farmer_overview_expenses_format, formatMoney(farm.currencyCode, overview.expensesMinor))
+        lines += string(R.string.farmer_overview_receivable_format, formatMoney(farm.currencyCode, overview.currentReceivableMinor))
+        lines += string(R.string.farmer_overview_credit_sales_format, formatMoney(farm.currencyCode, overview.creditSalesMinor))
+        if (overview.supplies.isNotEmpty()) {
+            lines += string(R.string.farmer_overview_supplies_format, overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" })
+        }
+        farmerOverviewTodayText.text = lines.joinToString("\n")
+    }
+
+    private fun showFarmerMonthDialog() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val overview = farm.farmerOverview(OffsetDateTime.now(deviceZone), deviceZone).monthly
+        val lines = mutableListOf<String>(string(R.string.farmer_overview_month_title))
+        overview.production.forEach { production ->
+            lines += string(R.string.farmer_overview_production_format, "${production.name}: ${formatQuantity(production.quantity)} ${productUnitLabel(production.unit, "")}")
+        }
+        lines += string(R.string.farmer_overview_sales_format, formatMoney(farm.currencyCode, overview.salesMinor))
+        lines += string(R.string.farmer_overview_received_format, formatMoney(farm.currencyCode, overview.moneyReceivedMinor))
+        lines += string(R.string.farmer_overview_expenses_format, formatMoney(farm.currencyCode, overview.expensesMinor))
+        lines += string(R.string.farmer_overview_receivable_format, formatMoney(farm.currencyCode, overview.currentReceivableMinor))
+        if (overview.supplies.isNotEmpty()) lines += string(R.string.farmer_overview_supplies_format, overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" })
+        AlertDialog.Builder(this).setTitle(R.string.farmer_overview_month_title).setMessage(lines.joinToString("\n")).setPositiveButton(R.string.action_done, null).show()
     }
 
     private fun renderRecentTransactions(farm: FarmState, currency: String) {
