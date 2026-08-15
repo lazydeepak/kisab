@@ -7,7 +7,7 @@ package com.susankhya.kisab.ui
 object AppTextSize {
     const val MIN_SP = 14
     const val DEFAULT_SP = 16
-    const val MAX_SP = 24
+    const val MAX_SP = 36
 
     fun coerce(value: Int): Int = value.coerceIn(MIN_SP, MAX_SP)
 }
