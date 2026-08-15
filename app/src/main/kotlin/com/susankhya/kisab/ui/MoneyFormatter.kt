@@ -9,12 +9,12 @@ import java.util.Locale
  * Renders stored minor-unit amounts as locale-aware major-unit money.
  *
  * Values are always derived from [amountMinor] through [BigDecimal] arithmetic
- * (never Double/Float). By default the currency code is shown explicitly next
- * to the locale-formatted number so the currency is never ambiguous, but the
- * app can hide it via [showCurrency] (presentation only). [grouping] controls
- * whether thousands separators are shown. Fraction digits follow the
+ * (never Double/Float). By default the farm currency's farmer-facing symbol
+ * ([CurrencySymbols]) is shown in front of the locale-formatted number, but
+ * the app can hide it via [showCurrency] (presentation only). [grouping]
+ * controls whether thousands separators are shown. Fraction digits follow the
  * currency's ISO definition; unknown-but-valid three-letter codes fall back
- * to two fraction digits and still display their ISO code.
+ * to two fraction digits and display their ISO code as the symbol.
  */
 class MoneyFormatter {
 
@@ -30,9 +30,11 @@ class MoneyFormatter {
         showCurrency: Boolean = true,
         grouping: Boolean = true
     ): String {
+        val digits = fractionDigits(currencyCode)
         val number = numberFormat(locale, currencyCode, grouping)
-            .format(BigDecimal(amountMinor).movePointLeft(fractionDigits(currencyCode)))
-        return if (showCurrency) "$number $currencyCode" else number
+            .format(BigDecimal(amountMinor).movePointLeft(digits).abs())
+        val prefix = if (amountMinor < 0) "-" else ""
+        return if (showCurrency) "$prefix${CurrencySymbols.symbolFor(currencyCode)} $number" else "$prefix$number"
     }
 
     /**
