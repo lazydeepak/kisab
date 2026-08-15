@@ -486,4 +486,17 @@
     <string name="private_build_expiry_about_line_format">This build expires on %1$s.</string>
     <string name="private_build_expiry_about_expired">This build has expired. Viewing and backup still work.</string>
 
+    <string name="settings_notifications_section">Notifications</string>
+    <string name="settings_notifications_status_on">Notifications: On</string>
+    <string name="settings_notifications_status_off">Notifications: Off</string>
+    <string name="settings_notifications_enable_action">Enable notifications</string>
+    <string name="settings_notifications_open_system_action">Notification settings</string>
+    <string name="settings_notifications_explanation">Kisab can notify you about app updates and backup reminders. Farm work still works if notifications are off.</string>
+    <string name="settings_notifications_category_updates">App updates</string>
+    <string name="settings_notifications_category_reminders">Backup reminders</string>
+    <string name="notification_channel_updates_name">App updates</string>
+    <string name="notification_channel_updates_description">Important Kisab version and update notices.</string>
+    <string name="notification_channel_reminders_name">Reminders</string>
+    <string name="notification_channel_reminders_description">Backup and other non-urgent operational reminders.</string>
+
 </resources>

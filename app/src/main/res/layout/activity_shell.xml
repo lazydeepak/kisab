@@ -1688,6 +1688,92 @@
                 </RadioGroup>
 
                 <TextView
+                    android:id="@+id/settingsNotificationsSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/settings_notifications_section"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settingsNotificationsStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settingsNotificationsExplanationText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/settings_notifications_explanation"
+                    android:textColor="@color/textSecondary" />
+
+                <Button
+                    android:id="@+id/settingsNotificationsActionButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/settings_notifications_enable_action" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_notifications_category_updates"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/notificationUpdatesRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/notificationUpdatesOnRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_on" />
+
+                    <RadioButton
+                        android:id="@+id/notificationUpdatesOffRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_off" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_notifications_category_reminders"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/notificationRemindersRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/notificationRemindersOnRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_on" />
+
+                    <RadioButton
+                        android:id="@+id/notificationRemindersOffRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_off" />
+                </RadioGroup>
+
+                <TextView
                     android:id="@+id/settingsDataSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

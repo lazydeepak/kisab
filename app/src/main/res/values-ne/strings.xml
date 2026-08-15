@@ -481,4 +481,17 @@
     <string name="private_build_expiry_about_line_format">यो बिल्ड %1$s मा सकिन्छ।</string>
     <string name="private_build_expiry_about_expired">यो बिल्डको म्याद सकिएको छ। हेर्ने र ब्याकअप अझै काम गर्छ।</string>
 
+    <string name="settings_notifications_section">सूचनाहरू</string>
+    <string name="settings_notifications_status_on">सूचनाहरू: अन</string>
+    <string name="settings_notifications_status_off">सूचनाहरू: अफ</string>
+    <string name="settings_notifications_enable_action">सूचनाहरू सक्षम गर्नुहोस्</string>
+    <string name="settings_notifications_open_system_action">सूचना सेटिङहरू</string>
+    <string name="settings_notifications_explanation">किसाबले एप अद्यावधिक र ब्याकअप सम्झनाका बारेमा सूचित गर्न सक्छ। सूचना अफ भए पनि फार्म काम चल्छ।</string>
+    <string name="settings_notifications_category_updates">एप अद्यावधिक</string>
+    <string name="settings_notifications_category_reminders">ब्याकअप सम्झना</string>
+    <string name="notification_channel_updates_name">एप अद्यावधिक</string>
+    <string name="notification_channel_updates_description">महत्वपूर्ण किसाब संस्करण र अद्यावधिक सूचनाहरू।</string>
+    <string name="notification_channel_reminders_name">सम्झनाहरू</string>
+    <string name="notification_channel_reminders_description">ब्याकअप र अन्य गैर-जरुरी सञ्चालन सम्झनाहरू।</string>
+
 </resources>

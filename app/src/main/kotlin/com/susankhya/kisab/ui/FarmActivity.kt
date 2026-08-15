@@ -6,6 +6,8 @@ import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
+import android.net.Uri
 import android.os.Bundle
 import android.os.LocaleList
 import android.text.Editable
@@ -88,7 +90,16 @@ import com.susankhya.kisab.persistence.SharedPreferencesAppAppearancePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesAppTextSizePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesBackupFreshnessStore
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
+import com.susankhya.kisab.notifications.NotificationCategory
+import com.susankhya.kisab.notifications.NotificationChannels
+import com.susankhya.kisab.notifications.NotificationCoordinator
+import com.susankhya.kisab.notifications.NotificationDeepLink
+import com.susankhya.kisab.notifications.NotificationPermission
+import com.susankhya.kisab.notifications.NotificationPermissionPresentation
+import com.susankhya.kisab.notifications.NotificationPermissionUiState
+import com.susankhya.kisab.notifications.NotificationPreferences
 import com.susankhya.kisab.persistence.SharedPreferencesAccountLinkStore
+import com.susankhya.kisab.persistence.SharedPreferencesNotificationPreferences
 import com.susankhya.kisab.persistence.SharedPreferencesPrivateBuildClockStore
 import com.susankhya.kisab.persistence.SharedPreferencesPrivateBuildWarningStore
 import com.susankhya.kisab.release.PrivateBuildAccessStage
@@ -322,6 +333,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var settingsDataNoFarmText: TextView
     private lateinit var settingsExportBackupButton: Button
     private lateinit var settingsImportBackupButton: Button
+    private lateinit var settingsAboutSection: View
     private lateinit var settingsAboutVersionText: TextView
     private lateinit var settingsAppearanceSection: TextView
     private lateinit var settingsDataSection: TextView
@@ -329,6 +341,17 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var settingsAccountStatusLabel: TextView
     private lateinit var settingsAccountStatusDetail: TextView
     private lateinit var settingsAccountSignInRequiredText: TextView
+    private lateinit var settingsNotificationsSection: TextView
+    private lateinit var settingsNotificationsStatusText: TextView
+    private lateinit var settingsNotificationsExplanationText: TextView
+    private lateinit var settingsNotificationsActionButton: Button
+    private lateinit var notificationUpdatesOnRadio: RadioButton
+    private lateinit var notificationUpdatesOffRadio: RadioButton
+    private lateinit var notificationRemindersOnRadio: RadioButton
+    private lateinit var notificationRemindersOffRadio: RadioButton
+    private lateinit var notificationPreferences: NotificationPreferences
+    private var notificationSelectionSuppressed = false
+    private lateinit var requestNotificationPermissionLauncher: ActivityResultLauncher<String>
     private lateinit var farmsScreen: ScrollView
     private lateinit var farmsListContainer: LinearLayout
     private lateinit var farmsEmptyText: TextView
@@ -452,6 +475,13 @@ class FarmActivity : AppCompatActivity() {
         localUserService = LocalUserService(SharedPreferencesLocalUserStore(applicationContext))
         localUserService.migrateExistingInstall(service.currentFarmId())
         accountLinkService = AccountLinkService(SharedPreferencesAccountLinkStore(applicationContext))
+        notificationPreferences = SharedPreferencesNotificationPreferences(applicationContext)
+        NotificationChannels.ensureCreated(applicationContext)
+        requestNotificationPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { _ ->
+            if (currentDestination == Destination.SETTINGS) renderNotificationsSettings()
+        }
         privateBuildWarningStore = SharedPreferencesPrivateBuildWarningStore(applicationContext)
         privateBuildExpiryGate = PrivateBuildExpiryGate(
             enabled = BuildConfig.PRIVATE_BUILD_EXPIRY_ENABLED,
@@ -574,6 +604,7 @@ class FarmActivity : AppCompatActivity() {
         render()
         showDestination(currentDestination)
         ensurePrivateBuildExpiryUi()
+        handleNotificationDeepLink(intent)
         restoreEditorFrom(savedInstanceState)
         restoreTradeEditorFrom(savedInstanceState)
         restoreSettlementEditorFrom(savedInstanceState)
@@ -840,6 +871,7 @@ class FarmActivity : AppCompatActivity() {
         settingsDataNoFarmText = findViewById(R.id.settingsDataNoFarmText)
         settingsExportBackupButton = findViewById(R.id.settingsExportBackupButton)
         settingsImportBackupButton = findViewById(R.id.settingsImportBackupButton)
+        settingsAboutSection = findViewById(R.id.settingsAboutSection)
         settingsAboutVersionText = findViewById(R.id.settingsAboutVersionText)
         settingsAppearanceSection = findViewById(R.id.settingsAppearanceSection)
         settingsDataSection = findViewById(R.id.settingsDataSection)
@@ -847,6 +879,14 @@ class FarmActivity : AppCompatActivity() {
         settingsAccountStatusLabel = findViewById(R.id.settingsAccountStatusLabel)
         settingsAccountStatusDetail = findViewById(R.id.settingsAccountStatusDetail)
         settingsAccountSignInRequiredText = findViewById(R.id.settingsAccountSignInRequiredText)
+        settingsNotificationsSection = findViewById(R.id.settingsNotificationsSection)
+        settingsNotificationsStatusText = findViewById(R.id.settingsNotificationsStatusText)
+        settingsNotificationsExplanationText = findViewById(R.id.settingsNotificationsExplanationText)
+        settingsNotificationsActionButton = findViewById(R.id.settingsNotificationsActionButton)
+        notificationUpdatesOnRadio = findViewById(R.id.notificationUpdatesOnRadio)
+        notificationUpdatesOffRadio = findViewById(R.id.notificationUpdatesOffRadio)
+        notificationRemindersOnRadio = findViewById(R.id.notificationRemindersOnRadio)
+        notificationRemindersOffRadio = findViewById(R.id.notificationRemindersOffRadio)
         farmsScreen = findViewById(R.id.farmsScreen)
         farmsListContainer = findViewById(R.id.farmsListContainer)
         farmsEmptyText = findViewById(R.id.farmsEmptyText)
@@ -1050,6 +1090,27 @@ class FarmActivity : AppCompatActivity() {
         importBackupButton.setOnClickListener { importBackup() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
+        settingsNotificationsActionButton.setOnClickListener { onNotificationsActionClicked() }
+        notificationUpdatesOnRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (!notificationSelectionSuppressed && isChecked) {
+                notificationPreferences.setCategoryEnabled(NotificationCategory.APP_UPDATES, true)
+            }
+        }
+        notificationUpdatesOffRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (!notificationSelectionSuppressed && isChecked) {
+                notificationPreferences.setCategoryEnabled(NotificationCategory.APP_UPDATES, false)
+            }
+        }
+        notificationRemindersOnRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (!notificationSelectionSuppressed && isChecked) {
+                notificationPreferences.setCategoryEnabled(NotificationCategory.BACKUP_REMINDERS, true)
+            }
+        }
+        notificationRemindersOffRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (!notificationSelectionSuppressed && isChecked) {
+                notificationPreferences.setCategoryEnabled(NotificationCategory.BACKUP_REMINDERS, false)
+            }
+        }
         addFarmButton.setOnClickListener { openAddFarmScreen() }
         farmDetailsRenameButton.setOnClickListener { showRenameFarmDialog() }
         farmDetailsChangeCurrencyButton.setOnClickListener { showManagedFarmCurrencyChooser() }
@@ -3800,6 +3861,83 @@ class FarmActivity : AppCompatActivity() {
      * (secure storage is suspend); linked without a known session stays Connected
      * and does not show "Sign-in required" until a reliable session probe exists.
      */
+
+    private fun renderNotificationsSettings() {
+        val granted = NotificationPermission.isGranted(this)
+        val ui = NotificationPermissionPresentation.uiState(
+            granted = granted,
+            requiresRuntime = NotificationPermission.requiresRuntimePermission()
+        )
+        settingsNotificationsStatusText.text = string(
+            if (ui == NotificationPermissionUiState.ON) R.string.settings_notifications_status_on
+            else R.string.settings_notifications_status_off
+        )
+        settingsNotificationsActionButton.text = string(
+            if (ui == NotificationPermissionUiState.ON) R.string.settings_notifications_open_system_action
+            else R.string.settings_notifications_enable_action
+        )
+        notificationSelectionSuppressed = true
+        val updatesOn = notificationPreferences.isCategoryEnabled(NotificationCategory.APP_UPDATES)
+        notificationUpdatesOnRadio.isChecked = updatesOn
+        notificationUpdatesOffRadio.isChecked = !updatesOn
+        val remindersOn = notificationPreferences.isCategoryEnabled(NotificationCategory.BACKUP_REMINDERS)
+        notificationRemindersOnRadio.isChecked = remindersOn
+        notificationRemindersOffRadio.isChecked = !remindersOn
+        notificationSelectionSuppressed = false
+    }
+
+    private fun onNotificationsActionClicked() {
+        if (!NotificationPermission.requiresRuntimePermission()) {
+            openSystemNotificationSettings()
+            return
+        }
+        if (NotificationPermission.isGranted(this)) {
+            openSystemNotificationSettings()
+            return
+        }
+        // Intentional Settings-only prompt — not on cold start.
+        requestNotificationPermissionLauncher.launch(NotificationPermission.PERMISSION)
+    }
+
+    private fun openSystemNotificationSettings() {
+        val intent = Intent().apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            } else {
+                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                data = Uri.fromParts("package", packageName, null)
+            }
+        }
+        runCatching { startActivity(intent) }
+    }
+
+    private fun handleNotificationDeepLink(intent: Intent?) {
+        val raw = intent?.getStringExtra(NotificationCoordinator.EXTRA_NOTIFICATION_DEEP_LINK) ?: return
+        intent.removeExtra(NotificationCoordinator.EXTRA_NOTIFICATION_DEEP_LINK)
+        val link = runCatching { NotificationDeepLink.valueOf(raw) }.getOrNull() ?: return
+        when (link) {
+            NotificationDeepLink.UPDATE_INFO -> {
+                showDestination(Destination.SETTINGS)
+                pendingSettingsScrollToSection = settingsAboutSection
+                settingsScreen.post {
+                    scrollSettingsToPendingSection()
+                    showPrivateBuildUpdateInfo()
+                }
+            }
+            NotificationDeepLink.BACKUP_DATA -> {
+                pendingSettingsScrollToSection = settingsDataSection
+                showDestination(Destination.SETTINGS)
+                scrollSettingsToPendingSection()
+            }
+            NotificationDeepLink.NOTIFICATION_SETTINGS -> {
+                pendingSettingsScrollToSection = settingsNotificationsSection
+                showDestination(Destination.SETTINGS)
+                scrollSettingsToPendingSection()
+            }
+        }
+    }
+
     private fun renderAccountSettingsSection() {
         val user = localUserService.ensureLocalUser()
         val link = accountLinkService.linkState(user.userId)
@@ -4034,6 +4172,12 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationDeepLink(intent)
+    }
 
     override fun onResume() {
         super.onResume()
