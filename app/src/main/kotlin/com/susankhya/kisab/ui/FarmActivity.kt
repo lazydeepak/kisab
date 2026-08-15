@@ -304,6 +304,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var settingsNoFarmText: TextView
     private lateinit var settingsFarmNameLabel: TextView
     private lateinit var settingsFarmNameText: TextView
+    private lateinit var renameFarmButton: Button
     private lateinit var settingsDataNoFarmText: TextView
     private lateinit var settingsExportBackupButton: Button
     private lateinit var settingsImportBackupButton: Button
@@ -772,6 +773,7 @@ class FarmActivity : AppCompatActivity() {
         settingsNoFarmText = findViewById(R.id.settingsNoFarmText)
         settingsFarmNameLabel = findViewById(R.id.settingsFarmNameLabel)
         settingsFarmNameText = findViewById(R.id.settingsFarmNameText)
+        renameFarmButton = findViewById(R.id.renameFarmButton)
         settingsDataNoFarmText = findViewById(R.id.settingsDataNoFarmText)
         settingsExportBackupButton = findViewById(R.id.settingsExportBackupButton)
         settingsImportBackupButton = findViewById(R.id.settingsImportBackupButton)
@@ -969,6 +971,7 @@ class FarmActivity : AppCompatActivity() {
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
         changeSettingsCurrencyButton.setOnClickListener { showSettingsCurrencyChooser() }
+        renameFarmButton.setOnClickListener { showRenameFarmDialog() }
         resetFarmDataButton.setOnClickListener { showResetFarmDataConfirmation() }
         deleteFarmButton.setOnClickListener { showDeleteFarmConfirmation() }
         settingsTextSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -3140,6 +3143,47 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
+    // --- Farm name -------------------------------------------------------------
+
+    private fun showRenameFarmDialog() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val input = EditText(this).apply {
+            isSingleLine = true
+            inputType = InputType.TYPE_CLASS_TEXT
+            setText(farm.name)
+            setSelection(farm.name.length)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_rename_farm_title))
+            .setView(input)
+            .setPositiveButton(string(R.string.settings_rename_farm_action), null)
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val name = input.text?.toString()?.trim().orEmpty()
+                if (name.isBlank()) {
+                    showValidationMessage(FarmUiError.FARM_NAME_REQUIRED.resourceId)
+                } else {
+                    performRenameFarm(farm, name)
+                    dialog.dismiss()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun performRenameFarm(farm: FarmState, name: String) {
+        try {
+            service.renameFarm(farm.id, name)
+            render()
+            showToast(R.string.toast_farm_renamed)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "rename farm failed")
+        }
+    }
+
     // --- Danger Zone ----------------------------------------------------------
 
     private fun showResetFarmDataConfirmation() {
@@ -3404,6 +3448,7 @@ class FarmActivity : AppCompatActivity() {
         settingsFarmNameLabel.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsFarmNameText.text = farm?.name ?: ""
         settingsFarmNameText.visibility = if (farm == null) View.GONE else View.VISIBLE
+        renameFarmButton.visibility = if (farm == null) View.GONE else View.VISIBLE
         settingsCurrencyText.text = farm?.currencyCode ?: ""
         settingsCurrencyText.visibility = if (farm == null) View.GONE else View.VISIBLE
         changeSettingsCurrencyButton.visibility = if (farm == null) View.GONE else View.VISIBLE

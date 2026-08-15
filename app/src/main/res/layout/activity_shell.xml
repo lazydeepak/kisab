@@ -1678,6 +1678,15 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp" />
 
+                <Button
+                    android:id="@+id/renameFarmButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="48dp"
+                    android:text="@string/settings_rename_farm_action"
+                    android:visibility="gone" />
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

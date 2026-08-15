@@ -384,6 +384,9 @@
     <string name="appearance_mode_dark">गाढा</string>
 
     <string name="settings_farm_name_label">फार्मको नाम</string>
+    <string name="settings_rename_farm_action">नाम बदल्नुहोस्</string>
+    <string name="dialog_rename_farm_title">फार्मको नाम बदल्ने?</string>
+    <string name="toast_farm_renamed">फार्मको नाम बदलियो</string>
     <string name="settings_no_farm_gentle">अहिलेसम्म फार्म छैन। पहिले गृह ट्याबमा फार्म सिर्जना गर्नुहोस्।</string>
 
     <string name="settings_data_offline_note">किसाबले तपाईंको फार्म डेटा यही उपकरणमा राख्छ। प्रतिलिपि राख्न ब्याकअप निर्यात गर्नुहोस्।</string>

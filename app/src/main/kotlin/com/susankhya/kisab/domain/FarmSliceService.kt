@@ -130,6 +130,20 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         store.saveFarm(farm.copy(currencyCode = currencyCode.trim().uppercase()))
     }
 
+    /**
+     * Renames the farm in place. The trimmed name replaces the existing one
+     * while the farm id, currency, every record and the schema version are
+     * preserved — this is an in-place update, not a new farm.
+     */
+    fun renameFarm(farmId: String, name: String): FarmState {
+        val farm = getFarm(farmId)
+        val trimmed = name.trim()
+        require(trimmed.isNotBlank()) { "Farm name is required" }
+        val renamed = farm.copy(name = trimmed)
+        store.saveFarm(renamed)
+        return renamed
+    }
+
     fun addParty(farmId: String, draft: PartyDraft): Party {
         val farm = getFarm(farmId)
         require(draft.name.isNotBlank()) { "Party name is required" }

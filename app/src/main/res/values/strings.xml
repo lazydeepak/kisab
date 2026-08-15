@@ -388,6 +388,9 @@
     <string name="appearance_mode_dark">Dark</string>
 
     <string name="settings_farm_name_label">Farm name</string>
+    <string name="settings_rename_farm_action">Rename</string>
+    <string name="dialog_rename_farm_title">Rename farm</string>
+    <string name="toast_farm_renamed">Farm renamed</string>
     <string name="settings_no_farm_gentle">No farm yet. Create a farm on the Home tab first.</string>
 
     <string name="settings_data_offline_note">Kisab keeps your farm data on this device. Export a backup to keep a copy.</string>

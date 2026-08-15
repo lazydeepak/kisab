@@ -1651,4 +1651,57 @@ class FarmSliceServiceTest {
             assertEquals("Unknown farm: farm-missing", exception.message)
         }
     }
+
+    @Test
+    fun renameFarmChangesNameAndPreservesEverythingElse() {
+        val farm = service.createFarm("Demo Farm", currencyCode = "NPR")
+        service.addEntry(farm.id, FarmEntry(FarmEntryKind.LIVESTOCK, "Goat", 3))
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 5000,
+                description = "Feed purchase",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+
+        val renamed = service.renameFarm(farm.id, "  New Name  ")
+
+        assertEquals("New Name", renamed.name)
+        val loaded = service.loadFarm(farm.id)
+        assertNotNull(loaded)
+        assertEquals(farm.id, loaded?.id)
+        assertEquals("New Name", loaded?.name)
+        assertEquals("NPR", loaded?.currencyCode)
+        assertEquals(1, loaded?.entries?.size)
+        assertEquals(1, loaded?.transactions?.size)
+        assertEquals(farm.schemaVersion, loaded?.schemaVersion)
+        assertEquals(farm.id, service.currentFarmId())
+    }
+
+    @Test
+    fun renameFarmRequiresNonBlankNameAndKeepsExistingName() {
+        val farm = service.createFarm("Demo Farm")
+
+        try {
+            service.renameFarm(farm.id, "   ")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Farm name is required", exception.message)
+        }
+
+        assertEquals("Demo Farm", service.loadFarm(farm.id)?.name)
+    }
+
+    @Test
+    fun renameFarmRequiresAnExistingFarm() {
+        try {
+            service.renameFarm("farm-missing", "New Name")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Unknown farm: farm-missing", exception.message)
+        }
+    }
 }
