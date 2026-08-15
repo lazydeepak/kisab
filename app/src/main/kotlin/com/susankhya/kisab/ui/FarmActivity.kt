@@ -3209,28 +3209,42 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun showResetBackupGateDialog() {
-        AlertDialog.Builder(this)
-            .setTitle(string(R.string.dialog_reset_backup_gate_title))
-            .setMessage(string(R.string.dialog_reset_backup_gate_message))
-            .setItems(
-                arrayOf(
-                    string(R.string.reset_backup_now_action),
-                    string(R.string.reset_backup_existing_action)
-                )
-            ) { _, which ->
-                when (which) {
-                    0 -> {
-                        pendingResetBackupGate = true
-                        exportBackup()
-                    }
-                    1 -> {
-                        resetFlow.acknowledgeExistingBackup()
-                        showResetTypedConfirmation()
-                    }
-                }
+        val backupNowButton = Button(this).apply { text = string(R.string.reset_backup_now_action) }
+        val existingBackupButton = Button(this).apply { text = string(R.string.reset_backup_existing_action) }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        container.addView(
+            TextView(this).apply {
+                text = string(R.string.dialog_reset_backup_gate_message)
+                textSize = 16f
+                setPadding(0, 0, 0, dp(16))
             }
+        )
+        container.addView(backupNowButton)
+        container.addView(
+            existingBackupButton,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(8) }
+        )
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_reset_backup_gate_title))
+            .setView(container)
             .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
-            .show()
+            .create()
+        backupNowButton.setOnClickListener {
+            dialog.dismiss()
+            pendingResetBackupGate = true
+            exportBackup()
+        }
+        existingBackupButton.setOnClickListener {
+            dialog.dismiss()
+            resetFlow.acknowledgeExistingBackup()
+            showResetTypedConfirmation()
+        }
+        dialog.show()
     }
 
     private fun showResetTypedConfirmation() {
