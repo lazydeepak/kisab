@@ -191,6 +191,30 @@
                     android:text="@string/record_expense_action" />
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/quickSaleButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:minHeight="56dp"
+                    android:text="@string/quick_sale_action" />
+
+                <Button
+                    android:id="@+id/receivedMoneyButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:minHeight="56dp"
+                    android:text="@string/received_money_action" />
+            </LinearLayout>
+
             <androidx.appcompat.widget.LinearLayoutCompat
                 android:id="@+id/transactionEditorContainer"
                 android:layout_width="match_parent"

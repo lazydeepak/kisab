@@ -70,6 +70,8 @@ import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyDraft
 import com.susankhya.kisab.domain.PartyLedgerEntryType
 import com.susankhya.kisab.domain.PartyRole
+import com.susankhya.kisab.domain.ProductSaleDetail
+import com.susankhya.kisab.domain.ProductUnit
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeDraft
@@ -123,6 +125,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.math.BigDecimal
+import java.text.DecimalFormatSymbols
 import java.util.IdentityHashMap
 import java.util.Locale
 
@@ -433,6 +436,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var addEntryButton: Button
     private lateinit var exportBackupButton: Button
     private lateinit var importBackupButton: Button
+    private lateinit var quickSaleButton: Button
+    private lateinit var receivedMoneyButton: Button
 
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
@@ -969,6 +974,8 @@ class FarmActivity : AppCompatActivity() {
         addEntryButton = findViewById(R.id.addEntryButton)
         exportBackupButton = findViewById(R.id.exportBackupButton)
         importBackupButton = findViewById(R.id.importBackupButton)
+        quickSaleButton = findViewById(R.id.quickSaleButton)
+        receivedMoneyButton = findViewById(R.id.receivedMoneyButton)
 
         entryKindSpinner.adapter = ArrayAdapter(
             this,
@@ -1102,6 +1109,8 @@ class FarmActivity : AppCompatActivity() {
         addEntryButton.setOnClickListener { addEntry() }
         exportBackupButton.setOnClickListener { exportBackup() }
         importBackupButton.setOnClickListener { importBackup() }
+        quickSaleButton.setOnClickListener { showQuickSaleDialog() }
+        receivedMoneyButton.setOnClickListener { showReceivedMoneyDialog() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
         settingsAboutUpdateButton.setOnClickListener { checkForPrivateAppUpdate() }
@@ -2899,6 +2908,24 @@ class FarmActivity : AppCompatActivity() {
                     )
                 )
                 if (entry.description.isNotBlank()) append("\n").append(entry.description)
+                if (entry.sourceType == PartyLedgerEntryType.SALE) {
+                    service.loadFarm(farmId)?.productSaleDetails
+                        ?.firstOrNull { it.tradeId == entry.tradeId }
+                        ?.let { detail ->
+                            val product = service.product(farmId, detail.productId)
+                            if (product != null) {
+                                append("\n").append(
+                                    string(
+                                        R.string.khata_product_sale_detail_format,
+                                        product.name,
+                                        detail.normalizedQuantity().toPlainString(),
+                                        productUnitLabel(detail.unit, detail.customUnitLabel),
+                                        formatMoney(currency, detail.rateMinor)
+                                    )
+                                )
+                            }
+                        }
+                }
                 append("\n").append(
                     timePresentation.displayDateTime(presentationLocale, deviceZone, entry.occurredAt)
                 )
@@ -3179,6 +3206,259 @@ class FarmActivity : AppCompatActivity() {
         editorState = updated
         transactionCategorySpinner.setSelection(0)
         saveTransactionButton.text = string(saveActionRes(updated))
+    }
+
+    private fun showQuickSaleDialog() {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val customers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.SALE) }
+        if (customers.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.quick_sale_title)
+                .setMessage(R.string.quick_sale_no_customers)
+                .setPositiveButton(R.string.quick_sale_add_customer) { _, _ ->
+                    showDestination(Destination.HISAB_KITAB)
+                    openPartyEditor(null)
+                }
+                .setNegativeButton(R.string.action_cancel, null)
+                .show()
+            return
+        }
+        val products = service.products(farmId)
+        if (products.isEmpty()) {
+            showProductCreationDialog { showQuickSaleDialog() }
+            return
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), 0)
+        }
+        val customerSpinner = Spinner(this)
+        customerSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, customers.map { it.name })
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val productSpinner = Spinner(this)
+        productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { product ->
+            "${product.name} · ${productUnitLabel(product.defaultUnit, product.customUnitLabel)}"
+        }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val quantityInput = EditText(this).apply {
+            hint = string(R.string.quick_sale_quantity)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        val rateInput = EditText(this).apply {
+            hint = string(R.string.quick_sale_rate)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        val unitText = TextView(this)
+        val totalText = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
+        val paymentGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        val paidRadio = RadioButton(this).apply { text = string(R.string.quick_sale_paid) }
+        val creditRadio = RadioButton(this).apply { text = string(R.string.quick_sale_credit) }
+        val partialRadio = RadioButton(this).apply { text = string(R.string.quick_sale_partial) }
+        paymentGroup.addView(paidRadio)
+        paymentGroup.addView(creditRadio)
+        paymentGroup.addView(partialRadio)
+        paidRadio.isChecked = true
+        val partialInput = EditText(this).apply {
+            hint = string(R.string.quick_sale_partial_amount)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            visibility = View.GONE
+        }
+        content.addView(labelText(R.string.quick_sale_customer))
+        content.addView(customerSpinner)
+        content.addView(labelText(R.string.quick_sale_product))
+        content.addView(productSpinner)
+        content.addView(quantityInput)
+        content.addView(unitText)
+        content.addView(rateInput)
+        content.addView(totalText)
+        content.addView(paymentGroup)
+        content.addView(partialInput)
+        fun refreshTotal() {
+            val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return
+            unitText.text = productUnitLabel(product.defaultUnit, product.customUnitLabel)
+            val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty())
+            val rate = moneyInputParser.parse(presentationLocale, currentFarmCurrency(), rateInput.text?.toString().orEmpty())
+            totalText.text = if (quantity != null && rate is MoneyInputResult.Valid) {
+                runCatching {
+                    string(R.string.quick_sale_total_format, formatMoney(currentFarmCurrency(), ProductSaleDetail(
+                        "preview", product.id, quantity, product.defaultUnit, product.customUnitLabel, rate.amountMinor
+                    ).totalMinor()))
+                }.getOrDefault("")
+            } else {
+                ""
+            }
+        }
+        val watcher = object : TextWatcher {
+            override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) = refreshTotal()
+            override fun afterTextChanged(text: Editable?) = Unit
+        }
+        quantityInput.addTextChangedListener(watcher)
+        rateInput.addTextChangedListener(watcher)
+        productSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshTotal() }
+        partialRadio.setOnCheckedChangeListener { _, checked -> partialInput.visibility = if (checked) View.VISIBLE else View.GONE }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.quick_sale_title)
+            .setView(content)
+            .setPositiveButton(R.string.quick_sale_save, null)
+            .setNeutralButton(R.string.quick_sale_add_product) { _, _ -> showProductCreationDialog { showQuickSaleDialog() } }
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty())
+                    ?: return@setOnClickListener showToast(R.string.quick_sale_quantity_invalid)
+                val rate = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), rateInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)
+                    ?: return@setOnClickListener showToast(R.string.quick_sale_rate_invalid)
+                val total = runCatching {
+                    ProductSaleDetail("preview", product.id, quantity, product.defaultUnit, product.customUnitLabel, rate.amountMinor).totalMinor()
+                }.getOrElse { return@setOnClickListener showToast(R.string.quick_sale_total_invalid) }
+                val paid = when {
+                    paidRadio.isChecked -> total
+                    creditRadio.isChecked -> 0L
+                    else -> (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), partialInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor
+                        ?: return@setOnClickListener showToast(R.string.quick_sale_partial_invalid)
+                }
+                if (paid > total) return@setOnClickListener showToast(R.string.quick_sale_partial_invalid)
+                try {
+                    service.addProductSale(
+                        farmId = farmId,
+                        partyId = customers[customerSpinner.selectedItemPosition].id,
+                        productId = product.id,
+                        quantity = quantity,
+                        rateMinor = rate.amountMinor,
+                        initialPaymentMinor = paid,
+                        occurredAt = OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                    )
+                    dialog.dismiss()
+                    render()
+                    showToast(R.string.quick_sale_saved)
+                } catch (exception: Exception) {
+                    showUnexpectedFailure(exception, "save quick sale failed")
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showProductCreationDialog(afterSave: () -> Unit) {
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), 0)
+        }
+        val nameInput = EditText(this).apply { hint = string(R.string.quick_sale_product_name) }
+        val unitSpinner = Spinner(this)
+        val units = listOf(ProductUnit.LITRE, ProductUnit.KILOGRAM, ProductUnit.PIECE, ProductUnit.BAG, ProductUnit.PACKET, ProductUnit.BOTTLE)
+        unitSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, units.map { productUnitLabel(it, "") })
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        content.addView(nameInput)
+        content.addView(unitSpinner)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.quick_sale_add_product)
+            .setView(content)
+            .setPositiveButton(R.string.action_ok, null)
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val farmId = currentFarmId ?: return@setOnClickListener
+                val name = nameInput.text?.toString()?.trim().orEmpty()
+                if (name.isBlank()) return@setOnClickListener showToast(R.string.quick_sale_product_name_required)
+                try {
+                    service.addProduct(farmId, name, units[unitSpinner.selectedItemPosition])
+                    dialog.dismiss()
+                    showToast(R.string.quick_sale_product_added)
+                    afterSave()
+                } catch (exception: Exception) {
+                    Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showReceivedMoneyDialog() {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val customers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.SALE) }
+        if (customers.isEmpty()) return showToast(R.string.quick_sale_no_customers)
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), 0)
+        }
+        val customerSpinner = Spinner(this)
+        customerSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, customers.map { it.name })
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val amountInput = EditText(this).apply {
+            hint = string(R.string.received_money_amount)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        content.addView(customerSpinner)
+        content.addView(amountInput)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.received_money_title)
+            .setView(content)
+            .setPositiveButton(R.string.received_money_save, null)
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val amount = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), amountInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)
+                    ?: return@setOnClickListener showToast(R.string.received_money_amount_invalid)
+                try {
+                    service.recordCustomerPayment(
+                        farmId = farmId,
+                        partyId = customers[customerSpinner.selectedItemPosition].id,
+                        amountMinor = amount.amountMinor,
+                        occurredAt = OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                    )
+                    dialog.dismiss()
+                    render()
+                    showToast(R.string.received_money_saved)
+                } catch (exception: Exception) {
+                    val message = when {
+                        exception.message?.contains("No outstanding balance") == true -> string(R.string.received_money_no_balance)
+                        exception.message?.contains("exceeds the outstanding") == true -> string(R.string.received_money_overpayment)
+                        else -> string(R.string.received_money_failed)
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun parseSaleQuantity(raw: String): BigDecimal? {
+        val input = raw.trim()
+        if (input.isBlank()) return null
+        val symbols = DecimalFormatSymbols.getInstance(presentationLocale)
+        return runCatching {
+            input.replace(symbols.groupingSeparator.toString(), "")
+                .replace(symbols.decimalSeparator, '.')
+                .toBigDecimal()
+                .takeIf { it > BigDecimal.ZERO && it.scale() <= ProductSaleDetail.MAX_QUANTITY_SCALE }
+        }.getOrNull()
+    }
+
+    private fun productUnitLabel(unit: ProductUnit, customLabel: String): String = when (unit) {
+        ProductUnit.LITRE -> string(R.string.product_unit_litre)
+        ProductUnit.KILOGRAM -> string(R.string.product_unit_kilogram)
+        ProductUnit.PIECE -> string(R.string.product_unit_piece)
+        ProductUnit.BAG -> string(R.string.product_unit_bag)
+        ProductUnit.PACKET -> string(R.string.product_unit_packet)
+        ProductUnit.BOTTLE -> string(R.string.product_unit_bottle)
+        ProductUnit.CUSTOM -> customLabel
+    }
+
+    private fun labelText(resourceId: Int): TextView = TextView(this).apply {
+        text = string(resourceId)
+        setPadding(0, dp(8), 0, dp(2))
+    }
+
+    private fun simpleItemSelectedListener(onSelected: () -> Unit) = object : android.widget.AdapterView.OnItemSelectedListener {
+        override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) = onSelected()
     }
 
     private fun saveTransaction() {

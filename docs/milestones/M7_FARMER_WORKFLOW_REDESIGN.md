@@ -2,7 +2,7 @@
 
 ## Status
 
-Design record only. No application code, schema, or dependency changes are part of this pass.
+The design baseline is implemented on `feature/m7-quick-sale-khata`. This record remains the authority for the narrow Quick Sale + Received Money slice. Inventory, production, livestock, recurring sales, and rate-suggestion persistence remain out of scope.
 
 ## Product center
 
@@ -312,6 +312,18 @@ The first build slice after this design record should be:
 9. Add `पैसा पाएँ` from Khata using oldest-outstanding-first allocation.
 
 This slice should be intentionally narrow. It should not simultaneously introduce full inventory, voice, photos, recurring schedules, animal records, cloud sync, or a new accounting subsystem.
+
+## Implemented slice decisions
+
+- Farm schema advances from v6 to v7 by appending farm-local products and linked product-sale details.
+- Existing v6 and older farms decode with empty product/detail collections; historical Trade descriptions are not rewritten.
+- Reset Farm Data preserves the product catalog but clears product-sale details with the operational/accounting records.
+- Delete Farm removes the catalog and details with the owning FarmState.
+- Backup export/import carries products and product-sale details through the existing FarmPersistenceCodec envelope.
+- Customer-level `पैसा पाएँ` allocates oldest outstanding SALE trades first and rejects overpayment atomically.
+- Customer advances/unapplied credit remain a known future requirement, not a permanent business rule.
+- Quick Sale is generic across products and units; no dairy-specific branch, stock mutation, or production record is created.
+- Rate suggestions are deliberately deferred until a small, safe lookup can be added without changing the accounting authority.
 
 ## Acceptance criteria for that slice
 

@@ -1,5 +1,6 @@
 package com.susankhya.kisab.domain
 
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -57,7 +58,6 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         store.setCurrentFarmId(farm.id)
         return farm
     }
-
     fun loadFarm(farmId: String): FarmState? = store.loadFarm(farmId)
 
     fun currentFarmId(): String? = store.currentFarmId()
@@ -81,10 +81,11 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
     }
 
     /**
-     * Clears every operational/accounting record the farm owns (entries,
-     * transactions, parties, trades, settlements) while preserving the farm's
-     * identity, name, currency and schema version. App-local preferences are
-     * owned outside [FarmStore] and are untouched.
+    * Clears every operational/accounting record the farm owns (entries,
+    * transactions, parties, trades, settlements and sale details) while
+    * preserving the farm's identity, name, currency, schema version and
+    * reusable product catalog. App-local preferences are owned outside
+    * [FarmStore] and are untouched.
      */
     fun resetFarmData(farmId: String) {
         val farm = getFarm(farmId)
@@ -93,10 +94,91 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
             transactions = mutableListOf(),
             parties = mutableListOf(),
             trades = mutableListOf(),
-            settlements = mutableListOf()
+            settlements = mutableListOf(),
+            productSaleDetails = mutableListOf()
         )
         FarmStateValidator.validateFarm(reset)
         store.saveFarm(reset)
+    }
+
+    fun addProduct(farmId: String, name: String, unit: ProductUnit, customUnitLabel: String = ""): FarmProduct {
+        val farm = getFarm(farmId)
+        val product = FarmProduct(
+            id = "product-${UUID.randomUUID()}",
+            name = name.trim(),
+            defaultUnit = unit,
+            customUnitLabel = customUnitLabel.trim()
+        )
+        require(farm.products.none { it.name.equals(product.name, ignoreCase = true) }) {
+            "A product with this name already exists"
+        }
+        val updated = farm.copy(products = (farm.products + product).toMutableList())
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return product
+    }
+
+    fun products(farmId: String): List<FarmProduct> =
+        getFarm(farmId).products.sortedBy { it.name.lowercase() }
+
+    fun product(farmId: String, productId: String): FarmProduct? =
+        getFarm(farmId).products.firstOrNull { it.id == productId }
+
+    fun addProductSale(
+        farmId: String,
+        partyId: String?,
+        productId: String,
+        quantity: BigDecimal,
+        rateMinor: Long,
+        initialPaymentMinor: Long?,
+        occurredAt: String
+    ): Trade {
+        val farm = getFarm(farmId)
+        val product = farm.products.firstOrNull { it.id == productId }
+            ?: throw IllegalArgumentException("Product not found: $productId")
+        val detail = ProductSaleDetail(
+            tradeId = "pending",
+            productId = product.id,
+            quantity = quantity,
+            unit = product.defaultUnit,
+            customUnitLabel = product.customUnitLabel,
+            rateMinor = rateMinor
+        )
+        val totalMinor = detail.totalMinor()
+        val trade = TradeDraft(
+            type = TradeType.SALE,
+            partyId = partyId,
+            totalMinor = totalMinor,
+            description = product.name,
+            occurredAt = occurredAt
+        ).toTrade("trade-${UUID.randomUUID()}")
+        if (initialPaymentMinor != null && initialPaymentMinor < 0) {
+            throw IllegalArgumentException("Initial payment cannot be negative")
+        }
+        if (initialPaymentMinor != null && initialPaymentMinor > totalMinor) {
+            throw IllegalArgumentException("Initial payment cannot exceed the total")
+        }
+        val openingSettlement = initialPaymentMinor?.takeIf { it > 0 }?.let { amount ->
+            Settlement(
+                id = "settlement-${UUID.randomUUID()}",
+                tradeId = trade.id,
+                amountMinor = amount,
+                occurredAt = trade.occurredAt,
+                note = ""
+            )
+        }
+        val updated = farm.copy(
+            trades = (farm.trades + trade).toMutableList(),
+            settlements = if (openingSettlement == null) {
+                farm.settlements
+            } else {
+                (farm.settlements + openingSettlement).toMutableList()
+            },
+            productSaleDetails = (farm.productSaleDetails + detail.copy(tradeId = trade.id)).toMutableList()
+        )
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return trade
     }
 
     /**
@@ -281,6 +363,54 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         return settlement
     }
 
+    fun recordCustomerPayment(
+        farmId: String,
+        partyId: String,
+        amountMinor: Long,
+        occurredAt: String,
+        note: String = ""
+    ): List<Settlement> {
+        require(amountMinor > 0) { "Payment amount must be positive" }
+        val farm = getFarm(farmId)
+        val party = farm.parties.firstOrNull { it.id == partyId }
+            ?: throw IllegalArgumentException("Payment party not found: $partyId")
+        require(party.role.compatibleWith(TradeType.SALE)) {
+            "Payment party is not a customer"
+        }
+        val eligible = farm.trades
+            .filter { it.partyId == partyId && it.type == TradeType.SALE }
+            .filter { farm.settlements.outstandingMinorFor(it) > 0L }
+            .sortedWith(compareBy<Trade> { it.occurredAt }.thenBy { it.id })
+        val totalOutstanding = eligible.fold(0L) { total, trade ->
+            Math.addExact(total, farm.settlements.outstandingMinorFor(trade))
+        }
+        require(totalOutstanding > 0L) { "No outstanding balance for this customer" }
+        require(amountMinor <= totalOutstanding) { "Payment exceeds the outstanding balance" }
+        var remaining = amountMinor
+        val paymentTime = SettlementDraft(
+            tradeId = eligible.first().id,
+            amountMinor = amountMinor,
+            occurredAt = occurredAt,
+            note = note
+        ).toSettlement("validation").occurredAt
+        val newSettlements = eligible.mapNotNull { trade ->
+            if (remaining == 0L) return@mapNotNull null
+            val allocation = minOf(remaining, farm.settlements.outstandingMinorFor(trade))
+            remaining -= allocation
+            Settlement(
+                id = "settlement-${UUID.randomUUID()}",
+                tradeId = trade.id,
+                amountMinor = allocation,
+                occurredAt = paymentTime,
+                note = note.trim()
+            )
+        }
+        val updated = farm.copy(settlements = (farm.settlements + newSettlements).toMutableList())
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return newSettlements
+    }
+
     fun updateSettlement(farmId: String, settlementId: String, draft: SettlementDraft): Settlement {
         val farm = getFarm(farmId)
         val index = farm.settlements.indexOfFirst { it.id == settlementId }
@@ -404,6 +534,8 @@ data class FarmState(
     val parties: MutableList<Party> = mutableListOf(),
     val trades: MutableList<Trade> = mutableListOf(),
     val settlements: MutableList<Settlement> = mutableListOf(),
+    val products: MutableList<FarmProduct> = mutableListOf(),
+    val productSaleDetails: MutableList<ProductSaleDetail> = mutableListOf(),
     val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
 ) {
     /**
@@ -416,7 +548,7 @@ data class FarmState(
 
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 6
+        const val CURRENT_FARM_SCHEMA_VERSION = 7
     }
 }
 

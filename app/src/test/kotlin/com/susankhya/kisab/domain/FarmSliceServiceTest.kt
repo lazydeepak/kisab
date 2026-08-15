@@ -345,7 +345,7 @@ class FarmSliceServiceTest {
 
         val encoded = FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!)
         val reloaded = FarmPersistenceCodec.decode(encoded)
-        assertEquals(6, reloaded.schemaVersion)
+        assertEquals(7, reloaded.schemaVersion)
         assertEquals(1, reloaded.parties.size)
         assertEquals("Feed Store", reloaded.parties.single().name)
         assertEquals(PartyRole.SUPPLIER, reloaded.parties.single().role)
@@ -654,7 +654,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema4)
 
-        assertEquals(6, farm.schemaVersion)
+        assertEquals(7, farm.schemaVersion)
         assertEquals(0, farm.trades.size)
         assertEquals(0, farm.parties.size)
     }
@@ -676,7 +676,7 @@ class FarmSliceServiceTest {
         )
 
         val reloaded = FarmPersistenceCodec.decode(FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!))
-        assertEquals(6, reloaded.schemaVersion)
+        assertEquals(7, reloaded.schemaVersion)
         val trade = reloaded.trades.single()
         assertEquals(TradeType.SALE, trade.type)
         assertEquals(party.id, trade.partyId)
@@ -761,7 +761,7 @@ class FarmSliceServiceTest {
         val encoded = FarmPersistenceCodec.encode(persisted)
         val reloaded = FarmPersistenceCodec.decode(encoded)
 
-        assertEquals(6, reloaded.schemaVersion)
+        assertEquals(7, reloaded.schemaVersion)
         assertEquals(1, reloaded.parties.size)
         assertEquals(1, reloaded.trades.size)
         assertEquals(trade.id, reloaded.trades.single().id)
@@ -775,7 +775,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema3)
 
-        assertEquals(6, farm.schemaVersion)
+        assertEquals(7, farm.schemaVersion)
         assertEquals("Farm S3", farm.name)
         assertEquals(1, farm.transactions.size)
         assertEquals(0, farm.parties.size)
@@ -839,7 +839,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema2)
 
-        assertEquals(6, farm.schemaVersion)
+        assertEquals(7, farm.schemaVersion)
         assertEquals("USD", farm.currencyCode)
         assertEquals(1, farm.transactions.size)
         assertEquals(1500, farm.transactions[0].amountMinor)
@@ -853,7 +853,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema2)
 
-        assertEquals(6, farm.schemaVersion)
+        assertEquals(7, farm.schemaVersion)
         assertEquals("NPR", farm.currencyCode)
         assertEquals(0, farm.transactions.size)
     }
@@ -1294,8 +1294,8 @@ class FarmSliceServiceTest {
         val encoded = FarmBackupCodec.encode(persisted, exportedAt)
 
         val payload = Base64.getEncoder().encodeToString(
-            ("6\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
-                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z\u001F\u001F\u001F")
+            ("7\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
+                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z\u001F\u001F\u001F\u001F\u001F")
                 .toByteArray(StandardCharsets.UTF_8)
         )
         assertEquals("1\u001F2024-06-01T12:00:00Z\u001F$payload", encoded)

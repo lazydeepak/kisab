@@ -36,6 +36,14 @@ object FarmStateValidator {
         farm.settlements.forEach { validateSettlement(farm, it) }
         val settlementIds = farm.settlements.map { it.id }
         require(settlementIds.size == settlementIds.toSet().size) { "Settlement IDs must be unique" }
+        farm.products.forEach(::validateProduct)
+        val productIds = farm.products.map { it.id }
+        require(productIds.size == productIds.toSet().size) { "Product IDs must be unique" }
+        farm.productSaleDetails.forEach { validateProductSaleDetail(farm, it) }
+        val detailTradeIds = farm.productSaleDetails.map { it.tradeId }
+        require(detailTradeIds.size == detailTradeIds.toSet().size) {
+            "Product sale details must be unique per trade"
+        }
     }
 
     fun validateParty(party: Party) {
@@ -72,5 +80,25 @@ object FarmStateValidator {
         require(settlement.occurredAt.format(DATE_TIME_FORMATTER).isNotBlank()) { "Settlement date/time is required" }
         val paidMinor = farm.settlements.paidMinorFor(settlement.tradeId)
         require(paidMinor <= trade.totalMinor) { "Settlement amount cannot exceed the remaining balance" }
+    }
+
+    fun validateProduct(product: FarmProduct) {
+        require(product.id.isNotBlank()) { "Product id is required" }
+        require(product.name.isNotBlank()) { "Product name is required" }
+        if (product.defaultUnit == ProductUnit.CUSTOM) {
+            require(product.customUnitLabel.isNotBlank()) { "Custom unit label is required" }
+        }
+    }
+
+    fun validateProductSaleDetail(farm: FarmState, detail: ProductSaleDetail) {
+        val trade = farm.trades.firstOrNull { it.id == detail.tradeId }
+            ?: throw IllegalArgumentException("Product sale detail trade not found: ${detail.tradeId}")
+        require(trade.type == TradeType.SALE) { "Product sale detail trade must be a sale" }
+        require(farm.products.any { it.id == detail.productId }) {
+            "Product sale detail product not found: ${detail.productId}"
+        }
+        require(detail.totalMinor() == trade.totalMinor) {
+            "Product sale detail total does not match the trade"
+        }
     }
 }

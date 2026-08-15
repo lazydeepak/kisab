@@ -4,14 +4,18 @@ import com.susankhya.kisab.domain.FarmEntry
 import com.susankhya.kisab.domain.FarmEntryKind
 import com.susankhya.kisab.domain.FarmState
 import com.susankhya.kisab.domain.FarmTransaction
+import com.susankhya.kisab.domain.FarmProduct
 import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyRole
+import com.susankhya.kisab.domain.ProductSaleDetail
+import com.susankhya.kisab.domain.ProductUnit
 import com.susankhya.kisab.domain.Settlement
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeType
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import java.nio.charset.StandardCharsets
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -25,7 +29,7 @@ import java.util.UUID
  * schema 5 its [Trade] list (with a persisted `paidMinor` aggregate). Schema 6
  * makes payments first-class [Settlement] records: the trade row drops
  * `paidMinor` (payment becomes derived state) and a settlements list is
- * appended.
+ * appended. Schema 7 appends farm-local products and product-sale details.
  *
  * Migration v5 -> v6 preserves the historical `paidMinor` by recording **one
  * deterministic opening settlement** per v5 trade that had `paidMinor > 0`,
@@ -40,7 +44,7 @@ import java.util.UUID
  * payload, so settlements and older schemas flow through existing backups.
  */
 object FarmPersistenceCodec {
-    const val CURRENT_SCHEMA_VERSION = 6
+    const val CURRENT_SCHEMA_VERSION = 7
 
     private const val FIELD_SEPARATOR = "\u001F"
     private const val RECORD_SEPARATOR = "\u001E"
@@ -99,6 +103,22 @@ object FarmPersistenceCodec {
             settlement.note,
             settlement.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
+        append(FIELD_SEPARATOR)
+        append(farm.products.joinToString(RECORD_SEPARATOR) { product -> listOf(
+            product.id,
+            product.name,
+            product.defaultUnit.name,
+            product.customUnitLabel
+        ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
+        append(FIELD_SEPARATOR)
+        append(farm.productSaleDetails.joinToString(RECORD_SEPARATOR) { detail -> listOf(
+            detail.tradeId,
+            detail.productId,
+            detail.quantity.toPlainString(),
+            detail.unit.name,
+            detail.customUnitLabel,
+            detail.rateMinor.toString()
+        ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
     }
 
     fun decode(encoded: String): FarmState = decodeOrNull(encoded)
@@ -107,7 +127,7 @@ object FarmPersistenceCodec {
     fun decodeOrNull(encoded: String): FarmState? {
         return try {
             val legacyParts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex())
-            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6")) {
+            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7")) {
                 decodeLegacy(legacyParts)
             } else {
                 val fields = encoded.split(FIELD_SEPARATOR)
@@ -122,6 +142,7 @@ object FarmPersistenceCodec {
                     4 -> decodeSchema4(fields)
                     5 -> decodeSchema5X(fields)
                     6 -> decodeSchema6(fields)
+                    7 -> decodeSchema7(fields)
                     else -> null
                 }
             }
@@ -195,6 +216,50 @@ object FarmPersistenceCodec {
             schemaVersion = CURRENT_SCHEMA_VERSION
         )
     }
+
+    private fun decodeSchema7(fields: List<String>): FarmState {
+        require(fields.size >= 11) { "Invalid persisted farm data" }
+        val currencyCode = fields[4].ifBlank { EMPTY_FARM_CURRENCY_CODE }
+        return FarmState(
+            id = fields[1],
+            name = fields[2],
+            currencyCode = currencyCode,
+            entries = decodeEntries(fields[3]),
+            transactions = decodeSchema3Transactions(fields[5]),
+            parties = decodeParties(fields[6]),
+            trades = decodeSchema6Trades(fields[7]),
+            settlements = decodeSettlements(fields[8]),
+            products = decodeProducts(fields[9]),
+            productSaleDetails = decodeProductSaleDetails(fields[10]),
+            schemaVersion = CURRENT_SCHEMA_VERSION
+        )
+    }
+
+    private fun decodeProducts(encoded: String): MutableList<FarmProduct> =
+        encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { product ->
+            val parts = product.split(TRANSACTION_FIELD_SEPARATOR)
+            require(parts.size == 4) { "Invalid product payload" }
+            FarmProduct(
+                id = parts[0],
+                name = parts[1],
+                defaultUnit = ProductUnit.valueOf(parts[2]),
+                customUnitLabel = parts[3]
+            )
+        }?.toMutableList() ?: mutableListOf()
+
+    private fun decodeProductSaleDetails(encoded: String): MutableList<ProductSaleDetail> =
+        encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { detail ->
+            val parts = detail.split(TRANSACTION_FIELD_SEPARATOR)
+            require(parts.size == 6) { "Invalid product sale detail payload" }
+            ProductSaleDetail(
+                tradeId = parts[0],
+                productId = parts[1],
+                quantity = BigDecimal(parts[2]),
+                unit = ProductUnit.valueOf(parts[3]),
+                customUnitLabel = parts[4],
+                rateMinor = parts[5].toLong()
+            )
+        }?.toMutableList() ?: mutableListOf()
 
     /**
      * V5 trades carry a `paidMinor` aggregate field, which M5-03 removes from
