@@ -75,6 +75,24 @@ class MoneyFormatterTest {
     }
 
     @Test
+    fun hidesCurrencyCodeWhenRequested() {
+        assertEquals("15.00", formatter.format(Locale.US, "XXX", 1500, showCurrency = false))
+        assertEquals("123.45", formatter.format(Locale.US, "NPR", 12345, showCurrency = false))
+        assertEquals("१,२३४.५६", formatter.format(ne, "NPR", 123456, showCurrency = false))
+    }
+
+    @Test
+    fun disablesNumberGroupingWhenRequested() {
+        assertEquals("123456.78 NPR", formatter.format(Locale.US, "NPR", 12345678, grouping = false))
+        assertEquals("1500 JPY", formatter.format(Locale.US, "JPY", 1500, grouping = false))
+    }
+
+    @Test
+    fun hidesCurrencyAndGroupingTogether() {
+        assertEquals("123456.78", formatter.format(Locale.US, "NPR", 12345678, showCurrency = false, grouping = false))
+    }
+
+    @Test
     fun editFieldValueHasNoGroupingAndExactFractionDigits() {
         assertEquals("1234.56", formatter.toEditFieldValue(Locale.US, "USD", 123456))
         assertEquals("1500", formatter.toEditFieldValue(Locale.US, "JPY", 1500))

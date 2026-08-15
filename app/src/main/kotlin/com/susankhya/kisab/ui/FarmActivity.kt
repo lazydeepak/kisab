@@ -77,6 +77,7 @@ import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.FarmBackupException
 import com.susankhya.kisab.persistence.FarmBackupFileAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesAppLanguagePreferences
+import com.susankhya.kisab.persistence.SharedPreferencesAppAppearancePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesAppTextSizePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import java.time.OffsetDateTime
@@ -311,6 +312,13 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var settingsDataSection: TextView
     private lateinit var settingsTextSizeValueText: TextView
     private lateinit var settingsTextSizeSeekBar: SeekBar
+    private lateinit var currencyDisplayOnRadio: RadioButton
+    private lateinit var currencyDisplayOffRadio: RadioButton
+    private lateinit var numberGroupingOnRadio: RadioButton
+    private lateinit var numberGroupingOffRadio: RadioButton
+    private lateinit var appearanceModeFollowSystemRadio: RadioButton
+    private lateinit var appearanceModeLightRadio: RadioButton
+    private lateinit var appearanceModeDarkRadio: RadioButton
     private lateinit var languageFollowDeviceRadio: RadioButton
     private lateinit var languageEnglishRadio: RadioButton
     private lateinit var languageNepaliRadio: RadioButton
@@ -356,8 +364,10 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var languagePreferences: AppLanguagePreferences
     private lateinit var textSizePreferences: AppTextSizePreferences
+    private lateinit var appearancePreferences: AppearancePreferences
     private var languageCheckSuppressed = false
     private var textSizeChangeSuppressed = false
+    private var appearanceSelectionSuppressed = false
     private var pendingSettingsScrollToSection: View? = null
     private val originalTextSizesPx = IdentityHashMap<TextView, Float>()
 
@@ -381,6 +391,8 @@ class FarmActivity : AppCompatActivity() {
     private var khataPartyId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        appearancePreferences = SharedPreferencesAppAppearancePreferences(applicationContext)
+        AppCompatDelegate.setDefaultNightMode(appearancePreferences.appearanceMode().nightMode)
         super.onCreate(savedInstanceState)
 
         store = SharedPreferencesFarmStore(applicationContext)
@@ -760,6 +772,13 @@ class FarmActivity : AppCompatActivity() {
         settingsDataSection = findViewById(R.id.settingsDataSection)
         settingsTextSizeValueText = findViewById(R.id.settingsTextSizeValueText)
         settingsTextSizeSeekBar = findViewById(R.id.settingsTextSizeSeekBar)
+        currencyDisplayOnRadio = findViewById(R.id.currencyDisplayOnRadio)
+        currencyDisplayOffRadio = findViewById(R.id.currencyDisplayOffRadio)
+        numberGroupingOnRadio = findViewById(R.id.numberGroupingOnRadio)
+        numberGroupingOffRadio = findViewById(R.id.numberGroupingOffRadio)
+        appearanceModeFollowSystemRadio = findViewById(R.id.appearanceModeFollowSystemRadio)
+        appearanceModeLightRadio = findViewById(R.id.appearanceModeLightRadio)
+        appearanceModeDarkRadio = findViewById(R.id.appearanceModeDarkRadio)
         languageFollowDeviceRadio = findViewById(R.id.languageFollowDeviceRadio)
         languageEnglishRadio = findViewById(R.id.languageEnglishRadio)
         languageNepaliRadio = findViewById(R.id.languageNepaliRadio)
@@ -1049,6 +1068,37 @@ class FarmActivity : AppCompatActivity() {
         languageRadios.forEach { (radio, language) ->
             radio.setOnClickListener {
                 if (!languageCheckSuppressed) onLanguageSelected(language)
+            }
+        }
+
+        val currencyDisplayRadios = listOf(
+            currencyDisplayOnRadio to true,
+            currencyDisplayOffRadio to false
+        )
+        currencyDisplayRadios.forEach { (radio, on) ->
+            radio.setOnClickListener {
+                if (!appearanceSelectionSuppressed) onCurrencyDisplaySelected(on)
+            }
+        }
+
+        val numberGroupingRadios = listOf(
+            numberGroupingOnRadio to true,
+            numberGroupingOffRadio to false
+        )
+        numberGroupingRadios.forEach { (radio, on) ->
+            radio.setOnClickListener {
+                if (!appearanceSelectionSuppressed) onNumberGroupingSelected(on)
+            }
+        }
+
+        val appearanceModeRadios = listOf(
+            appearanceModeFollowSystemRadio to AppearanceMode.FOLLOW_SYSTEM,
+            appearanceModeLightRadio to AppearanceMode.LIGHT,
+            appearanceModeDarkRadio to AppearanceMode.DARK
+        )
+        appearanceModeRadios.forEach { (radio, mode) ->
+            radio.setOnClickListener {
+                if (!appearanceSelectionSuppressed) onAppearanceModeSelected(mode)
             }
         }
 
@@ -1357,7 +1407,11 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun formatCalculatorValue(value: BigDecimal): String =
-        decimalValueFormatter.format(presentationLocale, value)
+        decimalValueFormatter.format(
+            presentationLocale,
+            value,
+            grouping = appearancePreferences.numberGroupingOn()
+        )
 
     private fun formatCalculatorPercent(value: BigDecimal?): String = value?.let {
         string(R.string.percent_value_format, formatCalculatorValue(it))
@@ -3217,7 +3271,7 @@ class FarmActivity : AppCompatActivity() {
         summaryText.text = string(
             R.string.farm_tools_summary_format,
             farm.name,
-            numberFormatter.format(presentationLocale, farm.entries.size),
+            formatCount(farm.entries.size),
             formatMoney(currency, totals.balanceMinor)
         )
         entriesText.text = if (farm.entries.isEmpty()) {
@@ -3228,7 +3282,7 @@ class FarmActivity : AppCompatActivity() {
                     R.string.entry_row_format,
                     FarmLabels.entryKind(this, entry.kind),
                     entry.label,
-                    numberFormatter.format(presentationLocale, entry.quantity)
+                    formatCount(entry.quantity)
                 )
             }
         }
@@ -3255,6 +3309,7 @@ class FarmActivity : AppCompatActivity() {
         settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
         syncLanguageSelection()
         syncTextSizeSelection()
+        syncAppearanceSelection()
     }
 
     private fun onTextSizeSelected(textSizeSp: Int) {
@@ -3271,6 +3326,36 @@ class FarmActivity : AppCompatActivity() {
         settingsTextSizeSeekBar.progress = selected - AppTextSize.MIN_SP
         settingsTextSizeValueText.text = string(R.string.text_size_value_format, selected)
         textSizeChangeSuppressed = false
+    }
+
+    private fun syncAppearanceSelection() {
+        appearanceSelectionSuppressed = true
+        val currencyDisplay = appearancePreferences.currencyDisplayOn()
+        currencyDisplayOnRadio.isChecked = currencyDisplay
+        currencyDisplayOffRadio.isChecked = !currencyDisplay
+        val numberGrouping = appearancePreferences.numberGroupingOn()
+        numberGroupingOnRadio.isChecked = numberGrouping
+        numberGroupingOffRadio.isChecked = !numberGrouping
+        val mode = appearancePreferences.appearanceMode()
+        appearanceModeFollowSystemRadio.isChecked = mode == AppearanceMode.FOLLOW_SYSTEM
+        appearanceModeLightRadio.isChecked = mode == AppearanceMode.LIGHT
+        appearanceModeDarkRadio.isChecked = mode == AppearanceMode.DARK
+        appearanceSelectionSuppressed = false
+    }
+
+    private fun onCurrencyDisplaySelected(on: Boolean) {
+        appearancePreferences.saveCurrencyDisplay(on)
+        render()
+    }
+
+    private fun onNumberGroupingSelected(on: Boolean) {
+        appearancePreferences.saveNumberGrouping(on)
+        render()
+    }
+
+    private fun onAppearanceModeSelected(mode: AppearanceMode) {
+        appearancePreferences.saveAppearanceMode(mode)
+        AppCompatDelegate.setDefaultNightMode(mode.nightMode)
     }
 
     private fun applyAppTextSize() {
@@ -3437,8 +3522,8 @@ class FarmActivity : AppCompatActivity() {
         }
         return string(
             R.string.imported_farm_summary_format,
-            numberFormatter.format(presentationLocale, farm.entries.size),
-            numberFormatter.format(presentationLocale, farm.transactions.size),
+            formatCount(farm.entries.size),
+            formatCount(farm.transactions.size),
             formatMoney(currencyCode, totals.balanceMinor)
         )
     }
@@ -3449,9 +3534,20 @@ class FarmActivity : AppCompatActivity() {
         formatMoney(currencyCode ?: "NPR", balanceMinor)
 
     internal fun formatMoney(currencyCode: String, amountMinor: Long): String =
-        moneyFormatter.format(presentationLocale, currencyCode, amountMinor)
+        moneyFormatter.format(
+            presentationLocale,
+            currencyCode,
+            amountMinor,
+            showCurrency = appearancePreferences.currencyDisplayOn(),
+            grouping = appearancePreferences.numberGroupingOn()
+        )
 
-    internal fun formatCount(value: Int): String = numberFormatter.format(presentationLocale, value)
+    internal fun formatCount(value: Int): String =
+        numberFormatter.format(
+            presentationLocale,
+            value,
+            grouping = appearancePreferences.numberGroupingOn()
+        )
 
     internal fun displayTransactionTime(transaction: FarmTransaction): String =
         timePresentation.displayDateTime(presentationLocale, deviceZone, transaction.occurredAt)

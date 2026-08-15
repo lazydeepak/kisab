@@ -1542,6 +1542,93 @@
                     android:text="@string/text_size_slider_note" />
 
                 <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_currency_display_label"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/currencyDisplayRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/currencyDisplayOnRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_on" />
+
+                    <RadioButton
+                        android:id="@+id/currencyDisplayOffRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_off" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_number_grouping_label"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/numberGroupingRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/numberGroupingOnRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_on" />
+
+                    <RadioButton
+                        android:id="@+id/numberGroupingOffRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_off" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_appearance_mode_label"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/appearanceModeRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/appearanceModeFollowSystemRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/appearance_mode_follow_system" />
+
+                    <RadioButton
+                        android:id="@+id/appearanceModeLightRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/appearance_mode_light" />
+
+                    <RadioButton
+                        android:id="@+id/appearanceModeDarkRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/appearance_mode_dark" />
+                </RadioGroup>
+
+                <TextView
                     android:id="@+id/settingsFarmSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

@@ -374,6 +374,15 @@
     <string name="text_size_value_format">अक्षरको आकार: %1$d px</string>
     <string name="text_size_slider_note">किसाबको अक्षर सानो वा ठूलो बनाउन स्लाइडर सार्नुहोस्।</string>
 
+    <string name="settings_currency_display_label">मुद्रा कोड देखाउनुहोस्</string>
+    <string name="settings_number_grouping_label">सङ्ख्या समूहीकरण</string>
+    <string name="settings_appearance_mode_label">देखावट मोड</string>
+    <string name="setting_on">अन</string>
+    <string name="setting_off">अफ</string>
+    <string name="appearance_mode_follow_system">प्रणाली अनुसरण गर्नुहोस्</string>
+    <string name="appearance_mode_light">उज्यालो</string>
+    <string name="appearance_mode_dark">गाढा</string>
+
     <string name="settings_farm_name_label">फार्मको नाम</string>
     <string name="settings_no_farm_gentle">अहिलेसम्म फार्म छैन। पहिले गृह ट्याबमा फार्म सिर्जना गर्नुहोस्।</string>
 

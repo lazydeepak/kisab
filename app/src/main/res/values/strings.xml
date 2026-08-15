@@ -378,6 +378,15 @@
     <string name="text_size_value_format">Text size: %1$d px</string>
     <string name="text_size_slider_note">Move the slider to make Kisab text smaller or larger.</string>
 
+    <string name="settings_currency_display_label">Show currency code</string>
+    <string name="settings_number_grouping_label">Number grouping</string>
+    <string name="settings_appearance_mode_label">Appearance mode</string>
+    <string name="setting_on">On</string>
+    <string name="setting_off">Off</string>
+    <string name="appearance_mode_follow_system">Follow system</string>
+    <string name="appearance_mode_light">Light</string>
+    <string name="appearance_mode_dark">Dark</string>
+
     <string name="settings_farm_name_label">Farm name</string>
     <string name="settings_no_farm_gentle">No farm yet. Create a farm on the Home tab first.</string>
 
