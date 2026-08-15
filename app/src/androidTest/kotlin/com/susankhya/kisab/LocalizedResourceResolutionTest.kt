@@ -157,6 +157,7 @@ class LocalizedResourceResolutionTest {
         val keys = listOf(
             R.string.currency_choice_dialog_title,
             R.string.farm_currency_label,
+            R.string.settings_currency_symbol_label,
             R.string.dialog_change_currency_title,
             R.string.dialog_change_currency_message_format,
             R.string.toast_currency_changed,

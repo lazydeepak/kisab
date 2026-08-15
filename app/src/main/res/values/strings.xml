@@ -67,6 +67,7 @@
     <string name="show_farm_tools_action">Show farm tools</string>
     <string name="hide_farm_tools_action">Hide farm tools</string>
     <string name="farm_currency_label">Currency</string>
+    <string name="settings_currency_symbol_label">Currency Symbol</string>
     <string name="backup_section">Backup</string>
 
     <string name="farm_tools_summary_format">Farm: %1$s\nEntry count: %2$s\nBalance: %3$s</string>

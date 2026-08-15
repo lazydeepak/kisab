@@ -66,6 +66,7 @@
     <string name="show_farm_tools_action">फार्म उपकरणहरू देखाउनुहोस्</string>
     <string name="hide_farm_tools_action">फार्म उपकरणहरू लुकाउनुहोस्</string>
     <string name="farm_currency_label">मुद्रा</string>
+    <string name="settings_currency_symbol_label">मुद्रा प्रतीक</string>
     <string name="backup_section">ब्याकअप</string>
 
     <string name="farm_tools_summary_format">फार्म: %1$s\nप्रविष्टि सङ्ख्या: %2$s\nबाँकी रकम: %3$s</string>
