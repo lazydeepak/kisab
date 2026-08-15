@@ -3851,6 +3851,7 @@ class FarmActivity : AppCompatActivity() {
         settingsImportBackupButton.visibility = View.VISIBLE
         settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
         renderAccountSettingsSection()
+        renderNotificationsSettings()
         syncLanguageSelection()
         syncTextSizeSelection()
         syncAppearanceSelection()
