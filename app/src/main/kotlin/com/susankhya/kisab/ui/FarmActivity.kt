@@ -70,7 +70,9 @@ import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyDraft
 import com.susankhya.kisab.domain.PartyLedgerEntryType
 import com.susankhya.kisab.domain.PartyRole
+import com.susankhya.kisab.domain.FarmProduct
 import com.susankhya.kisab.domain.ProductSaleDetail
+import com.susankhya.kisab.domain.ProductSaleHistory
 import com.susankhya.kisab.domain.ProductUnit
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
@@ -3208,38 +3210,49 @@ class FarmActivity : AppCompatActivity() {
         saveTransactionButton.text = string(saveActionRes(updated))
     }
 
-    private fun showQuickSaleDialog() {
+    private fun showQuickSaleDialog(
+        preselectedCustomerId: String? = null,
+        preselectedProductId: String? = null,
+        prefilledRateMinor: Long? = null
+    ) {
         if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
-        val customers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.SALE) }
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val recentCustomerIds = ProductSaleHistory.recentCustomerIds(farm)
+        val customers = service.parties(farmId)
+            .filter { it.role.compatibleWith(TradeType.SALE) }
+            .sortedWith(compareBy<Party> { recentCustomerIds.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
         if (customers.isEmpty()) {
-            AlertDialog.Builder(this)
-                .setTitle(R.string.quick_sale_title)
-                .setMessage(R.string.quick_sale_no_customers)
-                .setPositiveButton(R.string.quick_sale_add_customer) { _, _ ->
-                    showDestination(Destination.HISAB_KITAB)
-                    openPartyEditor(null)
-                }
-                .setNegativeButton(R.string.action_cancel, null)
-                .show()
+            showQuickCustomerDialog { customer ->
+                showQuickSaleDialog(preselectedCustomerId = customer.id, preselectedProductId = preselectedProductId, prefilledRateMinor = prefilledRateMinor)
+            }
             return
         }
+        val recentProductIds = ProductSaleHistory.recentProductIds(farm)
         val products = service.products(farmId)
+            .sortedWith(compareBy<FarmProduct> { recentProductIds.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
         if (products.isEmpty()) {
             showProductCreationDialog { showQuickSaleDialog() }
             return
         }
+        val selectableCustomers = customers.toMutableList()
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(8), dp(24), 0)
         }
         val customerSpinner = Spinner(this)
-        customerSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, customers.map { it.name })
+        val customerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, selectableCustomers.map { it.name }.toMutableList())
             .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        customerSpinner.adapter = customerAdapter
+        val addCustomerButton = Button(this).apply {
+            text = string(R.string.quick_sale_add_customer)
+            minHeight = dp(48)
+        }
         val productSpinner = Spinner(this)
         productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { product ->
             "${product.name} · ${productUnitLabel(product.defaultUnit, product.customUnitLabel)}"
         }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val customerBalanceText = TextView(this)
         val quantityInput = EditText(this).apply {
             hint = string(R.string.quick_sale_quantity)
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
@@ -3249,7 +3262,7 @@ class FarmActivity : AppCompatActivity() {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
         }
         val unitText = TextView(this)
-        val totalText = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
+        val summaryText = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
         val paymentGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
         val paidRadio = RadioButton(this).apply { text = string(R.string.quick_sale_paid) }
         val creditRadio = RadioButton(this).apply { text = string(R.string.quick_sale_credit) }
@@ -3265,38 +3278,120 @@ class FarmActivity : AppCompatActivity() {
         }
         content.addView(labelText(R.string.quick_sale_customer))
         content.addView(customerSpinner)
+        content.addView(addCustomerButton)
+        content.addView(customerBalanceText)
         content.addView(labelText(R.string.quick_sale_product))
         content.addView(productSpinner)
         content.addView(quantityInput)
         content.addView(unitText)
         content.addView(rateInput)
-        content.addView(totalText)
+        content.addView(summaryText)
         content.addView(paymentGroup)
         content.addView(partialInput)
-        fun refreshTotal() {
-            val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return
+        var rateEdited = prefilledRateMinor != null
+        var suppressRateEdit = false
+        fun selectedCustomer(): Party? = selectableCustomers.getOrNull(customerSpinner.selectedItemPosition)
+        fun selectedProduct(): FarmProduct? = products.getOrNull(productSpinner.selectedItemPosition)
+        fun refreshRateSuggestion() {
+            if (rateEdited) return
+            val customerId = selectedCustomer()?.id
+            val productId = selectedProduct()?.id ?: return
+            val currentFarm = service.loadFarm(farmId) ?: return
+            val suggested = if (customerId != null) {
+                ProductSaleHistory.latestRateForCustomerAndProduct(currentFarm, customerId, productId)
+                    ?: ProductSaleHistory.latestRateForProduct(currentFarm, productId)
+            } else {
+                ProductSaleHistory.latestRateForProduct(currentFarm, productId)
+            } ?: return
+            suppressRateEdit = true
+            rateInput.setText(moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), suggested))
+            rateInput.setSelection(rateInput.text?.length ?: 0)
+            suppressRateEdit = false
+        }
+        fun refreshCustomerBalance() {
+            val customer = selectedCustomer() ?: return
+            val summary = service.partyLedgerSummary(farmId, customer.id)
+            customerBalanceText.text = string(
+                R.string.quick_sale_customer_balance_format,
+                formatMoney(currentFarmCurrency(), summary.toReceiveMinor)
+            )
+        }
+        fun refreshSummary() {
+            val product = selectedProduct() ?: return
             unitText.text = productUnitLabel(product.defaultUnit, product.customUnitLabel)
             val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty())
             val rate = moneyInputParser.parse(presentationLocale, currentFarmCurrency(), rateInput.text?.toString().orEmpty())
-            totalText.text = if (quantity != null && rate is MoneyInputResult.Valid) {
-                runCatching {
-                    string(R.string.quick_sale_total_format, formatMoney(currentFarmCurrency(), ProductSaleDetail(
-                        "preview", product.id, quantity, product.defaultUnit, product.customUnitLabel, rate.amountMinor
-                    ).totalMinor()))
-                }.getOrDefault("")
+            if (quantity == null || rate !is MoneyInputResult.Valid) {
+                summaryText.text = ""
+                return
+            }
+            val total = runCatching {
+                ProductSaleDetail("preview", product.id, quantity, product.defaultUnit, product.customUnitLabel, rate.amountMinor).totalMinor()
+            }.getOrNull() ?: run {
+                summaryText.text = ""
+                return
+            }
+            val paid = when {
+                paidRadio.isChecked -> total
+                creditRadio.isChecked -> 0L
+                else -> (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), partialInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor
+            }
+            summaryText.text = if (paid == null || paid > total) {
+                string(R.string.quick_sale_total_format, formatMoney(currentFarmCurrency(), total))
             } else {
-                ""
+                string(
+                    R.string.quick_sale_summary_format,
+                    formatMoney(currentFarmCurrency(), total),
+                    when {
+                        paid == total -> string(R.string.quick_sale_paid_summary)
+                        paid == 0L -> string(R.string.quick_sale_credit_summary)
+                        else -> string(
+                            R.string.quick_sale_partial_summary,
+                            formatMoney(currentFarmCurrency(), paid),
+                            formatMoney(currentFarmCurrency(), total - paid)
+                        )
+                    }
+                )
             }
         }
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
-            override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) = refreshTotal()
+            override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) = refreshSummary()
             override fun afterTextChanged(text: Editable?) = Unit
         }
         quantityInput.addTextChangedListener(watcher)
         rateInput.addTextChangedListener(watcher)
-        productSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshTotal() }
-        partialRadio.setOnCheckedChangeListener { _, checked -> partialInput.visibility = if (checked) View.VISIBLE else View.GONE }
+        rateInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) {
+                if (!suppressRateEdit) rateEdited = true
+                refreshSummary()
+            }
+            override fun afterTextChanged(text: Editable?) = Unit
+        })
+        customerSpinner.onItemSelectedListener = simpleItemSelectedListener {
+            refreshCustomerBalance()
+            refreshRateSuggestion()
+            refreshSummary()
+        }
+        productSpinner.onItemSelectedListener = simpleItemSelectedListener {
+            refreshRateSuggestion()
+            refreshSummary()
+        }
+        partialRadio.setOnCheckedChangeListener { _, checked ->
+            partialInput.visibility = if (checked) View.VISIBLE else View.GONE
+            refreshSummary()
+        }
+        partialInput.addTextChangedListener(watcher)
+        addCustomerButton.setOnClickListener {
+            showQuickCustomerDialog { customer ->
+                selectableCustomers.add(0, customer)
+                customerAdapter.clear()
+                customerAdapter.addAll(selectableCustomers.map { it.name })
+                customerAdapter.notifyDataSetChanged()
+                customerSpinner.setSelection(0)
+            }
+        }
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.quick_sale_title)
             .setView(content)
@@ -3306,7 +3401,7 @@ class FarmActivity : AppCompatActivity() {
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return@setOnClickListener
+                val product = selectedProduct() ?: return@setOnClickListener
                 val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty())
                     ?: return@setOnClickListener showToast(R.string.quick_sale_quantity_invalid)
                 val rate = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), rateInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)
@@ -3324,7 +3419,7 @@ class FarmActivity : AppCompatActivity() {
                 try {
                     service.addProductSale(
                         farmId = farmId,
-                        partyId = customers[customerSpinner.selectedItemPosition].id,
+                        partyId = selectedCustomer()!!.id,
                         productId = product.id,
                         quantity = quantity,
                         rateMinor = rate.amountMinor,
@@ -3333,13 +3428,72 @@ class FarmActivity : AppCompatActivity() {
                     )
                     dialog.dismiss()
                     render()
-                    showToast(R.string.quick_sale_saved)
+                    showQuickSaleSavedDialog(selectedCustomer()!!.id, product.id, rate.amountMinor)
                 } catch (exception: Exception) {
                     showUnexpectedFailure(exception, "save quick sale failed")
                 }
             }
         }
         dialog.show()
+        customerSpinner.setSelection(selectableCustomers.indexOfFirst { it.id == preselectedCustomerId }.coerceAtLeast(0))
+        productSpinner.setSelection(products.indexOfFirst { it.id == preselectedProductId }.coerceAtLeast(0))
+        if (prefilledRateMinor != null) {
+            suppressRateEdit = true
+            rateInput.setText(moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), prefilledRateMinor))
+            suppressRateEdit = false
+        }
+        refreshCustomerBalance()
+        refreshRateSuggestion()
+        refreshSummary()
+    }
+
+    private fun showQuickCustomerDialog(afterCreate: (Party) -> Unit) {
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), 0)
+        }
+        val nameInput = EditText(this).apply { hint = string(R.string.quick_sale_customer_name) }
+        val phoneInput = EditText(this).apply {
+            hint = string(R.string.quick_sale_customer_phone)
+            inputType = android.text.InputType.TYPE_CLASS_PHONE
+        }
+        content.addView(nameInput)
+        content.addView(phoneInput)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.quick_sale_add_customer)
+            .setView(content)
+            .setPositiveButton(R.string.action_ok, null)
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val farmId = currentFarmId ?: return@setOnClickListener
+                val name = nameInput.text?.toString()?.trim().orEmpty()
+                if (name.isBlank()) return@setOnClickListener showToast(R.string.quick_sale_customer_name_required)
+                try {
+                    val customer = service.addParty(
+                        farmId,
+                        PartyDraft(name = name, role = PartyRole.CUSTOMER, contact = phoneInput.text?.toString()?.trim().orEmpty())
+                    )
+                    dialog.dismiss()
+                    afterCreate(customer)
+                } catch (exception: Exception) {
+                    Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showQuickSaleSavedDialog(customerId: String, productId: String, rateMinor: Long) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.quick_sale_saved)
+            .setMessage(R.string.quick_sale_sell_again_message)
+            .setPositiveButton(R.string.quick_sale_sell_again) { _, _ ->
+                showQuickSaleDialog(customerId, productId, rateMinor)
+            }
+            .setNegativeButton(R.string.action_done, null)
+            .show()
     }
 
     private fun showProductCreationDialog(afterSave: () -> Unit) {
@@ -3381,7 +3535,11 @@ class FarmActivity : AppCompatActivity() {
     private fun showReceivedMoneyDialog() {
         if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
-        val customers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.SALE) }
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val recentCustomerIds = ProductSaleHistory.recentCustomerIds(farm)
+        val customers = service.parties(farmId)
+            .filter { it.role.compatibleWith(TradeType.SALE) }
+            .sortedWith(compareBy<Party> { recentCustomerIds.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
         if (customers.isEmpty()) return showToast(R.string.quick_sale_no_customers)
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -3390,12 +3548,35 @@ class FarmActivity : AppCompatActivity() {
         val customerSpinner = Spinner(this)
         customerSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, customers.map { it.name })
             .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val balanceText = TextView(this)
         val amountInput = EditText(this).apply {
             hint = string(R.string.received_money_amount)
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
         }
+        val fullAmountButton = Button(this).apply {
+            text = string(R.string.received_money_full_amount)
+            minHeight = dp(48)
+        }
         content.addView(customerSpinner)
+        content.addView(balanceText)
         content.addView(amountInput)
+        content.addView(fullAmountButton)
+        fun selectedOutstanding(): Long = service.partyLedgerSummary(
+            farmId,
+            customers[customerSpinner.selectedItemPosition].id
+        ).toReceiveMinor
+        fun refreshBalance() {
+            balanceText.text = string(
+                R.string.received_money_balance_format,
+                formatMoney(currentFarmCurrency(), selectedOutstanding())
+            )
+            fullAmountButton.isEnabled = selectedOutstanding() > 0L
+        }
+        fullAmountButton.setOnClickListener {
+            amountInput.setText(moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), selectedOutstanding()))
+            amountInput.setSelection(amountInput.text?.length ?: 0)
+        }
+        customerSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshBalance() }
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.received_money_title)
             .setView(content)
@@ -3427,6 +3608,7 @@ class FarmActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+        refreshBalance()
     }
 
     private fun parseSaleQuantity(raw: String): BigDecimal? {

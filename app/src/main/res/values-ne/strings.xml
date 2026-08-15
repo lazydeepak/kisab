@@ -34,6 +34,18 @@
     <string name="quick_sale_save">बिक्री राख्नुहोस्</string>
     <string name="quick_sale_add_product">उत्पादन थप्नुहोस्</string>
     <string name="quick_sale_add_customer">ग्राहक थप्नुहोस्</string>
+    <string name="quick_sale_customer_name">ग्राहकको नाम</string>
+    <string name="quick_sale_customer_phone">फोन नम्बर (वैकल्पिक)</string>
+    <string name="quick_sale_customer_name_required">ग्राहकको नाम लेख्नुहोस्।</string>
+    <string name="quick_sale_customer_balance_format">लिन बाँकी: %1$s</string>
+    <string name="quick_sale_summary_format">जम्मा: %1$s
+%2$s</string>
+    <string name="quick_sale_paid_summary">पूरै पैसा आयो</string>
+    <string name="quick_sale_credit_summary">उधार</string>
+    <string name="quick_sale_partial_summary">अहिले पाएको: %1$s
+बाँकी: %2$s</string>
+    <string name="quick_sale_sell_again">फेरि बेच्ने</string>
+    <string name="quick_sale_sell_again_message">बिक्री राखियो। यही ग्राहक र उत्पादनको अर्को बिक्री राख्ने?</string>
     <string name="quick_sale_no_customers">बिक्री राख्नुअघि हिसाब-किताबमा ग्राहक थप्नुहोस्।</string>
     <string name="quick_sale_no_products">बिक्री राख्न पहिलो उत्पादन थप्नुहोस्।</string>
     <string name="quick_sale_product_name">उत्पादनको नाम</string>
@@ -46,6 +58,8 @@
     <string name="quick_sale_saved">बिक्री राखियो</string>
     <string name="received_money_title">पैसा पाएँ</string>
     <string name="received_money_amount">पाएको रकम</string>
+    <string name="received_money_balance_format">लिन बाँकी: %1$s</string>
+    <string name="received_money_full_amount">पूरै रकम</string>
     <string name="received_money_save">भुक्तानी राख्नुहोस्</string>
     <string name="received_money_amount_invalid">सही सकारात्मक रकम लेख्नुहोस्।</string>
     <string name="received_money_saved">भुक्तानी राखियो</string>

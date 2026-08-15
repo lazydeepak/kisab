@@ -2,7 +2,7 @@
 
 ## Status
 
-The design baseline is implemented on `feature/m7-quick-sale-khata`. This record remains the authority for the narrow Quick Sale + Received Money slice. Inventory, production, livestock, recurring sales, and rate-suggestion persistence remain out of scope.
+The design baseline is implemented on `feature/m7-quick-sale-khata`. M7.1 usability refinement is implemented on `feature/m7-1-quick-sale-usability`. This record remains the authority for the narrow Quick Sale + Received Money slice. Inventory, production, livestock, recurring sales, and rate-suggestion persistence remain out of scope.
 
 ## Product center
 
@@ -128,7 +128,7 @@ The exact Kotlin representation remains an implementation decision, but these in
 - `ProductSaleDetail.tradeId` anchors the detail to exactly one SALE `Trade`; deletion must not leave an orphan.
 - No stock-on-hand, purchase receipt, production reading, or automatic inventory mutation is created by this slice.
 
-Milk is simply `दूध` with unit `L`. गोबर, घिउ, eggs, and vegetables use the same primitive with different products and units. Recent rate suggestions are derived from prior sale details and are suggestions only; choosing one must never silently overwrite the farmer's entered rate.
+Milk is simply `दूध` with unit `L`. गोबर, घिउ, eggs, and vegetables use the same primitive with different products and units. Rate suggestions are derived from prior sale details and are suggestions only; choosing one must never silently overwrite the farmer's entered rate.
 
 ### Persistence and service boundary
 
@@ -324,6 +324,21 @@ This slice should be intentionally narrow. It should not simultaneously introduc
 - Customer advances/unapplied credit remain a known future requirement, not a permanent business rule.
 - Quick Sale is generic across products and units; no dairy-specific branch, stock mutation, or production record is created.
 - Rate suggestions are deliberately deferred until a small, safe lookup can be added without changing the accounting authority.
+
+## M7.1 usability decisions
+
+- Recent customer and product ordering is derived from existing SALE Trade/ProductSaleDetail history; no analytics or recommendation state is stored.
+- Rate suggestion resolution is exact customer + product newest rate, then product newest rate, then blank. Legacy Trades without ProductSaleDetail are ignored.
+- Quick Sale includes a minimal inline customer form for name and optional phone. It creates a CUSTOMER Party and returns to the open sale with the new customer selected.
+- The selected customer's current `PartyLedger` balance appears before saving a sale.
+- The payment summary updates in the same dialog: total, paid in full/credit, or received now plus remaining balance.
+- After a successful save, `Sell again` reopens Quick Sale with the same customer, product, and rate context but an empty quantity, preventing accidental duplicate saves.
+- Received Money shows the selected customer's current outstanding amount and offers a Full amount action. The existing oldest-first allocation and overpayment rejection remain unchanged.
+- Customer advance/unapplied credit remains deferred.
+
+The M7.1 UI intentionally keeps the existing full Party editor in Hisab-Kitab. The inline form is only a fast customer-creation path for Quick Sale.
+
+The repository still has unrelated Android-test source debt: older settings tests reference removed ids such as `settingsCurrencyText`, `changeSettingsCurrencyButton`, and `settingsNoFarmText`. M7.1 does not rewrite those tests.
 
 ## Acceptance criteria for that slice
 

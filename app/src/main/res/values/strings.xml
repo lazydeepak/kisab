@@ -35,6 +35,18 @@
     <string name="quick_sale_save">Save sale</string>
     <string name="quick_sale_add_product">Add product</string>
     <string name="quick_sale_add_customer">Add customer</string>
+    <string name="quick_sale_customer_name">Customer name</string>
+    <string name="quick_sale_customer_phone">Phone number (optional)</string>
+    <string name="quick_sale_customer_name_required">Enter the customer name.</string>
+    <string name="quick_sale_customer_balance_format">Outstanding: %1$s</string>
+    <string name="quick_sale_summary_format">Total: %1$s
+%2$s</string>
+    <string name="quick_sale_paid_summary">Paid in full</string>
+    <string name="quick_sale_credit_summary">Credit</string>
+    <string name="quick_sale_partial_summary">Received now: %1$s
+Remaining: %2$s</string>
+    <string name="quick_sale_sell_again">Sell again</string>
+    <string name="quick_sale_sell_again_message">Sale saved. Record another sale with the same customer and product?</string>
     <string name="quick_sale_no_customers">Add a customer in Hisab-Kitab before recording a sale.</string>
     <string name="quick_sale_no_products">Add your first product to record a sale.</string>
     <string name="quick_sale_product_name">Product name</string>
@@ -47,6 +59,8 @@
     <string name="quick_sale_saved">Sale saved</string>
     <string name="received_money_title">Received money</string>
     <string name="received_money_amount">Amount received</string>
+    <string name="received_money_balance_format">Outstanding: %1$s</string>
+    <string name="received_money_full_amount">Full amount</string>
     <string name="received_money_save">Save payment</string>
     <string name="received_money_amount_invalid">Enter a valid positive amount.</string>
     <string name="received_money_saved">Payment saved</string>
