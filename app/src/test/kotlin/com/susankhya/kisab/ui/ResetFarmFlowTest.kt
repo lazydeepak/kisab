@@ -33,10 +33,40 @@ class ResetFarmFlowTest {
     }
 
     @Test
+    fun `no recent backup opens the backup gate`() {
+        val (flow, executions) = trackingFlow()
+        flow.begin()
+        flow.proceedFromWarning(recentBackup = false)
+        assertEquals(ResetFarmFlow.Stage.BACKUP_GATE, flow.stage)
+        assertFalse(flow.canType("RESET"))
+        assertTrue(executions.isEmpty())
+    }
+
+    @Test
+    fun `recent backup skips the backup gate and reaches typed confirmation`() {
+        val (flow, executions) = trackingFlow()
+        flow.begin()
+        flow.proceedFromWarning(recentBackup = true)
+        assertEquals(ResetFarmFlow.Stage.TYPED, flow.stage)
+        assertTrue(flow.canType("RESET"))
+        assertTrue(executions.isEmpty())
+    }
+
+    @Test
+    fun `recent backup still requires the typed reset keyword`() {
+        val (flow, executions) = trackingFlow()
+        flow.begin()
+        flow.proceedFromWarning(recentBackup = true)
+        assertFalse(flow.confirm("WRONG"))
+        assertEquals(ResetFarmFlow.Stage.TYPED, flow.stage)
+        assertTrue(executions.isEmpty())
+    }
+
+    @Test
     fun `export cancelled blocks typed confirmation`() {
         val (flow, executions) = trackingFlow()
         flow.begin()
-        flow.proceedFromWarning()
+        flow.proceedFromWarning(recentBackup = false)
         assertEquals(ResetFarmFlow.Stage.BACKUP_GATE, flow.stage)
         flow.onBackupCancelledOrFailed()
         assertFalse(flow.canType("RESET"))
@@ -49,7 +79,7 @@ class ResetFarmFlowTest {
     fun `export failure blocks typed confirmation`() {
         val (flow, executions) = trackingFlow()
         flow.begin()
-        flow.proceedFromWarning()
+        flow.proceedFromWarning(recentBackup = false)
         flow.onBackupCancelledOrFailed()
         assertFalse(flow.canType("RESET"))
         assertTrue(executions.isEmpty())
@@ -59,7 +89,7 @@ class ResetFarmFlowTest {
     fun `successful backup unlocks typed confirmation`() {
         val (flow, executions) = trackingFlow()
         flow.begin()
-        flow.proceedFromWarning()
+        flow.proceedFromWarning(recentBackup = false)
         flow.onBackupSucceeded()
         assertEquals(ResetFarmFlow.Stage.TYPED, flow.stage)
         assertTrue(flow.canType("RESET"))
@@ -70,7 +100,7 @@ class ResetFarmFlowTest {
     fun `existing backup unlocks typed confirmation`() {
         val (flow, executions) = trackingFlow()
         flow.begin()
-        flow.proceedFromWarning()
+        flow.proceedFromWarning(recentBackup = false)
         flow.acknowledgeExistingBackup()
         assertEquals(ResetFarmFlow.Stage.TYPED, flow.stage)
         assertTrue(flow.canType("RESET"))
@@ -81,7 +111,7 @@ class ResetFarmFlowTest {
     fun `incorrect text keeps reset disabled and does not execute`() {
         val (flow, executions) = trackingFlow()
         flow.begin()
-        flow.proceedFromWarning()
+        flow.proceedFromWarning(recentBackup = false)
         flow.acknowledgeExistingBackup()
         assertFalse(flow.canType("RESETX"))
         assertFalse(flow.canType(""))
@@ -104,8 +134,7 @@ class ResetFarmFlowTest {
     fun `cancel at final confirmation performs no reset`() {
         val (flow, executions) = trackingFlow()
         flow.begin()
-        flow.proceedFromWarning()
-        flow.onBackupSucceeded()
+        flow.proceedFromWarning(recentBackup = true)
         flow.cancel()
         assertEquals(ResetFarmFlow.Stage.NONE, flow.stage)
         assertFalse(flow.confirm("RESET"))
@@ -116,7 +145,7 @@ class ResetFarmFlowTest {
     fun `final confirmation executes reset exactly once`() {
         val (flow, executions) = trackingFlow()
         flow.begin()
-        flow.proceedFromWarning()
+        flow.proceedFromWarning(recentBackup = false)
         flow.acknowledgeExistingBackup()
         assertTrue(flow.confirm("reset"))
         assertEquals(1, executions.size)
@@ -127,8 +156,7 @@ class ResetFarmFlowTest {
     fun `confirm after execution does not run reset again`() {
         val (flow, executions) = trackingFlow()
         flow.begin()
-        flow.proceedFromWarning()
-        flow.onBackupSucceeded()
+        flow.proceedFromWarning(recentBackup = true)
         assertTrue(flow.confirm("RESET"))
         assertFalse(flow.confirm("RESET"))
         assertEquals(1, executions.size)

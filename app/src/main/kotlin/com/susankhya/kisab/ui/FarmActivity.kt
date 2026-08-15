@@ -81,7 +81,9 @@ import com.susankhya.kisab.persistence.FarmBackupFileAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesAppLanguagePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesAppAppearancePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesAppTextSizePreferences
+import com.susankhya.kisab.persistence.SharedPreferencesBackupFreshnessStore
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.time.ZoneId
@@ -383,6 +385,9 @@ class FarmActivity : AppCompatActivity() {
     private var pendingExportContent: String? = null
     private var pendingResetBackupGate = false
     private val resetFlow = ResetFarmFlow { performResetFarmData() }
+    private val clock: Clock = Clock { System.currentTimeMillis() }
+    private lateinit var backupFreshnessStore: BackupFreshnessStore
+    private lateinit var backupFreshness: BackupFreshnessChecker
 
     private var createFarmCurrencyCode: String = FarmState.DEFAULT_CURRENCY_CODE
 
@@ -412,6 +417,8 @@ class FarmActivity : AppCompatActivity() {
         backupFileAdapter = AndroidStorageAccessFrameworkBackupFileAdapter(applicationContext)
         languagePreferences = SharedPreferencesAppLanguagePreferences(applicationContext)
         textSizePreferences = SharedPreferencesAppTextSizePreferences(applicationContext)
+        backupFreshnessStore = SharedPreferencesBackupFreshnessStore(applicationContext)
+        backupFreshness = BackupFreshnessChecker(backupFreshnessStore, clock)
         createFarmCurrencyCode = FarmCurrencies.defaultFor(Locale.getDefault())
 
         createBackupDocumentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -427,6 +434,7 @@ class FarmActivity : AppCompatActivity() {
                 try {
                     backupFileAdapter.writeText(uri.toString(), content, FarmBackupCodec.MAX_BACKUP_BYTES)
                     showToast(R.string.toast_backup_exported)
+                    recordSuccessfulBackup()
                     finishResetBackupGate(succeeded = true)
                 } catch (exception: FarmBackupException) {
                     showValidationMessage(FarmUiError.fromBackupFailure(exception).resourceId)
@@ -3201,14 +3209,24 @@ class FarmActivity : AppCompatActivity() {
             .setTitle(string(R.string.dialog_reset_farm_title))
             .setMessage(string(R.string.dialog_reset_farm_message))
             .setPositiveButton(string(R.string.action_continue)) { _, _ ->
-                resetFlow.proceedFromWarning()
-                showResetBackupGateDialog()
+                val recent = isRecentBackup()
+                resetFlow.proceedFromWarning(recentBackup = recent)
+                if (recent) {
+                    showRecentBackupConfirmation()
+                } else {
+                    showResetBackupGateDialog()
+                }
             }
             .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
             .show()
     }
 
     private fun showResetBackupGateDialog() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val lastBackupAt = backupFreshnessStore.lastSuccessfulBackupAt(farmId)
+        val gateDetail = lastBackupAt?.let {
+            string(R.string.dialog_reset_backup_gate_stale_format, formatBackupTime(it))
+        } ?: string(R.string.dialog_reset_backup_gate_none)
         val backupNowButton = Button(this).apply { text = string(R.string.reset_backup_now_action) }
         val existingBackupButton = Button(this).apply { text = string(R.string.reset_backup_existing_action) }
         val container = LinearLayout(this).apply {
@@ -3216,7 +3234,7 @@ class FarmActivity : AppCompatActivity() {
         }
         container.addView(
             TextView(this).apply {
-                text = string(R.string.dialog_reset_backup_gate_message)
+                text = string(R.string.dialog_reset_backup_gate_message) + "\n\n" + gateDetail
                 textSize = 16f
                 setPadding(0, 0, 0, dp(16))
             }
@@ -3290,6 +3308,50 @@ class FarmActivity : AppCompatActivity() {
             showResetTypedConfirmation()
         } else {
             resetFlow.onBackupCancelledOrFailed()
+        }
+    }
+
+    private fun isRecentBackup(): Boolean {
+        val farmId = currentFarmId ?: return false
+        return backupFreshness.isRecent(farmId)
+    }
+
+    /** Records app-local backup freshness metadata; never touches farm accounting data. */
+    private fun recordSuccessfulBackup() {
+        val farmId = currentFarmId ?: return
+        backupFreshnessStore.recordSuccessfulBackup(farmId, clock.nowMillis())
+    }
+
+    /** Leads into the typed RESET step after confirming a recent recorded backup. */
+    private fun showRecentBackupConfirmation() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val lastBackupAt = backupFreshnessStore.lastSuccessfulBackupAt(farmId)
+        AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_reset_recent_backup_title))
+            .setMessage(
+                string(
+                    R.string.dialog_reset_recent_backup_message_format,
+                    formatBackupTime(lastBackupAt)
+                )
+            )
+            .setPositiveButton(string(R.string.action_continue)) { _, _ -> showResetTypedConfirmation() }
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
+            .show()
+    }
+
+    /** Farmer-friendly recorded backup time, e.g. "Today, 1:56 PM" or a localized date/time. */
+    private fun formatBackupTime(recordedAtMillis: Long?): String {
+        if (recordedAtMillis == null) return string(R.string.dialog_reset_backup_gate_none)
+        val stored = OffsetDateTime.ofInstant(Instant.ofEpochMilli(recordedAtMillis), deviceZone)
+        val now = OffsetDateTime.now(deviceZone)
+        return if (timePresentation.isToday(deviceZone, stored, now)) {
+            string(
+                R.string.today_time_format,
+                string(R.string.today_label),
+                timePresentation.shortTime(presentationLocale, deviceZone, stored)
+            )
+        } else {
+            timePresentation.displayDateTime(presentationLocale, deviceZone, stored)
         }
     }
 

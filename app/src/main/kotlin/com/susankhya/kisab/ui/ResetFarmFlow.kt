@@ -3,14 +3,14 @@ package com.susankhya.kisab.ui
 /**
  * App-owned decision state for the guarded Reset Farm Data flow.
  *
- * The activity drives stage transitions from dialog actions and the Storage
- * Access Framework export result; this object owns the gating rules so they
- * can be tested independently of Android dialog/SAF plumbing.
+ * The activity drives stage transitions from dialog actions, backup freshness,
+ * and the Storage Access Framework export result; this object owns the gating
+ * rules so they can be tested independently of Android dialog/SAF plumbing.
  *
  * Reset only executes after every gate passes:
  * 1. the user continues past the warning,
- * 2. a backup path reports success (or the user acknowledges an existing
- *    backup), and
+ * 2. a recent recorded backup exists, or a backup path reports success, or the
+ *    user acknowledges an existing backup, and
  * 3. the user types the reset keyword exactly (case-insensitive, trimmed).
  */
 class ResetFarmFlow(private val executeReset: () -> Unit) {
@@ -30,9 +30,13 @@ class ResetFarmFlow(private val executeReset: () -> Unit) {
         stage = Stage.NONE
     }
 
-    /** User confirmed the warning; the backup gate opens next. */
-    fun proceedFromWarning() {
-        if (stage == Stage.WARNING) stage = Stage.BACKUP_GATE
+    /**
+     * User confirmed the warning. A recent recorded backup skips the backup
+     * gate; otherwise the gate opens next.
+     */
+    fun proceedFromWarning(recentBackup: Boolean) {
+        if (stage != Stage.WARNING) return
+        stage = if (recentBackup) Stage.TYPED else Stage.BACKUP_GATE
     }
 
     /** The existing export/backup flow reported success. */

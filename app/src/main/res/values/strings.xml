@@ -405,6 +405,10 @@
     <string name="dialog_reset_farm_message">This permanently removes every entry, transaction, party, sale, purchase, and payment in the farm. The farm name and currency are kept.\n\nThis cannot be undone from Kisab unless you have a backup.</string>
     <string name="dialog_reset_backup_gate_title">Back up before resetting?</string>
     <string name="dialog_reset_backup_gate_message">A reset permanently removes all farm records. Choose how to protect them.</string>
+    <string name="dialog_reset_backup_gate_stale_format">Last backup: %1$s</string>
+    <string name="dialog_reset_backup_gate_none">No recorded backup.</string>
+    <string name="dialog_reset_recent_backup_title">Recent backup found</string>
+    <string name="dialog_reset_recent_backup_message_format">A recent backup was completed.\n\nLast backup: %1$s</string>
     <string name="reset_backup_now_action">Back up now</string>
     <string name="reset_backup_existing_action">I already have a backup</string>
     <string name="dialog_reset_typed_title">Confirm reset</string>
