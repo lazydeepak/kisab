@@ -29,6 +29,7 @@ data class FarmerDailyOverview(
     val moneyReceivedMinor: Long,
     val expensesMinor: Long,
     val currentReceivableMinor: Long,
+    val currentPayableMinor: Long,
     val creditSalesMinor: Long,
     val supplies: List<FarmerSupplyOverview>
 )
@@ -40,6 +41,7 @@ data class FarmerMonthlyOverview(
     val moneyReceivedMinor: Long,
     val expensesMinor: Long,
     val currentReceivableMinor: Long,
+    val currentPayableMinor: Long,
     val supplies: List<FarmerSupplyOverview>
 )
 
@@ -64,6 +66,7 @@ fun FarmState.farmerOverview(now: OffsetDateTime, zone: ZoneId): FarmerOverview 
         Math.addExact(total, Math.subtractExact(trade.totalMinor, paidAtCreation))
     }
     val receivable = parties.filter { it.role.compatibleWith(TradeType.SALE) }.fold(0L) { total, party -> Math.addExact(total, partyLedgerSummary(party.id).toReceiveMinor) }
+    val payable = parties.filter { it.role.compatibleWith(TradeType.PURCHASE) }.fold(0L) { total, party -> Math.addExact(total, partyLedgerSummary(party.id).toPayMinor) }
     fun production(periodDate: LocalDate, monthly: Boolean): List<FarmerProductionOverview> {
         val records = productionRecords.filter { record ->
             val local = record.occurredAt.atZoneSameInstant(zone).toLocalDate()
@@ -81,7 +84,7 @@ fun FarmState.farmerOverview(now: OffsetDateTime, zone: ZoneId): FarmerOverview 
         quantity.takeIf { it > BigDecimal.ZERO }?.let { FarmerSupplyOverview(supply.id, supply.name, it, supply.unit) }
     }
     return FarmerOverview(
-        daily = FarmerDailyOverview(date, production(date, false), sales(::inDay), received(::inDay), expenses(::inDay), receivable, creditSales(::inDay), supplies()),
-        monthly = FarmerMonthlyOverview(month, production(date, true), sales(::inMonth), received(::inMonth), expenses(::inMonth), receivable, supplies())
+        daily = FarmerDailyOverview(date, production(date, false), sales(::inDay), received(::inDay), expenses(::inDay), receivable, payable, creditSales(::inDay), supplies()),
+        monthly = FarmerMonthlyOverview(month, production(date, true), sales(::inMonth), received(::inMonth), expenses(::inMonth), receivable, payable, supplies())
     )
 }

@@ -179,6 +179,68 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         return transaction
     }
 
+    fun addSupplierPurchase(
+        farmId: String,
+        supplierId: String,
+        supplyId: String,
+        quantity: BigDecimal,
+        unit: ProductUnit,
+        amountMinor: Long,
+        initialPaymentMinor: Long?,
+        occurredAt: String,
+        description: String
+    ): Trade {
+        val farm = getFarm(farmId)
+        val supplier = farm.parties.firstOrNull { it.id == supplierId }
+            ?: throw IllegalArgumentException("Supplier not found: $supplierId")
+        require(supplier.role.compatibleWith(TradeType.PURCHASE)) { "Party is not supplier-compatible" }
+        val supply = farm.supplies.firstOrNull { it.id == supplyId }
+            ?: throw IllegalArgumentException("Supply not found: $supplyId")
+        require(supply.unit == unit) { "Supply unit does not match" }
+        require(amountMinor > 0) { "Purchase amount must be positive" }
+        if (initialPaymentMinor != null) require(initialPaymentMinor in 0..amountMinor) { "Initial payment is out of range" }
+        val trade = TradeDraft(TradeType.PURCHASE, supplierId, amountMinor, description.ifBlank { supply.name }, occurredAt)
+            .toTrade("trade-${UUID.randomUUID()}")
+        val settlement = initialPaymentMinor?.takeIf { it > 0 }?.let { amount ->
+            Settlement("settlement-${UUID.randomUUID()}", trade.id, amount, trade.occurredAt, "", true)
+        }
+        val detail = SupplyPurchaseDetail(null, supply.id, quantity, unit, supply.customUnitLabel, trade.id)
+        val updated = farm.copy(
+            trades = (farm.trades + trade).toMutableList(),
+            settlements = if (settlement == null) farm.settlements else (farm.settlements + settlement).toMutableList(),
+            supplyPurchaseDetails = (farm.supplyPurchaseDetails + detail).toMutableList()
+        )
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return trade
+    }
+
+    fun recordSupplierPayment(farmId: String, supplierId: String, amountMinor: Long, occurredAt: String): List<Settlement> {
+        require(amountMinor > 0) { "Payment amount must be positive" }
+        val farm = getFarm(farmId)
+        val supplier = farm.parties.firstOrNull { it.id == supplierId }
+            ?: throw IllegalArgumentException("Supplier not found: $supplierId")
+        require(supplier.role.compatibleWith(TradeType.PURCHASE)) { "Party is not supplier-compatible" }
+        val eligible = farm.trades.filter { it.partyId == supplierId && it.type == TradeType.PURCHASE }
+            .filter { farm.settlements.outstandingMinorFor(it) > 0 }
+            .sortedWith(compareBy<Trade> { it.occurredAt }.thenBy { it.id })
+        val outstanding = eligible.fold(0L) { total, trade -> Math.addExact(total, farm.settlements.outstandingMinorFor(trade)) }
+        require(outstanding > 0) { "No outstanding supplier balance" }
+        require(amountMinor <= outstanding) { "Payment exceeds supplier balance" }
+        val time = SettlementDraft(eligible.first().id, amountMinor, occurredAt).toSettlement("time").occurredAt
+        var remaining = amountMinor
+        val allocations = eligible.mapNotNull { trade ->
+            if (remaining == 0L) return@mapNotNull null
+            val amount = minOf(remaining, farm.settlements.outstandingMinorFor(trade))
+            remaining -= amount
+            Settlement("settlement-${UUID.randomUUID()}", trade.id, amount, time, "", false)
+        }
+        val updated = farm.copy(settlements = (farm.settlements + allocations).toMutableList())
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+        return allocations
+    }
+
     fun addSupplyUsage(farmId: String, draft: SupplyUsageDraft): SupplyUsage {
         val farm = getFarm(farmId)
         val supply = farm.supplies.firstOrNull { it.id == draft.supplyId }
@@ -710,7 +772,7 @@ data class FarmState(
 
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 11
+        const val CURRENT_FARM_SCHEMA_VERSION = 12
     }
 }
 

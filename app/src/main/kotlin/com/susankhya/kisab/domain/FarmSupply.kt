@@ -19,14 +19,16 @@ data class FarmSupply(
 }
 
 data class SupplyPurchaseDetail(
-    val transactionId: String,
+    val transactionId: String?,
     val supplyId: String,
     val quantity: BigDecimal,
     val unit: ProductUnit,
-    val customUnitLabel: String = ""
+    val customUnitLabel: String = "",
+    val purchaseTradeId: String? = null
 ) {
     init {
-        require(transactionId.isNotBlank()) { "Supply purchase transaction id is required" }
+        require(transactionId?.isNotBlank() == true || purchaseTradeId?.isNotBlank() == true) { "Supply purchase source is required" }
+        require(transactionId == null || purchaseTradeId == null) { "Supply purchase cannot have two sources" }
         require(supplyId.isNotBlank()) { "Supply purchase supply id is required" }
         require(quantity > BigDecimal.ZERO) { "Purchased quantity must be positive" }
         require(quantity.scale() <= MAX_QUANTITY_SCALE) { "Purchased quantity has too many decimal places" }

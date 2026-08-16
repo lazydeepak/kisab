@@ -67,6 +67,16 @@
     <string name="received_money_no_balance">यो ग्राहकबाट लिन बाँकी छैन।</string>
     <string name="received_money_overpayment">पाएको रकम ग्राहकको लिन बाँकी रकमभन्दा बढी छ।</string>
     <string name="supply_purchase_action">किनेँ</string>
+    <string name="supplier_payment_action">पैसा तिरेँ</string>
+    <string name="supplier_purchase_supplier">आपूर्तिकर्ता</string>
+    <string name="supplier_add">आपूर्तिकर्ता थप्नुहोस्</string>
+    <string name="supplier_payment_title">पैसा तिरेँ</string>
+    <string name="supplier_payment_balance_format">तिर्न बाँकी: %1$s</string>
+    <string name="supplier_payment_full_amount">पूरै रकम</string>
+    <string name="supplier_payment_saved">भुक्तानी राखियो</string>
+    <string name="supplier_payment_failed">आपूर्तिकर्ताको भुक्तानी राख्न सकिएन।</string>
+    <string name="supplier_no_balance">यस आपूर्तिकर्तालाई तिर्न बाँकी छैन।</string>
+    <string name="supplier_overpayment">पाएको भुक्तानी तिर्न बाँकी रकमभन्दा बढी छ।</string>
     <string name="supply_usage_action">प्रयोग गरेँ</string>
     <string name="supply_stock_action">बाँकी</string>
     <string name="supply_purchase_title">किनेँ</string>
@@ -75,6 +85,10 @@
     <string name="supply_name">सामान</string>
     <string name="supply_quantity">मात्रा</string>
     <string name="supply_cost">जम्मा खर्च</string>
+    <string name="supplier_payment_state_paid">पूरै तिरेँ</string>
+    <string name="supplier_payment_state_credit">उधार</string>
+    <string name="supplier_payment_state_partial">केही तिरेँ</string>
+    <string name="supplier_payment_now">अहिले तिरेको</string>
     <string name="supply_note">टिप्पणी (वैकल्पिक)</string>
     <string name="supply_add">सामान थप्नुहोस्</string>
     <string name="supply_name_hint">सामानको नाम</string>
@@ -138,6 +152,7 @@
     <string name="farmer_overview_received_format">पैसा आएको: %1$s</string>
     <string name="farmer_overview_expenses_format">खर्च: %1$s</string>
     <string name="farmer_overview_receivable_format">लिन बाँकी: %1$s</string>
+    <string name="farmer_overview_payable_format">तिर्न बाँकी: %1$s</string>
     <string name="farmer_overview_credit_sales_format">आज उधार बिक्री: %1$s</string>
     <string name="farmer_overview_unexplained_format">नखुलेको: %1$s</string>
     <string name="farmer_overview_supplies_format">बाँकी सामान: %1$s</string>

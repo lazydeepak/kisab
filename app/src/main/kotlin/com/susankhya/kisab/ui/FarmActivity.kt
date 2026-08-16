@@ -452,6 +452,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var supplyPurchaseButton: Button
     private lateinit var supplyUsageButton: Button
     private lateinit var supplyStockButton: Button
+    private lateinit var supplierPaymentButton: Button
     private lateinit var productionButton: Button
     private lateinit var farmerOverviewTodayText: TextView
     private lateinit var farmerOverviewMonthButton: Button
@@ -996,6 +997,7 @@ class FarmActivity : AppCompatActivity() {
         supplyPurchaseButton = findViewById(R.id.supplyPurchaseButton)
         supplyUsageButton = findViewById(R.id.supplyUsageButton)
         supplyStockButton = findViewById(R.id.supplyStockButton)
+        supplierPaymentButton = findViewById(R.id.supplierPaymentButton)
         productionButton = findViewById(R.id.productionButton)
         farmerOverviewTodayText = findViewById(R.id.farmerOverviewTodayText)
         farmerOverviewMonthButton = findViewById(R.id.farmerOverviewMonthButton)
@@ -1134,9 +1136,10 @@ class FarmActivity : AppCompatActivity() {
         importBackupButton.setOnClickListener { importBackup() }
         quickSaleButton.setOnClickListener { showQuickSaleDialog() }
         receivedMoneyButton.setOnClickListener { showReceivedMoneyDialog() }
-        supplyPurchaseButton.setOnClickListener { showSupplyPurchaseDialog() }
+        supplyPurchaseButton.setOnClickListener { showSupplierPurchaseDialog() }
         supplyUsageButton.setOnClickListener { showSupplyUsageDialog() }
         supplyStockButton.setOnClickListener { showSupplyStockDialog() }
+        supplierPaymentButton.setOnClickListener { showSupplierPaymentDialog() }
         productionButton.setOnClickListener { showProductionDialog() }
         farmerOverviewMonthButton.setOnClickListener { showFarmerMonthDialog() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
@@ -3552,6 +3555,75 @@ class FarmActivity : AppCompatActivity() {
         dialog.show(); refreshUnit()
     }
 
+    private fun showSupplierPurchaseDialog() {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val supplies = service.supplies(farmId)
+        if (supplies.isEmpty()) return showSupplyCreationDialog { showSupplierPurchaseDialog() }
+        val suppliers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.PURCHASE) }
+        if (suppliers.isEmpty()) return showSupplierCreationDialog { showSupplierPurchaseDialog() }
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val supplierSpinner = Spinner(this)
+        supplierSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, suppliers.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val supplySpinner = Spinner(this)
+        supplySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, supplies.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val quantityInput = EditText(this).apply { hint = string(R.string.supply_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val costInput = EditText(this).apply { hint = string(R.string.supply_cost); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val paidInput = EditText(this).apply { hint = string(R.string.supplier_payment_now); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL; visibility = View.GONE }
+        val stateGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        val paid = RadioButton(this).apply { text = string(R.string.supplier_payment_state_paid) }
+        val credit = RadioButton(this).apply { text = string(R.string.supplier_payment_state_credit) }
+        val partial = RadioButton(this).apply { text = string(R.string.supplier_payment_state_partial) }
+        stateGroup.addView(paid); stateGroup.addView(credit); stateGroup.addView(partial); paid.isChecked = true
+        val summary = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
+        content.addView(supplierSpinner); content.addView(supplySpinner); content.addView(quantityInput); content.addView(costInput); content.addView(stateGroup); content.addView(paidInput); content.addView(summary)
+        fun refreshSummary() {
+            val cost = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), costInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return
+            val paidNow = if (paid.isChecked) cost else if (credit.isChecked) 0L else (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), paidInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: 0L
+            summary.text = string(R.string.quick_sale_summary_format, formatMoney(currentFarmCurrency(), cost), string(R.string.supplier_payment_balance_format, formatMoney(currentFarmCurrency(), cost - paidNow)))
+        }
+        costInput.addTextChangedListener(object : TextWatcher { override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit; override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = refreshSummary(); override fun afterTextChanged(e: Editable?) = Unit })
+        paidInput.addTextChangedListener(object : TextWatcher { override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit; override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = refreshSummary(); override fun afterTextChanged(e: Editable?) = Unit })
+        partial.setOnCheckedChangeListener { _, checked -> paidInput.visibility = if (checked) View.VISIBLE else View.GONE; refreshSummary() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_purchase_title).setView(content).setNeutralButton(R.string.supplier_add) { _, _ -> showSupplierCreationDialog { showSupplierPurchaseDialog() } }.setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val supply = supplies[supplySpinner.selectedItemPosition]
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.supply_quantity_invalid)
+                val cost = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), costInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return@setOnClickListener showToast(R.string.supply_cost_invalid)
+                val paidNow = if (paid.isChecked) cost else if (credit.isChecked) 0L else (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), paidInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return@setOnClickListener showToast(R.string.supply_cost_invalid)
+                try { service.addSupplierPurchase(farmId, suppliers[supplierSpinner.selectedItemPosition].id, supply.id, quantity, supply.unit, cost, paidNow, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), supply.name); dialog.dismiss(); render(); showToast(R.string.supply_saved) } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showSupplierCreationDialog(afterCreate: (Party) -> Unit) {
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val name = EditText(this).apply { hint = string(R.string.quick_sale_customer_name) }
+        val phone = EditText(this).apply { hint = string(R.string.quick_sale_customer_phone); inputType = android.text.InputType.TYPE_CLASS_PHONE }
+        content.addView(name); content.addView(phone)
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supplier_add).setView(content).setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { val farmId = currentFarmId ?: return@setOnClickListener; val value = name.text?.toString()?.trim().orEmpty(); if (value.isBlank()) return@setOnClickListener showToast(R.string.quick_sale_customer_name_required); val supplier = service.addParty(farmId, PartyDraft(value, PartyRole.SUPPLIER, phone.text?.toString()?.trim().orEmpty())); dialog.dismiss(); afterCreate(supplier) } }
+        dialog.show()
+    }
+
+    private fun showSupplierPaymentDialog() {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val suppliers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.PURCHASE) }
+        if (suppliers.isEmpty()) return showToast(R.string.supplier_no_balance)
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val spinner = Spinner(this); spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, suppliers.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val balance = TextView(this); val amount = EditText(this).apply { hint = string(R.string.received_money_amount); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }; val full = Button(this).apply { text = string(R.string.supplier_payment_full_amount); minHeight = dp(48) }
+        content.addView(spinner); content.addView(balance); content.addView(amount); content.addView(full)
+        fun refresh() { val value = service.partyLedgerSummary(farmId, suppliers[spinner.selectedItemPosition].id).toPayMinor; balance.text = string(R.string.supplier_payment_balance_format, formatMoney(currentFarmCurrency(), value)); full.isEnabled = value > 0; full.setOnClickListener { amount.setText(moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), value)); amount.setSelection(amount.text?.length ?: 0) } }
+        spinner.onItemSelectedListener = simpleItemSelectedListener { refresh() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supplier_payment_title).setView(content).setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { val value = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), amount.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return@setOnClickListener showToast(R.string.received_money_amount_invalid); try { service.recordSupplierPayment(farmId, suppliers[spinner.selectedItemPosition].id, value, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)); dialog.dismiss(); render(); showToast(R.string.supplier_payment_saved) } catch (exception: Exception) { val message = if (exception.message?.contains("exceeds") == true) string(R.string.supplier_overpayment) else string(R.string.supplier_payment_failed); Toast.makeText(this, message, Toast.LENGTH_SHORT).show() } } }
+        dialog.show(); refresh()
+    }
+
     private fun showSupplyUsageDialog() {
         if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
@@ -4561,6 +4633,7 @@ class FarmActivity : AppCompatActivity() {
         lines += string(R.string.farmer_overview_received_format, formatMoney(farm.currencyCode, overview.moneyReceivedMinor))
         lines += string(R.string.farmer_overview_expenses_format, formatMoney(farm.currencyCode, overview.expensesMinor))
         lines += string(R.string.farmer_overview_receivable_format, formatMoney(farm.currencyCode, overview.currentReceivableMinor))
+        lines += string(R.string.farmer_overview_payable_format, formatMoney(farm.currencyCode, overview.currentPayableMinor))
         lines += string(R.string.farmer_overview_credit_sales_format, formatMoney(farm.currencyCode, overview.creditSalesMinor))
         if (overview.supplies.isNotEmpty()) {
             lines += string(R.string.farmer_overview_supplies_format, overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" })
@@ -4580,6 +4653,7 @@ class FarmActivity : AppCompatActivity() {
         lines += string(R.string.farmer_overview_received_format, formatMoney(farm.currencyCode, overview.moneyReceivedMinor))
         lines += string(R.string.farmer_overview_expenses_format, formatMoney(farm.currencyCode, overview.expensesMinor))
         lines += string(R.string.farmer_overview_receivable_format, formatMoney(farm.currencyCode, overview.currentReceivableMinor))
+        lines += string(R.string.farmer_overview_payable_format, formatMoney(farm.currencyCode, overview.currentPayableMinor))
         if (overview.supplies.isNotEmpty()) lines += string(R.string.farmer_overview_supplies_format, overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" })
         AlertDialog.Builder(this).setTitle(R.string.farmer_overview_month_title).setMessage(lines.joinToString("\n")).setPositiveButton(R.string.action_done, null).show()
     }

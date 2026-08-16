@@ -49,9 +49,11 @@ object FarmStateValidator {
         val supplyIds = farm.supplies.map { it.id }
         require(supplyIds.size == supplyIds.toSet().size) { "Supply IDs must be unique" }
         farm.supplyPurchaseDetails.forEach { validateSupplyPurchaseDetail(farm, it) }
-        val purchaseTransactionIds = farm.supplyPurchaseDetails.map { it.transactionId }
-        require(purchaseTransactionIds.size == purchaseTransactionIds.toSet().size) {
-            "Supply purchase details must be unique per transaction"
+        val purchaseSourceIds = farm.supplyPurchaseDetails.map { detail ->
+            detail.transactionId?.let { "transaction:$it" } ?: "trade:${detail.purchaseTradeId}"
+        }
+        require(purchaseSourceIds.size == purchaseSourceIds.toSet().size) {
+            "Supply purchase details must be unique per source"
         }
         farm.supplyUsages.forEach { usage ->
             require(farm.supplies.any { it.id == usage.supplyId }) { "Supply usage supply not found: ${usage.supplyId}" }
@@ -150,9 +152,15 @@ object FarmStateValidator {
     }
 
     fun validateSupplyPurchaseDetail(farm: FarmState, detail: SupplyPurchaseDetail) {
-        val transaction = farm.transactions.firstOrNull { it.id == detail.transactionId }
-            ?: throw IllegalArgumentException("Supply purchase transaction not found: ${detail.transactionId}")
-        require(transaction.type == TransactionType.EXPENSE) { "Supply purchase must link to an expense" }
+        if (detail.transactionId != null) {
+            val transaction = farm.transactions.firstOrNull { it.id == detail.transactionId }
+                ?: throw IllegalArgumentException("Supply purchase transaction not found: ${detail.transactionId}")
+            require(transaction.type == TransactionType.EXPENSE) { "Supply purchase must link to an expense" }
+        } else {
+            val trade = farm.trades.firstOrNull { it.id == detail.purchaseTradeId }
+                ?: throw IllegalArgumentException("Supply purchase trade not found: ${detail.purchaseTradeId}")
+            require(trade.type == TradeType.PURCHASE) { "Supply purchase must link to a purchase" }
+        }
         val supply = farm.supplies.firstOrNull { it.id == detail.supplyId }
             ?: throw IllegalArgumentException("Supply purchase supply not found: ${detail.supplyId}")
         require(supply.unit == detail.unit) { "Supply purchase unit does not match" }

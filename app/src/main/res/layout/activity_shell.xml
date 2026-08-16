@@ -249,6 +249,14 @@
             </LinearLayout>
 
             <Button
+                android:id="@+id/supplierPaymentButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="56dp"
+                android:text="@string/supplier_payment_action" />
+
+            <Button
                 android:id="@+id/productionButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

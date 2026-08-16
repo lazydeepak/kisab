@@ -451,6 +451,16 @@ The M7.1 UI intentionally keeps the existing full Party editor in Hisab-Kitab. T
 
 The repository still has unrelated Android-test source debt: older settings tests reference removed ids such as `settingsCurrencyText`, `changeSettingsCurrencyButton`, and `settingsNoFarmText`. M7.1 does not rewrite those tests.
 
+## M7.6 Supplier Khata + पैसा तिरेँ
+
+M7.6 keeps legacy M7.2 cash purchases unchanged while giving new supplier purchases a single PURCHASE Trade authority. A new supplier purchase creates one PURCHASE Trade, an optional explicit initial Settlement, and one `SupplyPurchaseDetail` linked by `purchaseTradeId`; it does not create an additional EXPENSE transaction. Legacy details retain their `transactionId` expense link. This prevents a रु40,000 purchase from appearing twice financially.
+
+Supplier payable is derived through PartyLedger PURCHASE direction. `पैसा तिरेँ` allocates later payments oldest outstanding PURCHASE Trade first, atomically, and never changes supply quantity. Stock remains purchased quantity minus usage regardless of whether money was paid.
+
+Farm persistence advances from schema 11 to schema 12 because `SupplyPurchaseDetail` now explicitly distinguishes its legacy EXPENSE transaction source from its PURCHASE Trade source. Older details decode safely; no historical M7.2 purchase is converted into a supplier Trade. Supplier advances, invoices, tax, purchase orders, reorder automation, and supplier reporting remain deferred.
+
+Farmer Overview keeps customer `लिन बाँकी` and supplier `तिर्न बाँकी` separate. Supplier purchase value is not added again as an EXPENSE transaction, and supplier payment is not counted as a second purchase expense.
+
 ## Acceptance criteria for that slice
 
 - A new user can record a cash milk sale without seeing “Trade,” “Settlement,” or “Receivable.”

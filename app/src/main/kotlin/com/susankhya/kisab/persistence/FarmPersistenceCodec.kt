@@ -51,7 +51,7 @@ import java.util.UUID
  * payload, so settlements and older schemas flow through existing backups.
  */
 object FarmPersistenceCodec {
-    const val CURRENT_SCHEMA_VERSION = 11
+    const val CURRENT_SCHEMA_VERSION = 12
 
     private const val FIELD_SEPARATOR = "\u001F"
     private const val RECORD_SEPARATOR = "\u001E"
@@ -136,11 +136,12 @@ object FarmPersistenceCodec {
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
         append(FIELD_SEPARATOR)
         append(farm.supplyPurchaseDetails.joinToString(RECORD_SEPARATOR) { detail -> listOf(
-            detail.transactionId,
+            detail.transactionId.orEmpty(),
             detail.supplyId,
             detail.quantity.toPlainString(),
             detail.unit.name,
-            detail.customUnitLabel
+            detail.customUnitLabel,
+            detail.purchaseTradeId.orEmpty()
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
         append(FIELD_SEPARATOR)
         append(farm.supplyUsages.joinToString(RECORD_SEPARATOR) { usage -> listOf(
@@ -179,7 +180,7 @@ object FarmPersistenceCodec {
     fun decodeOrNull(encoded: String): FarmState? {
         return try {
             val legacyParts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex())
-            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8") && !legacyParts[0].startsWith("9") && !legacyParts[0].startsWith("10") && !legacyParts[0].startsWith("11")) {
+            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8") && !legacyParts[0].startsWith("9") && !legacyParts[0].startsWith("10") && !legacyParts[0].startsWith("11") && !legacyParts[0].startsWith("12")) {
                 decodeLegacy(legacyParts)
             } else {
                 val fields = encoded.split(FIELD_SEPARATOR)
@@ -199,6 +200,7 @@ object FarmPersistenceCodec {
                     9 -> decodeSchema9(fields)
                     10 -> decodeSchema10(fields)
                     11 -> decodeSchema11(fields)
+                    12 -> decodeSchema12(fields)
                     else -> null
                 }
             }
@@ -326,6 +328,17 @@ object FarmPersistenceCodec {
         )
     }
 
+    private fun decodeSchema12(fields: List<String>): FarmState {
+        val baseFields = fields.take(16).toMutableList()
+        baseFields[12] = fields[12].takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.joinToString(RECORD_SEPARATOR) { value ->
+            value.split(TRANSACTION_FIELD_SEPARATOR).take(5).joinToString(TRANSACTION_FIELD_SEPARATOR)
+        }.orEmpty()
+        return decodeSchema11(baseFields).copy(
+            supplyPurchaseDetails = decodeSupplyPurchaseDetails(fields[12], hasPurchaseTradeLink = true),
+            schemaVersion = CURRENT_SCHEMA_VERSION
+        )
+    }
+
     private fun decodeProductionAllocations(encoded: String): MutableList<ProductionAllocation> =
         encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->
             val parts = value.split(TRANSACTION_FIELD_SEPARATOR)
@@ -363,11 +376,14 @@ object FarmPersistenceCodec {
             FarmSupply(parts[0], parts[1], ProductUnit.valueOf(parts[2]), parts[3])
         }?.toMutableList() ?: mutableListOf()
 
-    private fun decodeSupplyPurchaseDetails(encoded: String): MutableList<SupplyPurchaseDetail> =
+    private fun decodeSupplyPurchaseDetails(encoded: String, hasPurchaseTradeLink: Boolean = false): MutableList<SupplyPurchaseDetail> =
         encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->
             val parts = value.split(TRANSACTION_FIELD_SEPARATOR)
-            require(parts.size == 5) { "Invalid supply purchase payload" }
-            SupplyPurchaseDetail(parts[0], parts[1], BigDecimal(parts[2]), ProductUnit.valueOf(parts[3]), parts[4])
+            require(parts.size == if (hasPurchaseTradeLink) 6 else 5) { "Invalid supply purchase payload" }
+            SupplyPurchaseDetail(
+                parts[0].takeIf { it.isNotBlank() }, parts[1], BigDecimal(parts[2]), ProductUnit.valueOf(parts[3]), parts[4],
+                if (hasPurchaseTradeLink) parts[5].takeIf { it.isNotBlank() } else null
+            )
         }?.toMutableList() ?: mutableListOf()
 
     private fun decodeSupplyUsages(encoded: String): MutableList<SupplyUsage> =
