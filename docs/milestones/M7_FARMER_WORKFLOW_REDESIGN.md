@@ -366,7 +366,7 @@ True inventory, produced-versus-sold stock, transformation recipes/yields, spoil
 
 ## M7.5 Farmer Daily / Monthly Overview
 
-M7.5 adds `FarmerOverview` as a pure, non-persisted read model over existing FarmState authorities. No schema change was made: FarmState remains schema 10, and no daily/monthly totals, cached balances, or summary records are stored.
+M7.5 adds `FarmerOverview` as a pure, non-persisted read model over existing FarmState authorities. The later M7.5 credit-metric hardening adds only an explicit opening-payment marker and advances FarmState persistence to schema 11; daily/monthly totals, cached balances, and summary records remain unpersisted.
 
 ### Metric definitions
 
@@ -374,7 +374,7 @@ M7.5 adds `FarmerOverview` as a pure, non-persisted read model over existing Far
 - **Money received**: Settlement amounts linked to SALE Trades whose Settlement timestamp falls in the local day/month.
 - **Expenses**: EXPENSE FarmTransaction amounts in the local day/month. Supply purchases are counted once through their existing expense transaction.
 - **Customer receivable**: current sum of PartyLedger SALE outstanding balances across customer-compatible parties. This is a current point-in-time balance, not a monthly flow.
-- **आज उधार बिक्री**: today's SALE total minus settlements recorded at the Trade's creation timestamp. This is credit created by today's sale events, not a misleading receivable delta.
+- **आज उधार बिक्री**: today's SALE total minus Settlement records explicitly marked as the atomic opening payment for those Trades. Later payments, including same-day old-debt payments, do not change this event metric.
 - **Production**: ProductionRecord quantities grouped by product for the local day/month.
 - **Unexplained production**: today's ProductionReconciliation unexplained quantity when present; negative values remain visible as inconsistency.
 - **Supplies remaining**: derived supply purchase quantity minus usage quantity.
@@ -388,6 +388,12 @@ Home shows a compact Today block with production, sales, money received, expense
 Daily and monthly boundaries use the existing device timezone conventions. No custom-date report builder, chart, PDF, tax report, or accounting statement was added.
 
 Device evidence: the final APK installed on ZA22374XPC with `adb install -r`; the Nepali Home surface showed `उत्पादन`, derived Today metrics, and `यो महिना`. The full temporary-data overview mutation scenario was covered by focused read-model tests; the real farm was not mutated.
+
+## M7.5 Credit Metric Hardening
+
+The original credit metric used timestamp equality between a Trade and Settlement to guess which payment was made at creation. That was unsafe: timestamps can differ slightly, and a later payment or old-debt payment can share a timestamp without being the opening payment.
+
+Settlements now carry an explicit `isInitialPayment` relationship. Atomic Trade creation marks its opening Settlement; later `addSettlement` calls remain unmarked. `आज उधार बिक्री` is therefore the non-negative unpaid remainder immediately after each period SALE was created, independent of timestamps. Schema 10 and older settlements decode as unmarked legacy facts because their origin cannot be reconstructed safely; new sales are fully explicit in schema 11.
 
 ## M7.2 Farm Supplies & Simple Stock
 

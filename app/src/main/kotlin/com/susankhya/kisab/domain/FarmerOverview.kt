@@ -60,7 +60,7 @@ fun FarmState.farmerOverview(now: OffsetDateTime, zone: ZoneId): FarmerOverview 
     fun received(period: (OffsetDateTime) -> Boolean): Long = settlements.filter { period(it.occurredAt) && tradeById[it.tradeId]?.type == TradeType.SALE }.fold(0L) { total, item -> Math.addExact(total, item.amountMinor) }
     fun expenses(period: (OffsetDateTime) -> Boolean): Long = transactions.filter { it.type == TransactionType.EXPENSE && period(it.occurredAt) }.fold(0L) { total, item -> Math.addExact(total, item.amountMinor) }
     fun creditSales(period: (OffsetDateTime) -> Boolean): Long = trades.filter { it.type == TradeType.SALE && period(it.occurredAt) }.fold(0L) { total, trade ->
-        val paidAtCreation = settlements.filter { it.tradeId == trade.id && it.occurredAt == trade.occurredAt }.fold(0L) { sum, item -> Math.addExact(sum, item.amountMinor) }
+        val paidAtCreation = settlements.filter { it.tradeId == trade.id && it.isInitialPayment }.fold(0L) { sum, item -> Math.addExact(sum, item.amountMinor) }
         Math.addExact(total, Math.subtractExact(trade.totalMinor, paidAtCreation))
     }
     val receivable = parties.filter { it.role.compatibleWith(TradeType.SALE) }.fold(0L) { total, party -> Math.addExact(total, partyLedgerSummary(party.id).toReceiveMinor) }

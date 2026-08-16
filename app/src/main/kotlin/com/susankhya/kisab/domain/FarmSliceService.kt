@@ -319,7 +319,8 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
                 tradeId = trade.id,
                 amountMinor = amount,
                 occurredAt = trade.occurredAt,
-                note = ""
+                note = "",
+                isInitialPayment = true
             )
         }
         val updated = farm.copy(
@@ -459,7 +460,8 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
                 tradeId = trade.id,
                 amountMinor = amount,
                 occurredAt = trade.occurredAt,
-                note = ""
+                note = "",
+                isInitialPayment = true
             )
         }
         if (initialSettlementMinor != null && initialSettlementMinor < 0) {
@@ -708,7 +710,7 @@ data class FarmState(
 
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 10
+        const val CURRENT_FARM_SCHEMA_VERSION = 11
     }
 }
 

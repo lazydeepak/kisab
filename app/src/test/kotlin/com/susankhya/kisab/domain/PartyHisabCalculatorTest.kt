@@ -293,7 +293,7 @@ class PartyHisabCalculatorTest {
         decodedFarm.partyHisab(party.id, FinancialPeriodPreset.ALL_TIME, now, zone)
         decodedBackupFarm.partyHisab(party.id, FinancialPeriodPreset.ALL_TIME, now, zone)
 
-        assertEquals(10, decodedFarm.schemaVersion)
+        assertEquals(11, decodedFarm.schemaVersion)
         assertEquals(persistence, FarmPersistenceCodec.encode(decodedFarm))
         assertEquals(backup, FarmBackupCodec.encode(decodedBackupFarm, exportedAt))
     }

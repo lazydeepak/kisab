@@ -387,8 +387,8 @@ class PartyLedgerTest {
         val after = FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!)
 
         assertEquals(before, after)
-        assertEquals(10, FarmState.CURRENT_FARM_SCHEMA_VERSION)
-        assertEquals(10, FarmPersistenceCodec.decode(after).schemaVersion)
+        assertEquals(11, FarmState.CURRENT_FARM_SCHEMA_VERSION)
+        assertEquals(11, FarmPersistenceCodec.decode(after).schemaVersion)
     }
 
     @Test

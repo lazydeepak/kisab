@@ -51,7 +51,7 @@ import java.util.UUID
  * payload, so settlements and older schemas flow through existing backups.
  */
 object FarmPersistenceCodec {
-    const val CURRENT_SCHEMA_VERSION = 10
+    const val CURRENT_SCHEMA_VERSION = 11
 
     private const val FIELD_SEPARATOR = "\u001F"
     private const val RECORD_SEPARATOR = "\u001E"
@@ -108,7 +108,8 @@ object FarmPersistenceCodec {
             settlement.tradeId,
             settlement.amountMinor.toString(),
             settlement.note,
-            settlement.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            settlement.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+            settlement.isInitialPayment.toString()
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
         append(FIELD_SEPARATOR)
         append(farm.products.joinToString(RECORD_SEPARATOR) { product -> listOf(
@@ -178,7 +179,7 @@ object FarmPersistenceCodec {
     fun decodeOrNull(encoded: String): FarmState? {
         return try {
             val legacyParts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex())
-            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8") && !legacyParts[0].startsWith("9") && !legacyParts[0].startsWith("10")) {
+            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8") && !legacyParts[0].startsWith("9") && !legacyParts[0].startsWith("10") && !legacyParts[0].startsWith("11")) {
                 decodeLegacy(legacyParts)
             } else {
                 val fields = encoded.split(FIELD_SEPARATOR)
@@ -197,6 +198,7 @@ object FarmPersistenceCodec {
                     8 -> decodeSchema8(fields)
                     9 -> decodeSchema9(fields)
                     10 -> decodeSchema10(fields)
+                    11 -> decodeSchema11(fields)
                     else -> null
                 }
             }
@@ -311,6 +313,18 @@ object FarmPersistenceCodec {
             productionAllocations = decodeProductionAllocations(fields[15]),
             schemaVersion = CURRENT_SCHEMA_VERSION
         )
+
+    private fun decodeSchema11(fields: List<String>): FarmState {
+        val baseFields = fields.take(15).toMutableList()
+        baseFields[8] = fields[8].takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.joinToString(RECORD_SEPARATOR) { value ->
+            value.split(TRANSACTION_FIELD_SEPARATOR).take(5).joinToString(TRANSACTION_FIELD_SEPARATOR)
+        }.orEmpty()
+        return decodeSchema9(baseFields).copy(
+            settlements = decodeSettlements(fields[8], hasInitialPaymentMarker = true),
+            productionAllocations = decodeProductionAllocations(fields[15]),
+            schemaVersion = CURRENT_SCHEMA_VERSION
+        )
+    }
 
     private fun decodeProductionAllocations(encoded: String): MutableList<ProductionAllocation> =
         encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->
@@ -441,10 +455,10 @@ object FarmPersistenceCodec {
             parsed
         }?.toMutableList() ?: mutableListOf()
 
-    private fun decodeSettlements(encoded: String): MutableList<Settlement> =
+    private fun decodeSettlements(encoded: String, hasInitialPaymentMarker: Boolean = false): MutableList<Settlement> =
         encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { settlement ->
             val parts = settlement.split(TRANSACTION_FIELD_SEPARATOR)
-            require(parts.size == 5) { "Invalid settlement payload" }
+            require(parts.size == if (hasInitialPaymentMarker) 6 else 5) { "Invalid settlement payload" }
             val amountMinor = parts[2].toLong()
             require(amountMinor > 0) { "Invalid settlement payload" }
             val parsed = Settlement(
@@ -452,7 +466,8 @@ object FarmPersistenceCodec {
                 tradeId = parts[1],
                 amountMinor = amountMinor,
                 note = parts[3],
-                occurredAt = OffsetDateTime.parse(parts[4], DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                occurredAt = OffsetDateTime.parse(parts[4], DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                isInitialPayment = hasInitialPaymentMarker && parts[5].toBooleanStrict()
             )
             require(parsed.id.isNotBlank()) { "Invalid settlement payload" }
             parsed
