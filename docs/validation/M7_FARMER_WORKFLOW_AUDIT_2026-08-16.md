@@ -154,3 +154,62 @@ The integrated cross-feature facts were not created on-device, so this audit doe
 **NEEDS INTEGRATED DEVICE VALIDATION**
 
 The Production interaction concern is resolved as an automation observation, not an app touch defect. A contained Home hierarchy correction is implemented without changing accounting authorities: daily farmer actions remain prominent and legacy manual entries are progressively disclosed. The disposition remains open because the populated joined Production → Sale → Payment → Supplier → Stock → Allocation → Overview scenario, plus 36sp/dark-mode inspection and disposable-farm cleanup evidence, still needs to be completed on-device before broader farmer pilot.
+
+## Final Integrated Device Validation
+
+### Baseline and execution
+
+- Status: `BLOCKED` for final integrated validation disposition; unexecuted checks are not treated as passes.
+- Validation branch: `feature/m7-integrated-device-validation`.
+- Commit tested: `65666c5949acb258a312b82caa3e992665c804bc`.
+- Device: Moto `ZA22374XPC` (`motorola_edge_60_fusion`).
+- Candidate APK: current debug APK, installed with `adb install -r`.
+- Primary UI language: Nepali.
+- Protected farm: `RC01UpgradeFarm` was not mutated.
+
+### Live scenario evidence
+
+| Fact | Expected | Actual evidence | Disposition |
+| --- | --- | --- | --- |
+| Milk production | Morning 38 L + Evening 31 L = 69 L | Production displayed `Milk उत्पादन: 69 लि. / लिटर`; reopening the morning session showed the existing `38` value, confirming session upsert/edit behavior | `PASS` |
+| Milk sale | 57 L for रु 5,700, paid रु 3,000 | Sale confirmation displayed total रु 5,700, initial payment रु 3,000, and balance रु 2,700 | `PASS` |
+| Customer payment | Receive रु 1,000; current balance रु 1,700 | Home displayed sale रु 5,700, money received रु 4,000, customer balance रु 1,700, and today credit sale रु 2,700 | `PASS` |
+| Production allocation | Home 2 L, processing 6 L, animal feed 3 L; unexplained 1 L | Allocation UI opened and rejected an over-allocation when only 2 L remained. Earlier exploratory taps also created duplicate home-use entries; the disposable farm was discarded rather than treating this contaminated state as proof | `BLOCKED` |
+| Supplier purchase | Feed 20 bags, रु 40,000, paid रु 15,000 | Not reached on a clean exact-scenario farm | `NOT EXERCISED` |
+| Supplier usage | Use 3 bags; remaining 17 bags | Not reached | `NOT EXERCISED` |
+| Supplier payment | Pay रु 10,000; payable रु 15,000; stock remains 17 bags | Not reached | `NOT EXERCISED` |
+
+### M7.4 live allocation disposition
+
+`BLOCKED`: the Production allocation surface was reachable and its over-allocation guard was observed, but the exact requested 2/6/3 allocation set was not established on a clean farm. The earlier Production tap concern remains resolved as an automation-coordinate issue, not an application touch defect.
+
+### M7.6 live supplier disposition
+
+`NOT EXERCISED`: the clean integrated run did not reach supplier purchase, usage, or supplier payment. No supplier accounting conclusion is claimed from this device pass.
+
+### Farmer Overview
+
+- Today overview: customer-side sale and payment values matched the expectations above; production appeared as 69 L.
+- Unexplained Milk: intermediate exploratory states displayed 12 L, 8 L, and 2 L as allocations were attempted; this is contaminated evidence and is not a pass for the required 1 L result.
+- Feed remaining and supplier payable: `NOT EXERCISED`.
+- Expenses: `NOT EXERCISED`; no expense value is invented and no duplicate-treatment conclusion is claimed for the रु40,000 PURCHASE trade.
+- This Month: `NOT EXERCISED`.
+- No value was called profit.
+
+### Other Entries, 36sp, and dark mode
+
+- Other Entries disclosure, hide behavior, and recreation restoration: `NOT EXERCISED`.
+- 36sp Home, Today overview, This Month, Production, allocation, supplier, and customer-payment inspection: `NOT EXERCISED`.
+- Dark mode, including a 36sp pass and selected/unselected controls: `NOT EXERCISED`.
+- No accessibility or visual defect was established because those checks were not reached.
+
+### Defects and cleanup
+
+- Corrections: none. No application defect was established; no schema, accounting authority, or Home redesign change was made.
+- Temporary `M7IntegratedValidation` was deleted through the normal UI deletion flow, backup gate, and typed `DELETE` confirmation: `PASS`.
+- Farm management then showed only `RC01UpgradeFarm`: `PASS`.
+- Remaining known debt: stale Settings androidTest references listed above; connected supplier/allocation/monthly/36sp/dark-mode evidence remains incomplete.
+
+## Final Recommendation
+
+**NEEDS ANOTHER CONTAINED CORRECTION PASS**
