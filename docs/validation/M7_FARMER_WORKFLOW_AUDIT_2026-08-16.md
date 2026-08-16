@@ -108,8 +108,44 @@ This is a contained follow-up maintenance task, not part of the audit correction
 
 The disposable farm was created for the audit and must be deleted through the normal Farm Management backup gate and typed confirmation before commit. `RC01UpgradeFarm` must remain active and intact.
 
+## Integrated second-pass evidence
+
+The audit was continued on the current update-installed APK with a new disposable `M7FullAuditFarm` in Nepali. Home, Farm Management, and the full set of daily actions were inspected again.
+
+The required full mutation sequence could not be completed live: the `उत्पादन` button was present and enabled in the UI hierarchy, but repeated coordinate taps did not dispatch its click on the Moto during this pass. There was no application crash in logcat. Because production is the first required fact for the cross-feature scenario, continuing with fabricated or shell-injected records would not be valid evidence.
+
+The disposable farm was deleted through the normal backup gate and typed confirmation. `RC01UpgradeFarm` remained present and untouched.
+
+### Tap/friction table
+
+| Workflow | Approx taps/typing observed or expected | Main friction | Severity |
+| --- | --- | --- | --- |
+| Morning production | Blocked at visible Production action during device tap automation | Click dispatch could not be completed live | High |
+| Cash sale | Home action then customer/product/quantity/rate/payment | Long dialog; no integrated evidence in this pass | Medium |
+| Credit/partial sale | Quick Sale plus payment choice and amount | Summary is useful but dialog is vertically dense | Medium |
+| Receive money | Home action, party selection, amount | Requires selecting party before amount; integrated evidence pending | Medium |
+| Supplier purchase | Home `किनेँ`, supplier, supply, quantity, cost, payment state | Many fields in one dialog | Medium |
+| Use feed | Home `प्रयोग गरेँ`, supply, quantity | Compact but requires navigating back to Home action | Low |
+| Pay supplier | Home `पैसा तिरेँ`, supplier, amount | Correct mental model; integrated evidence pending | Medium |
+| Evening production | Production action, product, session, quantity | Same Production click blocker | High |
+| Production allocation | Production → `प्रयोग` → product/type/quantity | Full live allocation evidence remains pending | High |
+| Today overview | Home block visible immediately | Dense vertical text when populated | High |
+| This month | Home `यो महिना` action | Progressive disclosure is clear; populated evidence pending | Medium |
+
+### Terminology and hierarchy
+
+- **Medium:** Home farmer verbs are clear: `बेचेँ`, `पैसा पाएँ`, `किनेँ`, `प्रयोग गरेँ`, `पैसा तिरेँ`, `उत्पादन`.
+- **Medium:** Hisab-Kitab and legacy income/expense editors still expose software-shaped concepts after navigation.
+- **Low:** The overview uses factual labels but can become text-dense with several products and balances.
+
+The primary daily action set is `बेचेँ`, `पैसा पाएँ`, `किनेँ`, `पैसा तिरेँ`, and `उत्पादन`. Farm-use actions are `प्रयोग गरेँ` and `बाँकी`. Record income, Record expense, and Hisab-Kitab are advanced/legacy actions. This remains a correction hypothesis; no Home redesign was implemented.
+
+### Accounting evidence disposition
+
+The integrated cross-feature facts were not created on-device, so this audit does not claim live proof of the complete combined scenario. Focused domain suites continue to prove the individual authorities and invariants. The remaining live evidence gap is the joined Production → Sale → Payment → Supplier → Stock → Allocation → Overview path.
+
 ## Recommendation
 
-**Needs another usability correction pass before broader farmer pilot.**
+**NEEDS USABILITY CORRECTION PASS**
 
-The accounting foundation is coherent and the farmer-facing verbs are a meaningful improvement. The primary blocker is Home action hierarchy and density, not a correctness failure. A follow-up should group daily actions and progressively disclose legacy accounting actions, then repeat the full populated-farm Nepali/36sp device scenario including live M7.4 allocation and M7.6 supplier payment evidence.
+This is based on incomplete physical evidence, not a correctness failure. The app has coherent accounting authorities and clear farmer verbs, but the whole-product day could not be completed because the Production action did not dispatch from the Moto during this pass. Home density is also a concrete High usability issue. A contained follow-up should first resolve the device interaction/testability blocker, then reassess action grouping with a populated farm before broader farmer pilot.
