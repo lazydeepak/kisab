@@ -253,8 +253,67 @@ The Production interaction concern is resolved as an automation observation, not
 - Post-delete store: `farm_ids` contains only `RC01UpgradeFarm`; `current_farm_id` switched to it; `M7GateB` payload removed.
 - `RC01UpgradeFarm` restored and re-verified on Home: बाँकी रकम -रु १२,४७,६००.००, आम्दानी रु ३,०५०.००, खर्च रु १२,५०,६५०.००, लिन बाँकी रु १५,०००.००, तिर्न बाँकी रु ०.०० (matches baseline; no supplier/supply leakage): `PASS`.
 
+## Gate C — Populated Overview / 36sp / Dark Mode Device Validation
+
+### Baseline and execution
+
+- Validation branch: `validation/m7-gate-c-overview-visual`.
+- Baseline commit: `f09cb63` (Gate B final; includes the schema-12 codec correction). The final commit for Gate C is the same `f09cb63` — validation only, **no application code changes**.
+- APK SHA-256: `0a4eb29858d659c18420d883ecd9dbef4e414b56d4af174fcbd332024138466b` (Gate B fixed debug build, installed on device).
+- Device: Moto `ZA22374XPC` (`motorola_edge_60_fusion`), Android 16 / API 36, timezone `Asia/Tokyo`, locale `ne-NP` (app set via `cmd locale set-app-locales`). Device system dark mode active (`ui_night_mode=2`).
+- Protected farm: `RC01UpgradeFarm` never mutated; store verified before and after.
+- Disposable farm: `M7GateC` (NPR), created via UI.
+- Pre-Gate-C presentation state (recorded, and restored after): `text_size_sp=27`, `appearance_mode=system`.
+
+### Population facts (deterministic, all created today 2026-08-16)
+
+| Metric (Home label) | Fact | Value |
+| --- | --- | --- |
+| Production (उत्पादन) | Milk 40 L morning + 30 L evening | 70 लि. / लिटर |
+| Unexplained (नखुलेको) | Produced 70 − sold 30, no allocation | Milk 40 लि. / लिटर |
+| Sales (बिक्री) | Sold 30 L @ रु 100, paid रु 1,000 at creation | रु ३,०००.०० |
+| Money received (पैसा आएको) | Initial रु 1,000 + customer payment रु 500 | रु १,५००.०० |
+| Expenses (खर्च) | Legacy EXPENSE (दाना/Parcel) | रु २००.०० |
+| Customer receivable (लिन बाँकी) | 3000 − 1000 − 500 | रु १,५००.०० |
+| Today credit sales (आज उधार बिक्री) | 3000 − 1000 initial | रु २,०००.०० |
+| Supplies remaining (बाँकी सामान) | Bought Feed 10 बोरा @ रु 200 (paid रु 1,000), used 2 | Feed 8 बोरा |
+| Supplier payable (तिर्न बाँकी) | 2000 − 1000 | रु १,०००.०० |
+| Current month (यो महिना) | Same period covers all of the above | production 70 L, sales रु 3,000, received रु 1,500, expenses रु 200, receivable रु 1,500, payable रु 1,000, supplies 8 |
+
+### Verification steps
+
+| Step | Evidence | Disposition |
+| --- | --- | --- |
+| Normal-mode Home baseline (27sp) | Full `आज` overview: उत्पादन Milk 70 लि., नखुलेको 40 लि., बिक्री रु ३,०००.००, पैसा आएको रु १,५००.००, खर्च रु २००.००, लिन बाँकी रु १,५००.००, तिर्न बाँकी रु १,०००.००, आज उधार बिक्री रु २,०००.००, बाँकी सामान Feed 8 बोरा; यो महिना dialog shows all 8 lines; Home scrolls to all sections | `PASS` |
+| Set 36sp via Settings UI | Text-size seekbar dragged to max → `text_size_sp=36` persisted in `kisab_app_appearance.xml`; label `अक्षरको आकार: ३६ px` | `PASS` |
+| Set Dark via Settings UI | `appearance_mode=dark` persisted; Home bg #303030 (48,48,48), green brand header, dark nav — dark theme confirmed | `PASS` |
+| Home full-surface audit at 36sp+Dark | Scroll top→bottom: farm name, बाँकी रकम/आम्दानी/खर्च, अन्य अभिलेख disclosure, all 8 action buttons (बेचेँ/पैसा पाएँ/किनेँ/प्रयोग गरेँ/बाँकी/पैसा तिरेँ/उत्पादन), full 10-line आज overview, यो महिना button, हालैका लेनदेनहरू, फार्म उपकरणहरू toggle — every section reachable, no unreachable controls | `PASS` |
+| Today overview readability at 36sp | आज text node [68,2089][1152,2389]; all 10 lines present; L-quantities (70/40 लि.) clearly distinct from रु values; scroll reveals entire block, no clipped last line | `PASS` |
+| Other Entries disclosure at 36sp+Dark | Toggle `देखाउनुहोस्`→`लुकाउनुहोस्` inserts आम्दानी/खर्च अभिलेख buttons inline (no overlay, no layout break); toggle collapses correctly | `PASS` |
+| यो महिना at 36sp+Dark | Dialog opens, message [75,1123][1144,1630] fully visible above सम्पन्न button; readable light-on-dark text; dismisses | `PASS` |
+| Representative dialogs at 36sp+Dark | Production (summary line, product spinner, qty 40 prefilled, sessions बिहान/बेलुका/अन्य, all buttons), Sell (customer, लिन बाँकी रु १,५००, product, rate 100.00 prefilled, payment options, buttons), Bought (supplier, Feed, qty/total, payment options, buttons), पैसा तिरेँ (supplier, तिर्न बाँकी रु १,०००, amount, पूरै रकम, buttons) — all fully visible and actionable at 36sp+Dark | `PASS` |
+| Navigation audit | Home → Hisab-Kitab (financial overview: प्राप्त गर्न बाँकी रु १,५००, तिर्न बाँकी रु १,०००, नगद आम्दानी रु ०, खर्च रु २००, खुद -रु २००, बिक्री रु ३,०००, खरिद रु २,०००, प्राप्त/गरिएका भुक्तानी, स्थिति — all correct, scrolls to कुल स्थिति रु ५००) → Hisab (calculator tools render) → menu → फार्महरू (both farms, M7GateC सक्रिय) → Back returns to previous screen → Home tab restores Home | `PASS` |
+| Rotation / recreation / disclosure state | Rotate to landscape: Home scrolls through all sections; disclosure stays open (`लुकाउनुहोस्` + record buttons). Rotate back: disclosure still open. Force-stop + cold relaunch: M7GateC reloads at 36sp+Dark; disclosure resets to collapsed (`देखाउनुहोस्`, default state — in-memory disclosure resets on fresh process, no crash, no layout corruption) | `PASS` |
+
+### Automated evidence
+
+- Focused Gate C suites: `LocalizationParityTest` (9), `FarmerOverviewTest` (3), `ProductionTest` (3), `ProductionAllocationTest` (4), `SupplierKhataTest` (3), `FarmSupplyTest` (4), `PartyLedgerTest` (17), `FarmFinancialOverviewTest` (24), `DecodeProbeTest` (1) — **67 tests, 0 failures**.
+- `:app:compileDebugKotlin`, `:app:assembleDebug`, `git diff --check`: all clean.
+- Evidence artifacts: `docs/validation/gateC_baseline_normal_top.png`, `gateC_baseline_normal_top.xml`, `gateC_baseline_normal_bottom.png`, `gateC_baseline_normal_month_area.png`, `gateC_36sp_dark_home_top*.png`, `gateC_36sp_dark_disclosure_open.png`, `gateC_36sp_dark_month_overview.png`, `gateC_36sp_dark_dialog_production.png`, `gateC_36sp_dark_dialog_sell.png`, `gateC_36sp_dark_dialog_bought.png`, `gateC_36sp_dark_dialog_supplier_payment.png`, `gateC_36sp_dark_home_relaunch*.png`, `gateC_post_restore_rc01.png`.
+
+### Corrections
+
+- None. No application code changed during Gate C. All checks passed with the Gate B baseline APK. No A/B/C-class findings required fixing.
+
+### Device cleanup
+
+- `M7GateC` deleted through the normal UI deletion flow: warning dialog → backup gate (acknowledged existing backup) → typed `DELETE` confirmation: `PASS`.
+- Post-delete store: `farm_ids` contains only `RC01UpgradeFarm`; `current_farm_id` points to it; no `M7GateC` payload remains.
+- `RC01UpgradeFarm` re-verified: schema-6 payload length 2017, Home shows बाँकी रकम -रु १२,४७,६००.००, आम्दानी रु ३,०५०.००, खर्च रु १२,५०,६५०.००, लिन बाँकी रु १५,०००.००, तिर्न बाँकी रु ०.०० (matches baseline; no Gate C leakage): `PASS`.
+- Presentation settings restored to pre-Gate-C state and verified in `kisab_app_appearance.xml`: `text_size_sp=27`, `appearance_mode=system` (device system dark remains active, so rendering follows system as it did before Gate C).
+
 ## Final Recommendation
 
-**NEEDS ANOTHER CONTAINED CORRECTION PASS**
+**PASS**
 
-Gate B (M7.6 Supplier Khata) device validation: `PASS` with one contained codec correction (see Gate B section above). The previously `NOT EXERCISED` supplier purchase, usage, payment, and persistence checks are now exercised and pass live. Earlier `BLOCKED` dispositions (M7.4 production allocation exact set, other unexecuted checks) remain open and are not treated as passes.
+M7 focused device validation gates complete: **Gate A (Production Allocation) PASS**, **Gate B (Supplier Khata + codec correction) PASS**, **Gate C (Populated Overview / 36sp / Dark Mode) PASS**. No blocking defects remain for the exercised M7 surfaces at normal, 36sp, or dark presentation; all dispositions above are `PASS` with no code changes required. Per the validation mandate, OpenCode stops here and M7 feature development stays frozen pending the supervised Navigation + Farmer UX redesign.
