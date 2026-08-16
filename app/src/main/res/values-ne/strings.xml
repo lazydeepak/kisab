@@ -16,7 +16,7 @@
     <string name="overview_balance_format">बाँकी रकम: %1$s</string>
     <string name="overview_income_format">आम्दानी: %1$s</string>
     <string name="overview_expenses_format">खर्च: %1$s</string>
-    <string name="first_action_prompt">आफ्नो फार्मको बाँकी रकम ट्र्याक गर्न पहिलो आम्दानी वा खर्च अभिलेख गर्नुहोस्।</string>
+    <string name="first_action_prompt">आज फार्ममा भएको काम अभिलेख गर्न माथिको दैनिक काम रोज्नुहोस्।</string>
     <string name="record_income_action">आम्दानी अभिलेख गर्नुहोस्</string>
     <string name="record_expense_action">खर्च अभिलेख गर्नुहोस्</string>
     <string name="quick_sale_action">बेचेँ</string>
@@ -77,6 +77,8 @@
     <string name="supplier_payment_failed">आपूर्तिकर्ताको भुक्तानी राख्न सकिएन।</string>
     <string name="supplier_no_balance">यस आपूर्तिकर्तालाई तिर्न बाँकी छैन।</string>
     <string name="supplier_overpayment">पाएको भुक्तानी तिर्न बाँकी रकमभन्दा बढी छ।</string>
+    <string name="other_entries_action">अन्य अभिलेख देखाउनुहोस्</string>
+    <string name="hide_other_entries_action">अन्य अभिलेख लुकाउनुहोस्</string>
     <string name="supply_usage_action">प्रयोग गरेँ</string>
     <string name="supply_stock_action">बाँकी</string>
     <string name="supply_purchase_title">किनेँ</string>

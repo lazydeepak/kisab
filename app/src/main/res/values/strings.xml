@@ -17,7 +17,7 @@
     <string name="overview_balance_format">Balance: %1$s</string>
     <string name="overview_income_format">Income: %1$s</string>
     <string name="overview_expenses_format">Expenses: %1$s</string>
-    <string name="first_action_prompt">Record your first income or expense to start tracking your farm\'s balance.</string>
+    <string name="first_action_prompt">Start with a daily action above to record what happened on your farm.</string>
     <string name="record_income_action">Record income</string>
     <string name="record_expense_action">Record expense</string>
     <string name="quick_sale_action">Sell</string>
@@ -78,6 +78,8 @@ Remaining: %2$s</string>
     <string name="supplier_payment_failed">Could not save supplier payment.</string>
     <string name="supplier_no_balance">Nothing is owed to this supplier.</string>
     <string name="supplier_overpayment">The payment is greater than the amount owed.</string>
+    <string name="other_entries_action">Show other entries</string>
+    <string name="hide_other_entries_action">Hide other entries</string>
     <string name="supply_usage_action">Used</string>
     <string name="supply_stock_action">Remaining</string>
     <string name="supply_purchase_title">Bought</string>

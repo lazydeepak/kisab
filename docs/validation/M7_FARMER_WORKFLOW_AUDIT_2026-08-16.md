@@ -17,17 +17,16 @@ The audit inspected the Home surface and began the realistic farmer-day path:
 - Home action labels and overview block were inspected.
 - Disposable farm creation completed.
 - Production, sale, received-money, Bought, Used, Remaining, Paid Money, and overview entry points were visible on Home.
-- The full multi-step mutation sequence was not completed live because the dynamically positioned Production dialog did not open reliably from coordinate automation during this pass.
+- The full multi-step mutation sequence was not completed live during the original audit because the dynamically positioned Production dialog did not open reliably from coordinate automation.
+- A follow-up device check on the correction branch dumped the current UI hierarchy, derived the enabled `productionButton` bounds, and tapped its current center after a clean launch. The Production dialog opened with `उत्पादन थप्नुहोस्`, `उत्पादनको नाम`, and `लि. / लिटर`, proving the earlier failure was an automation-state/coordinate issue rather than a confirmed app touch defect.
 - Domain tests already cover the accounting scenario and were not treated as a substitute for the pending physical allocation evidence.
 
 ## Observations
 
 ### High — Home is overcrowded
 
-Home currently exposes all of these as separate primary controls:
+Home exposes the core daily actions directly:
 
-- legacy Record income
-- legacy Record expense
 - `बेचेँ`
 - `पैसा पाएँ`
 - `किनेँ`
@@ -35,10 +34,8 @@ Home currently exposes all of these as separate primary controls:
 - `बाँकी`
 - `पैसा तिरेँ`
 - `उत्पादन`
-- Today overview
-- This month
 
-This is a tall, dense action stack for a semi-literate farmer. The actions are individually understandable in Nepali, but the hierarchy between daily actions and legacy accounting actions is weak. No speculative redesign was applied during this audit.
+Today overview and This month remain available below the action area. Legacy Record income and Record expense are still available, but are now behind `अन्य अभिलेख देखाउनुहोस्`; the disclosure is adjacent to the hidden row and its expanded state is restored across recreation. This is a contained hierarchy correction, not a removal of the legacy accounting authority.
 
 ### Medium — Two accounting vocabularies coexist
 
@@ -71,7 +68,15 @@ The Today overview is compact and readable in Nepali, but it is text-heavy when 
 
 ## Corrections
 
-No application correction was made in this audit pass. There was no observed correctness defect requiring code changes, and the Home overcrowding issue needs a deliberate product decision rather than a local label tweak.
+A contained usability correction was applied on `feature/farmer-workflow-usability-correction`:
+
+- Kept the five daily farmer workflows and supply actions directly available on Home.
+- Moved legacy Record income and Record expense behind `अन्य अभिलेख देखाउनुहोस्` / `Show other entries`; the actions remain available and unchanged.
+- Made the disclosure adjacent to the legacy row and restored its expanded state across recreation.
+- Updated the empty-state prompt so it points to visible daily actions instead of hidden legacy controls.
+- Made no schema, accounting-authority, or transaction behavior changes.
+
+The Production interaction was not patched: resource-ID/UI hierarchy inspection showed an enabled, clickable button, and a center tap derived from its current bounds opened the dialog successfully.
 
 ## Automated evidence
 
@@ -112,7 +117,7 @@ The disposable farm was created for the audit and must be deleted through the no
 
 The audit was continued on the current update-installed APK with a new disposable `M7FullAuditFarm` in Nepali. Home, Farm Management, and the full set of daily actions were inspected again.
 
-The required full mutation sequence could not be completed live: the `उत्पादन` button was present and enabled in the UI hierarchy, but repeated coordinate taps did not dispatch its click on the Moto during this pass. There was no application crash in logcat. Because production is the first required fact for the cross-feature scenario, continuing with fabricated or shell-injected records would not be valid evidence.
+The required full mutation sequence was not completed live during this audit. The original coordinate-tap failure was investigated separately: the current UI node was `clickable=true`, `enabled=true`, and had live bounds `[68,1392][1152,1550]` on the corrected build; tapping its derived center opened the Production dialog. There was no application crash in logcat. No fabricated or shell-injected records were used, so the joined scenario remains an evidence gap rather than an implied pass.
 
 The disposable farm was deleted through the normal backup gate and typed confirmation. `RC01UpgradeFarm` remained present and untouched.
 
@@ -120,7 +125,7 @@ The disposable farm was deleted through the normal backup gate and typed confirm
 
 | Workflow | Approx taps/typing observed or expected | Main friction | Severity |
 | --- | --- | --- | --- |
-| Morning production | Blocked at visible Production action during device tap automation | Click dispatch could not be completed live | High |
+| Morning production | Home Production action, then product and quantity | Direct center tap from current UI bounds opened the dialog; original coordinate attempt was stale/automated incorrectly | Medium |
 | Cash sale | Home action then customer/product/quantity/rate/payment | Long dialog; no integrated evidence in this pass | Medium |
 | Credit/partial sale | Quick Sale plus payment choice and amount | Summary is useful but dialog is vertically dense | Medium |
 | Receive money | Home action, party selection, amount | Requires selecting party before amount; integrated evidence pending | Medium |
@@ -138,7 +143,7 @@ The disposable farm was deleted through the normal backup gate and typed confirm
 - **Medium:** Hisab-Kitab and legacy income/expense editors still expose software-shaped concepts after navigation.
 - **Low:** The overview uses factual labels but can become text-dense with several products and balances.
 
-The primary daily action set is `बेचेँ`, `पैसा पाएँ`, `किनेँ`, `पैसा तिरेँ`, and `उत्पादन`. Farm-use actions are `प्रयोग गरेँ` and `बाँकी`. Record income, Record expense, and Hisab-Kitab are advanced/legacy actions. This remains a correction hypothesis; no Home redesign was implemented.
+The primary daily action set is `बेचेँ`, `पैसा पाएँ`, `किनेँ`, `पैसा तिरेँ`, and `उत्पादन`. Farm-use actions are `प्रयोग गरेँ` and `बाँकी`. Record income and Record expense are now explicitly advanced/legacy actions behind `अन्य अभिलेख देखाउनुहोस्`; Hisab-Kitab remains available through its existing navigation.
 
 ### Accounting evidence disposition
 
@@ -146,6 +151,6 @@ The integrated cross-feature facts were not created on-device, so this audit doe
 
 ## Recommendation
 
-**NEEDS USABILITY CORRECTION PASS**
+**NEEDS INTEGRATED DEVICE VALIDATION**
 
-This is based on incomplete physical evidence, not a correctness failure. The app has coherent accounting authorities and clear farmer verbs, but the whole-product day could not be completed because the Production action did not dispatch from the Moto during this pass. Home density is also a concrete High usability issue. A contained follow-up should first resolve the device interaction/testability blocker, then reassess action grouping with a populated farm before broader farmer pilot.
+The Production interaction concern is resolved as an automation observation, not an app touch defect. A contained Home hierarchy correction is implemented without changing accounting authorities: daily farmer actions remain prominent and legacy manual entries are progressively disclosed. The disposition remains open because the populated joined Production → Sale → Payment → Supplier → Stock → Allocation → Overview scenario, plus 36sp/dark-mode inspection and disposable-farm cleanup evidence, still needs to be completed on-device before broader farmer pilot.

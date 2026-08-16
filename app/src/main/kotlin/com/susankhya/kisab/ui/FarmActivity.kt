@@ -453,6 +453,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var supplyUsageButton: Button
     private lateinit var supplyStockButton: Button
     private lateinit var supplierPaymentButton: Button
+    private lateinit var legacyAccountingActions: View
+    private lateinit var otherEntriesButton: Button
     private lateinit var productionButton: Button
     private lateinit var farmerOverviewTodayText: TextView
     private lateinit var farmerOverviewMonthButton: Button
@@ -489,6 +491,7 @@ class FarmActivity : AppCompatActivity() {
     private var editorState: TransactionEditorState? = null
     private var editorBaseline: TransactionEditorState? = null
     private var toolsExpanded: Boolean = false
+    private var otherEntriesExpanded: Boolean = false
     private var syncTypeListenersSuppressed = false
     private var syncTradeStatusListener = false
     private var editingPartyId: String? = null
@@ -651,6 +654,7 @@ class FarmActivity : AppCompatActivity() {
         outState.putString(STATE_DESTINATION, currentDestination.name)
         outState.putString(STATE_LAST_PRIMARY_DESTINATION, lastPrimaryDestination.name)
         outState.putBoolean(STATE_TOOLS_EXPANDED, toolsExpanded)
+        outState.putBoolean(STATE_OTHER_ENTRIES_EXPANDED, otherEntriesExpanded)
         outState.putString(STATE_OVERVIEW_PERIOD_PRESET, overviewPeriodPreset.name)
         outState.putString(STATE_HISAB_PARTY_ID, hisabSelectedPartyId)
         outState.putString(STATE_HISAB_PERIOD_PRESET, hisabPeriodPreset.name)
@@ -998,6 +1002,8 @@ class FarmActivity : AppCompatActivity() {
         supplyUsageButton = findViewById(R.id.supplyUsageButton)
         supplyStockButton = findViewById(R.id.supplyStockButton)
         supplierPaymentButton = findViewById(R.id.supplierPaymentButton)
+        legacyAccountingActions = findViewById(R.id.legacyAccountingActions)
+        otherEntriesButton = findViewById(R.id.otherEntriesButton)
         productionButton = findViewById(R.id.productionButton)
         farmerOverviewTodayText = findViewById(R.id.farmerOverviewTodayText)
         farmerOverviewMonthButton = findViewById(R.id.farmerOverviewMonthButton)
@@ -1140,6 +1146,7 @@ class FarmActivity : AppCompatActivity() {
         supplyUsageButton.setOnClickListener { showSupplyUsageDialog() }
         supplyStockButton.setOnClickListener { showSupplyStockDialog() }
         supplierPaymentButton.setOnClickListener { showSupplierPaymentDialog() }
+        otherEntriesButton.setOnClickListener { toggleOtherEntries() }
         productionButton.setOnClickListener { showProductionDialog() }
         farmerOverviewMonthButton.setOnClickListener { showFarmerMonthDialog() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
@@ -4534,6 +4541,8 @@ class FarmActivity : AppCompatActivity() {
         if (bundle == null) return
         toolsExpanded = bundle.getBoolean(STATE_TOOLS_EXPANDED, false)
         updateToolsExpansion()
+        otherEntriesExpanded = bundle.getBoolean(STATE_OTHER_ENTRIES_EXPANDED, false)
+        updateOtherEntriesExpansion()
         if (!bundle.getBoolean(STATE_EDITOR_OPEN, false)) return
         val state = readEditorState(bundle, STATE_EDITOR_PREFIX) ?: return
         val baseline = readEditorState(bundle, STATE_EDITOR_BASELINE_PREFIX) ?: state
@@ -5356,6 +5365,18 @@ class FarmActivity : AppCompatActivity() {
         updateToolsExpansion()
     }
 
+    private fun toggleOtherEntries() {
+        otherEntriesExpanded = !otherEntriesExpanded
+        updateOtherEntriesExpansion()
+    }
+
+    private fun updateOtherEntriesExpansion() {
+        legacyAccountingActions.visibility = if (otherEntriesExpanded) View.VISIBLE else View.GONE
+        otherEntriesButton.text = string(
+            if (otherEntriesExpanded) R.string.hide_other_entries_action else R.string.other_entries_action
+        )
+    }
+
     private fun updateToolsExpansion() {
         farmToolsContainer.visibility = if (toolsExpanded) View.VISIBLE else View.GONE
         farmToolsToggleButton.text = string(
@@ -5666,6 +5687,7 @@ class FarmActivity : AppCompatActivity() {
         const val STATE_EDITOR_DESCRIPTION = "Description"
         const val STATE_EDITOR_OCCURRED_AT = "OccurredAt"
         const val STATE_TOOLS_EXPANDED = "toolsExpanded"
+        const val STATE_OTHER_ENTRIES_EXPANDED = "otherEntriesExpanded"
         const val STATE_TRADE_EDITOR_OPEN = "tradeEditorOpen"
         const val STATE_TRADE_EDITOR_PREFIX = "tradeEditor"
         const val STATE_TRADE_EDITOR_BASELINE_PREFIX = "tradeEditorBaseline"
