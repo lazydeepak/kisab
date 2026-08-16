@@ -220,7 +220,7 @@ The Production interaction concern is resolved as an automation observation, not
 
 - Validation branch: `validation/m7-gate-a-production-allocation`.
 - Baseline SHA: `4eaad74d542dd70295abcf653a4bd611781b663e` (integrated device validation record), on top of `65666c5949acb258a312b82caa3e992665c804bc` (farmer workflow usability correction).
-- Final SHA (this record's commit): filled below after commit.
+- Final SHA (this record's commit): `73689a4b7b885c97da64499f6764f335f81332bb`.
 - Working tree was clean before validation. No application code was changed; the validated build is the exact branch debug APK.
 - Prior evidence is preserved and not overwritten: the integrated run established Production 69 L and Sale 57 L live, but the exact 2/6/3 allocation set was `BLOCKED` because exploratory taps had created duplicate home-use entries and the contaminated farm was discarded. Gate A re-runs the complete chain on a clean disposable farm.
 
