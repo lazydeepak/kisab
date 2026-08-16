@@ -330,9 +330,11 @@ object FarmPersistenceCodec {
 
     private fun decodeSchema12(fields: List<String>): FarmState {
         val baseFields = fields.take(16).toMutableList()
-        baseFields[12] = fields[12].takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.joinToString(RECORD_SEPARATOR) { value ->
-            value.split(TRANSACTION_FIELD_SEPARATOR).take(5).joinToString(TRANSACTION_FIELD_SEPARATOR)
-        }.orEmpty()
+        // The back-compat schema-11 decode below would truncate schema-12 supply
+        // purchase records to 5 parts and drop purchaseTradeId, producing details
+        // with no source. Supply purchase details are fully re-decoded from the
+        // original 6-part payload below, so keep them out of the intermediate pass.
+        baseFields[12] = ""
         return decodeSchema11(baseFields).copy(
             supplyPurchaseDetails = decodeSupplyPurchaseDetails(fields[12], hasPurchaseTradeLink = true),
             schemaVersion = CURRENT_SCHEMA_VERSION

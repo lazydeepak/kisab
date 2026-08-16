@@ -210,6 +210,51 @@ The Production interaction concern is resolved as an automation observation, not
 - Farm management then showed only `RC01UpgradeFarm`: `PASS`.
 - Remaining known debt: stale Settings androidTest references listed above; connected supplier/allocation/monthly/36sp/dark-mode evidence remains incomplete.
 
+## Gate B — Supplier Khata (M7.6) Device Validation
+
+### Baseline and execution
+
+- Validation branch: `validation/m7-gate-b-supplier-khata`.
+- Baseline commit: `4eaad74` (integrated device validation record).
+- Device: Moto `ZA22374XPC` (`motorola_edge_60_fusion`), Android 16 / API 36, timezone `Asia/Tokyo`.
+- Candidate APK: debug build of baseline `4eaad74` installed with `adb install -r`.
+- Primary UI language: Nepali (`cmd locale set-app-locales com.susankhya.kisab --locales ne-NP`).
+- Protected farm: `RC01UpgradeFarm` was never mutated; baseline captured before the run and re-verified after cleanup.
+- Disposable farm: `M7GateB` (`farm-c98b7d91-7350-460d-93fc-28414142d0a7`, NPR), created via UI.
+
+### Live scenario evidence
+
+| Fact | Expected | Actual evidence | Disposition |
+| --- | --- | --- | --- |
+| Supplier purchase | Feed 20 bags, रु 40,000, paid रु 15,000 → payable रु 25,000 | Purchase dialog summary `जम्मा: रु ४०,०००.०० तिर्न बाँकी: रु २५,०००.००`; Home `तिर्न बाँकी: रु २५,०००.००`, `बाँकी सामान: Feed 20 बोरा`; Hisab-Kitab `खरिद: रु ४०,०००.००`, `गरिएका भुक्तानी: रु १५,०००.००` | `PASS` |
+| No-double-counting | Single PURCHASE Trade authority; no duplicate EXPENSE | Persisted `kisab_farm_store.xml` for M7GateB contains one PURCHASE trade `trade-53d9e0a9…` (4000000), one initial settlement (1500000, `isInitialPayment=true`), and **zero** FarmTransactions; Home `खर्च: रु ०.००` while the रु 40,000 purchase is tracked once via Hisab-Kitab trades | `PASS` |
+| Supplier stock | 20 bags after purchase | Supply dialog `Feed 20 बाँकी / किनेको: 20 प्रयोग: 0`; persisted `SupplyPurchaseDetail` qty 20 linked to `purchaseTradeId` | `PASS` |
+| Supply usage | Use 5 bags → 15 remaining; payable unchanged | After usage, supply dialog `Feed 15 बाँकी / किनेको: 20 प्रयोग: 5`; Home `बाँकी सामान: Feed 15 बोरा` and `तिर्न बाँकी: रु २५,०००.००` unchanged; persisted usage `5 BAG` | `PASS` |
+| Supplier payment | Pay रु 10,000 → payable रु 15,000; stock unchanged | Supplier khata `तिर्न बाँकी: रु २५,०००.००` before payment; after payment Home `तिर्न बाँकी: रु १५,०००.००`, stock `Feed 15 बोरा`; Hisab-Kitab `गरिएका भुक्तानी: रु २५,०००.००`, `तिर्न बाँकी: रु १५,०००.००`; khata ledger shows खरिद रु ४०,००० → भुक्तानी रु १५,००० (बाँकी २५,०००) → भुक्तानी रु १०,००० (बाँकी १५,०००); persisted second settlement (1000000, `isInitialPayment=false`) | `PASS` |
+| Receivable/payable separation | `लिन बाँकी` unaffected by supplier flow | `लिन बाँकी: रु ०.००` throughout; supplier khata `प्राप्त गर्न बाँकी: रु ०.००`, `तिर्न बाँकी: रु २५,०००.०० → रु १५,०००.००` | `PASS` |
+| Persistence | All values survive process death | After force-stop + cold relaunch, M7GateB reloaded with `तिर्न बाँकी: रु १५,०००.००` and `बाँकी सामान: Feed 15 बोरा`; persisted store matched the UI (trades 1, settlements 2, supplyPurchaseDetails 1, supplyUsages 1, transactions 0) | `PASS` |
+
+### Codec defect found and corrected
+
+- A schema-12 codec defect was discovered during this gate: `decodeSchema12` truncated supply-purchase-detail records to 5 parts for the back-compat schema-11 pass, dropping `purchaseTradeId`. The intermediate `decodeSchema8` pass then constructed a `SupplyPurchaseDetail` with no source, `require` failed, `decodeOrNull` returned `null`, and `loadFarm` returned `null` — the app fell back to the create-farm screen after any supplier purchase (confirmed by reproducing the exact on-device payload decode in a unit test and by cold-relaunch behavior on device).
+- Correction: `decodeSchema12` now blanks the intermediate supply-purchase-details field and re-decodes the original 6-part payload (`hasPurchaseTradeLink = true`). This is small, local, directly evidenced, and does not change the final decoded state.
+- Regression test: `app/src/test/kotlin/com/susankhya/kisab/persistence/DecodeProbeTest.kt` decodes the exact on-device M7GateB payload and asserts the PURCHASE trade, initial settlement, and supply purchase detail.
+- Rebuilt APK SHA-256 `0a4eb29858d659c18420d883ecd9dbef4e414b56d4af174fcbd332024138466b` was installed and the full scenario re-verified live after the fix.
+
+### Automated evidence
+
+- Focused Gate B suites: `SupplierKhataTest`, `FarmerOverviewTest`, `FarmSupplyTest`, `FarmFinancialOverviewTest`, `PartyLedgerTest`, `FarmSliceServiceTest`, `MultiFarmStoreTest`, `LocalizationParityTest`, `DecodeProbeTest` — 154 tests, 0 failures.
+- Full `:app:testDebugUnitTest`: 434 tests, 0 failures.
+- `:app:compileDebugKotlin`, `:app:assembleDebug`, `git diff --check`: all clean.
+
+### Device cleanup
+
+- `M7GateB` deleted through the normal UI deletion flow: warning dialog → backup gate (acknowledged existing backup) → typed `DELETE` confirmation: `PASS`.
+- Post-delete store: `farm_ids` contains only `RC01UpgradeFarm`; `current_farm_id` switched to it; `M7GateB` payload removed.
+- `RC01UpgradeFarm` restored and re-verified on Home: बाँकी रकम -रु १२,४७,६००.००, आम्दानी रु ३,०५०.००, खर्च रु १२,५०,६५०.००, लिन बाँकी रु १५,०००.००, तिर्न बाँकी रु ०.०० (matches baseline; no supplier/supply leakage): `PASS`.
+
 ## Final Recommendation
 
 **NEEDS ANOTHER CONTAINED CORRECTION PASS**
+
+Gate B (M7.6 Supplier Khata) device validation: `PASS` with one contained codec correction (see Gate B section above). The previously `NOT EXERCISED` supplier purchase, usage, payment, and persistence checks are now exercised and pass live. Earlier `BLOCKED` dispositions (M7.4 production allocation exact set, other unexecuted checks) remain open and are not treated as passes.
