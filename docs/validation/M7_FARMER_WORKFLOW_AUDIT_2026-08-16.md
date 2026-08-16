@@ -213,3 +213,138 @@ The Production interaction concern is resolved as an automation observation, not
 ## Final Recommendation
 
 **NEEDS ANOTHER CONTAINED CORRECTION PASS**
+
+## Gate A — Production Allocation (2026-08-16)
+
+### Context and baseline
+
+- Validation branch: `validation/m7-gate-a-production-allocation`.
+- Baseline SHA: `4eaad74d542dd70295abcf653a4bd611781b663e` (integrated device validation record), on top of `65666c5949acb258a312b82caa3e992665c804bc` (farmer workflow usability correction).
+- Final SHA (this record's commit): filled below after commit.
+- Working tree was clean before validation. No application code was changed; the validated build is the exact branch debug APK.
+- Prior evidence is preserved and not overwritten: the integrated run established Production 69 L and Sale 57 L live, but the exact 2/6/3 allocation set was `BLOCKED` because exploratory taps had created duplicate home-use entries and the contaminated farm was discarded. Gate A re-runs the complete chain on a clean disposable farm.
+
+### Device and build
+
+- Physical device: Moto `ZA22374XPC` (`motorola_edge_60_fusion`, USB).
+- Android 16 / API 36.
+- App: Kisab `0.2.0` (versionCode 3), debug build installed with `adb install -r` from the branch `app-debug.apk`.
+- APK SHA-256: `80faac560b157d2c58dbeb7214f719fb2d83af867a7793d671d6fe7739652efc`.
+- Primary UI language: Nepali (per-app locale `ne-NP`); device timezone `Asia/Tokyo`.
+- Protected farm `RC01UpgradeFarm` was not mutated.
+- Disposable farm: `M7GateA` (NPR), created and later deleted through the normal UI.
+
+### Scenario and expected values
+
+Daily scenario on `M7GateA`, farmer-facing Nepali UI only:
+
+| Fact | Expected |
+| --- | --- |
+| Milk production | Morning 38 L + Evening 31 L = 69 L |
+| Milk sale | 57 L via normal `बेचेँ` Quick Sale path |
+| Home use | 2 L |
+| Processing | 6 L |
+| Animal feed | 3 L |
+| Unexplained | 1 L |
+
+### Actual displayed values (from the app UI)
+
+All values below were read from the current UI hierarchy on the device; every tap coordinate was derived from live node bounds, never reused hard-coded coordinates.
+
+| Step | Expected | Actual displayed value | Disposition |
+| --- | --- | --- | --- |
+| Morning production | 38 L | Production dialog: quantity input pre-filled `38` for `बिहान`; saved | `PASS` |
+| Evening production | 31 L | Production dialog: quantity input pre-filled `31` for `बेलुका`; saved | `PASS` |
+| Production total | 69 L | Production dialog summary: `Milk उत्पादन: 69 लि. / लिटर बेचेको: 0 लि. / लिटर नखुलेको: 69 लि. / लिटर` | `PASS` |
+| Milk sale | 57 L | Quick Sale summary: `जम्मा: रु ५,७००.०० पूरै पैसा आयो` (quantity 57, rate 100, paid in full) | `PASS` |
+| Sold derived from sale facts | 57 L | Production dialog summary after sale: `बेचेको: 57 लि. / लिटर नखुलेको: 12 लि. / लिटर` | `PASS` |
+| Home use | 2 L | Allocation dialog after save: `नखुलेको: 10 लि. / लिटर` | `PASS` |
+| Processing | 6 L | Allocation dialog after save: `नखुलेको: 4 लि. / लिटर` | `PASS` |
+| Animal feed | 3 L | Allocation dialog after save: `नखुलेको: 1 लि. / लिटर` | `PASS` |
+| Final reconciliation | 69 − 57 − 2 − 6 − 3 = 1 | Production dialog summary: `Milk उत्पादन: 69 लि. / लिटर बेचेको: 57 लि. / लिटर नखुलेको: 1 लि. / लिटर` | `PASS` |
+| Home Today overview | produced 69, unexplained 1, no phantom finance | `आज` block: `उत्पादन: Milk: 69 लि. / लिटर`, `नखुलेको: Milk 1 लि. / लिटर`, `बिक्री: रु ५,७००.००`, `पैसा आएको: रु ५,७००.००`, `खर्च: रु ०.००`, `लिन बाँकी: रु ०.००`, `तिर्न बाँकी: रु ०.००`, `आज उधार बिक्री: रु ०.००` | `PASS` |
+
+The per-type allocation evidence is the stepwise `नखुलेको` decrement observed in the allocation dialog for each type (`12 → 10 → 4 → 1`) plus the type spinner selection (`घरमा`, `प्रशोधन`, `पशुलाई`) at each save. The app does not expose a per-type totals list; the derived unexplained values prove each allocation's quantity. This matches the previous gate's evidence approach.
+
+### Invariants
+
+- Production remained operational-only: no FarmTransaction income, no FarmTransaction expense, no settlement money received, no receivable/payable was created by production or allocation. Confirmed by the Today overview (`खर्च: रु ०.००`, `लिन बाँकी: रु ०.००`, `तिर्न बाँकी: रु ०.००`).
+- Sold quantity derived from matching `ProductSaleDetail` + `SALE` Trade facts (57 L appeared in reconciliation only after the normal sale). No persistence was injected; no file/database was edited; no description parsing was used.
+- Allocation did not become inventory accounting: supplies/stock were never touched (no supplies exist on the farm).
+- The negative inconsistency path was not triggered (unexplained stayed positive); no clamping observed.
+- No transformations, recipes, yields, livestock records, or financial valuation were introduced.
+- The sale itself is the only financial mutation, via the existing `addProductSale` authority (SALE Trade + ProductSaleDetail + opening Settlement for the paid-in-full sale). Production/allocation did not create or alter it.
+
+### Persistence check
+
+- Force-stop + cold relaunch landed on `M7GateA`.
+- Production dialog after relaunch: `Milk उत्पादन: 69 लि. / लिटर बेचेको: 57 लि. / लिटर नखुलेको: 1 लि. / लिटर` (identical to pre-relaunch).
+- Allocation dialog after relaunch: `नखुलेको: 1 लि. / लिटर`.
+- Session edit/correction behavior: reopening the dialog pre-filled `बिहान` = `38` and `बेलुका` = `31` (existing record upsert/edit), confirming normal correction of an existing record works as designed.
+- Disposition: `PASS`.
+
+### Focused automated verification
+
+Ran on this branch: `:app:testDebugUnitTest` with `--tests` filters, plus `:app:compileDebugKotlin`, `:app:assembleDebug`, `git diff --check`.
+
+| Suite | Tests | Result |
+| --- | --- | --- |
+| ProductionTest | 3 | 0 failures |
+| ProductionAllocationTest | 4 | 0 failures |
+| ProductSaleTest | 7 | 0 failures |
+| FarmerOverviewTest | 3 | 0 failures |
+| FarmFinancialOverviewTest | 24 | 0 failures |
+| PartyLedgerTest | 17 | 0 failures |
+| LocalizationParityTest | 9 | 0 failures |
+| `:app:compileDebugKotlin` | — | OK |
+| `:app:assembleDebug` | — | OK |
+| `git diff --check` | — | OK |
+
+Total: 67 tests, 0 failures. Disposition: `PASS`.
+
+### Cleanup
+
+- `M7GateA` deleted through the normal application UI: Farm Management → farm details → `फार्म मेटाउनुहोस्` → confirmation → danger backup gate (`मसँग पहिले नै ब्याकअप छ`) → typed `DELETE` confirmation.
+- After deletion the Farms list showed only `RC01UpgradeFarm` (सक्रिय). `M7GateA` was gone.
+- `RC01UpgradeFarm` Home confirmed intact: `बाँकी रकम: -रु १२,४७,६००.००`, `आम्दानी: रु ३,०५०.००`, `खर्च: रु १२,५०,६५०.००`, `लिन बाँकी: रु १५,०००.००` — unchanged from the pre-gate state.
+- No other validation farm or real farm was modified. Disposition: `PASS`.
+
+### Interaction friction
+
+- No application touch defect was found on this pass. All taps derived from live hierarchy bounds succeeded; each transition was confirmed by a hierarchy dump before continuing.
+- Medium: the Production dialog summary does not auto-refresh after an allocation save while the dialog stays open; it requires a content tap or reopening to show the updated reconciliation. Usability friction, not a correctness defect.
+- Medium: the allocation type control is a second unlabeled spinner; selecting a type requires opening the dropdown. Discoverable but not labeled.
+- Low: with the software keyboard open, lower dialog controls can be pushed off-screen; the keyboard must be dismissed before reaching the save button.
+- No per-type allocation totals surface exists in the UI; per-type verification relies on the unexplained decrement and the type spinner selection.
+
+### Corrections
+
+None. No application defect was established; no schema, accounting-authority, or Home redesign change was made.
+
+### Dispositions
+
+| Check | Disposition |
+| --- | --- |
+| Production recording (69 L) | `PASS` |
+| Sale-derived sold quantity (57 L) | `PASS` |
+| Home use (2 L) | `PASS` |
+| Processing (6 L) | `PASS` |
+| Animal feed (3 L) | `PASS` |
+| Unexplained (1 L) | `PASS` |
+| Financial invariants | `PASS` |
+| Persistence (force-stop/cold relaunch) | `PASS` |
+| Session record edit/correction | `PASS` |
+| Cleanup | `PASS` |
+| Focused automated tests | `PASS` |
+
+### Gate A disposition
+
+`PASS`
+
+The complete chain `69 L produced → 57 L sold → 2 L home use → 6 L processing → 3 L animal feed → 1 L unexplained` was proven end-to-end by normal farmer-facing UI interaction on the physical Moto, and the state survived force-stop/cold relaunch. Domain tests alone were not used as the pass basis; they only corroborate.
+
+### Remaining blockers
+
+None for Gate A. Known unrelated debt remains: stale androidTest `Settings` references (`settingsCurrencyText`, `changeSettingsCurrencyButton`, `settingsNoFarmText`), which is a separate follow-up maintenance task and was not touched here.
+
+Per the gate instructions, no Gate B work was started.
