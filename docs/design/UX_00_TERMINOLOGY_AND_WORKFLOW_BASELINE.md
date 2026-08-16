@@ -8,9 +8,9 @@
 | Worktree branch | `design/ux-00-terminology-baseline` |
 | Approved design SHA | `9a4a8fbe4e30652c26419fcaeaa09182ae5a2abd` |
 | Design authority | `docs/design/COMPETITIVE_FARMER_UX_REDESIGN.md` |
-| Current branch status | clean, no code changes in this pass |
-| Physical Moto reference in prior evidence | Moto Edge 60 Fusion, serial `ZA22374XPC` |
-| Current session physical device | none attached in this session |
+| Current branch status | clean after probe cleanup |
+| Physical Moto reference | Moto Edge 60 Fusion, serial `ZA22374XPC` |
+| Current session physical device | Moto Edge 60 Fusion, Android 16, 1220x2712 @ 450 dpi |
 
 The redesign spec exists at the approved SHA and matches the requested architecture: `Today | Khata | Record | Farm Work | More`, with `Record` as a central action, not a destination.
 
@@ -83,11 +83,26 @@ Scores: 1 = weak, 5 = strong.
 - `फार्मको काम` is borderline and likely needs a two-line or wider affordance.
 
 ### Device note
-Fresh physical Moto measurement was not possible in this session because no adb-connected device was available. The assessment above combines current code inspection with prior physical-device evidence from the same Moto model/serial in M4-04 docs.
+Fresh physical Moto measurement was completed in this session on `ZA22374XPC`.
+
+### Physical-fit probe results
+
+| Surface | Candidate | Normal text | 36sp text | Width / height | Result |
+| --- | --- | --- | --- | --- | --- |
+| Today | आज | 1 line | 1 line | 90.7dp / 64.0dp | safe |
+| Khata | खाता | 1 line | 1 line | 90.7dp / 64.0dp | safe |
+| Record | लेख्नुहोस् | 1 line | 1 line | 185.2dp / 71.8dp | safe, semantically pending |
+| Record | थप्नुहोस् | 1 line | 1 line | 185.2dp / 71.8dp | safe, weaker meaning |
+| Farm Work | फार्मको काम | 1 line | 3 lines | 90.7dp / 96.7dp | fits, but crowded at 36sp |
+| More | अरू | 1 line | 1 line | 90.7dp / 64.0dp | safe |
+| Directional | लिन बाँकी | 1 line | 1 line | 185.2dp / 64.0dp | safe |
+| Directional | तिर्न बाँकी | 1 line | 1 line | 185.2dp / 64.0dp | safe |
+
+The measured labels had no ellipsis on the live Moto. `फार्मको काम` is the only candidate that materially expands at 36sp, but it remains readable.
 
 ## 6. Current workflow measurement table
 
-Qualitative baseline only where this session could not rerun the physical Moto.
+Current-state baseline for the live app on the Moto. The routes are the existing pre-redesign flows; none of the workflows were modified in this pass.
 
 | ID | Workflow | Start location | Current route / taps | Dialogs / screens | Repeated selections / nesting | Scroll / keyboard friction | Context loss | Terminology hesitation | Final destination | Time |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -165,12 +180,15 @@ Keep it short. Show the label and ask: “What do you expect will open here?”
 
 ## 11. UX-01 readiness disposition
 
-**BLOCKED** for fresh physical-device verification in this session.
+**READY WITH PROVISIONAL TERMINOLOGY**
 
 Reason:
-- terminology recommendations are usable as provisional inputs;
-- however, the requested fresh Moto label-fit pass was not rerun here because no adb-connected Moto was available.
+- the requested Moto label-fit pass is complete;
+- the workflow baseline is documented against the current app state;
+- provisional terminology is clear;
+- real-farmer validation is still required for the central action and farm-work labels.
 
 Net:
-- UX-00 research baseline is complete as a document;
-- UX-01 implementation should not start from this session alone.
+- UX-00 is complete as a research baseline;
+- UX-01 may proceed only with the provisional terms flagged here;
+- `लेख्नुहोस्` and `फार्मको काम` remain pending farmer validation.
