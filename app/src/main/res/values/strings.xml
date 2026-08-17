@@ -325,6 +325,22 @@ Unexplained: %4$s %5$s</string>
 
     <string name="farm_work_production_section">Production</string>
     <string name="farm_work_supplies_section">Supplies</string>
+    <string name="farm_work_where_went">Where did it go?</string>
+    <string name="farm_work_sold_label">Sold: %1$s</string>
+    <string name="farm_work_allocated_label">Used/Allocated: %1$s</string>
+    <string name="farm_work_unexplained_label">Unexplained: %1$s</string>
+    <string name="farm_work_all_explained">All production accounted for</string>
+    <string name="farm_work_record_production_action">Record production</string>
+    <string name="farm_work_explain_production_action">Explain use</string>
+    <string name="farm_work_supply_remaining_format">%1$s %2$s remaining</string>
+    <string name="farm_work_supply_movement_format">Bought: %1$s · Used: %2$s</string>
+    <string name="farm_work_use_supply_action">Use</string>
+    <string name="farm_work_buy_supply_action">Buy supply</string>
+    <string name="farm_work_no_products">No farm products added yet. Add milk, vegetables, crops, etc.</string>
+    <string name="farm_work_no_supplies">No farm supplies added yet. Add feed, fertilizer, medicine, etc.</string>
+    <string name="farm_work_today_production_headline">Today: %1$s %2$s</string>
+    <string name="farm_work_morning_label">Morning: %1$s</string>
+    <string name="farm_work_evening_label">Evening: %1$s</string>
 
     <string name="more_hisab_label">Hisab</string>
     <string name="more_farms_label">Farms</string>

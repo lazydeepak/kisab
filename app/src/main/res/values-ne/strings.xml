@@ -320,6 +320,22 @@
 
     <string name="farm_work_production_section">उत्पादन</string>
     <string name="farm_work_supplies_section">सामान</string>
+    <string name="farm_work_where_went">कहाँ गयो?</string>
+    <string name="farm_work_sold_label">बेचेको: %1$s</string>
+    <string name="farm_work_allocated_label">प्रयोग: %1$s</string>
+    <string name="farm_work_unexplained_label">नखुलेको: %1$s</string>
+    <string name="farm_work_all_explained">सबै उत्पादनको हिसाब मिल्यो</string>
+    <string name="farm_work_record_production_action">उत्पादन लेख्नुहोस्</string>
+    <string name="farm_work_explain_production_action">प्रयोग देखाउनुहोस्</string>
+    <string name="farm_work_supply_remaining_format">%1$s %2$s बाँकी</string>
+    <string name="farm_work_supply_movement_format">किनेको: %1$s · प्रयोग: %2$s</string>
+    <string name="farm_work_use_supply_action">प्रयोग गरेँ</string>
+    <string name="farm_work_buy_supply_action">सामान किनेँ</string>
+    <string name="farm_work_no_products">अहिलेसम्म कुनै उत्पादन थपिएको छैन। दूध, तरकारी, बाली थप्नुहोस्।</string>
+    <string name="farm_work_no_supplies">अहिलेसम्म कुनै सामान थपिएको छैन। दाना, मल, औषधि थप्नुहोस्।</string>
+    <string name="farm_work_today_production_headline">आजको उत्पादन: %1$s %2$s</string>
+    <string name="farm_work_morning_label">बिहान: %1$s</string>
+    <string name="farm_work_evening_label">बेलुका: %1$s</string>
 
     <string name="more_hisab_label">हिसाब</string>
     <string name="more_farms_label">फार्महरू</string>

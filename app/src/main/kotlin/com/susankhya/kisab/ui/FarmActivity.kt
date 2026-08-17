@@ -47,6 +47,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.LinearLayoutCompat
@@ -513,6 +514,13 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var todayProductionStatusText: TextView
     private lateinit var todaySuppliesStatusText: TextView
     private lateinit var todayViewFarmWorkButton: Button
+
+    private lateinit var farmWorkRecordProductionButton: Button
+    private lateinit var farmWorkNoProductsText: TextView
+    private lateinit var farmWorkProductionContainer: LinearLayout
+    private lateinit var farmWorkBuySupplyButton: Button
+    private lateinit var farmWorkNoSuppliesText: TextView
+    private lateinit var farmWorkSuppliesContainer: LinearLayout
 
     private lateinit var khataOverviewContainer: LinearLayout
     private lateinit var khataSearchInput: EditText
@@ -1125,6 +1133,13 @@ class FarmActivity : AppCompatActivity() {
         todaySuppliesStatusText = findViewById(R.id.todaySuppliesStatusText)
         todayViewFarmWorkButton = findViewById(R.id.todayViewFarmWorkButton)
 
+        farmWorkRecordProductionButton = findViewById(R.id.farmWorkRecordProductionButton)
+        farmWorkNoProductsText = findViewById(R.id.farmWorkNoProductsText)
+        farmWorkProductionContainer = findViewById(R.id.farmWorkProductionContainer)
+        farmWorkBuySupplyButton = findViewById(R.id.farmWorkBuySupplyButton)
+        farmWorkNoSuppliesText = findViewById(R.id.farmWorkNoSuppliesText)
+        farmWorkSuppliesContainer = findViewById(R.id.farmWorkSuppliesContainer)
+
         khataOverviewContainer = findViewById(R.id.khataOverviewContainer)
         khataSearchInput = findViewById(R.id.khataSearchInput)
         khataFilterRadioGroup = findViewById(R.id.khataFilterRadioGroup)
@@ -1290,6 +1305,8 @@ class FarmActivity : AppCompatActivity() {
         todayViewFarmWorkButton.setOnClickListener { navigateTo(Destination.FARM_WORK) }
         productionButton.setOnClickListener { showProductionDialog() }
         farmerOverviewMonthButton.setOnClickListener { showFarmerMonthDialog() }
+        farmWorkRecordProductionButton.setOnClickListener { showProductionDialog() }
+        farmWorkBuySupplyButton.setOnClickListener { showSupplierPurchaseDialog() }
         farmWorkProductionButton.setOnClickListener { showProductionDialog() }
         farmWorkAllocationButton.setOnClickListener { showProductionAllocationDialog() }
         farmWorkBoughtButton.setOnClickListener { showSupplierPurchaseDialog() }
@@ -1589,6 +1606,7 @@ class FarmActivity : AppCompatActivity() {
         updateShellNavigationState()
         if (destination == Destination.SETTINGS) renderSettings()
         if (destination == Destination.KHATA) renderHisabKitab()
+        if (destination == Destination.FARM_WORK) renderFarmWork()
         if (destination == Destination.HISAB) renderHisabCalculator()
         if (destination == Destination.FARMS) renderFarmsList()
         if (destination == Destination.FARM_DETAILS) renderFarmDetails()
@@ -3940,18 +3958,22 @@ class FarmActivity : AppCompatActivity() {
         dialog.show(); refreshUnit()
     }
 
-    private fun showSupplierPurchaseDialog() {
+    private fun showSupplierPurchaseDialog(targetSupplyId: String? = null) {
         if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val supplies = service.supplies(farmId)
-        if (supplies.isEmpty()) return showSupplyCreationDialog { showSupplierPurchaseDialog() }
+        if (supplies.isEmpty()) return showSupplyCreationDialog { showSupplierPurchaseDialog(targetSupplyId) }
         val suppliers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.PURCHASE) }
-        if (suppliers.isEmpty()) return showSupplierCreationDialog { showSupplierPurchaseDialog() }
+        if (suppliers.isEmpty()) return showSupplierCreationDialog { showSupplierPurchaseDialog(targetSupplyId) }
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
         val supplierSpinner = Spinner(this)
         supplierSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, suppliers.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         val supplySpinner = Spinner(this)
         supplySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, supplies.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetSupplyId != null) {
+            val idx = supplies.indexOfFirst { it.id == targetSupplyId }
+            if (idx >= 0) supplySpinner.setSelection(idx)
+        }
         val quantityInput = EditText(this).apply { hint = string(R.string.supply_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
         val costInput = EditText(this).apply { hint = string(R.string.supply_cost); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
         val paidInput = EditText(this).apply { hint = string(R.string.supplier_payment_now); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL; visibility = View.GONE }
@@ -3970,7 +3992,7 @@ class FarmActivity : AppCompatActivity() {
         costInput.addTextChangedListener(object : TextWatcher { override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit; override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = refreshSummary(); override fun afterTextChanged(e: Editable?) = Unit })
         paidInput.addTextChangedListener(object : TextWatcher { override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit; override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = refreshSummary(); override fun afterTextChanged(e: Editable?) = Unit })
         partial.setOnCheckedChangeListener { _, checked -> paidInput.visibility = if (checked) View.VISIBLE else View.GONE; refreshSummary() }
-        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_purchase_title).setView(content).setNeutralButton(R.string.supplier_add) { _, _ -> showSupplierCreationDialog { showSupplierPurchaseDialog() } }.setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_purchase_title).setView(content).setNeutralButton(R.string.supplier_add) { _, _ -> showSupplierCreationDialog { showSupplierPurchaseDialog(targetSupplyId) } }.setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val supply = supplies[supplySpinner.selectedItemPosition]
@@ -4013,7 +4035,7 @@ class FarmActivity : AppCompatActivity() {
         dialog.show(); refresh()
     }
 
-    private fun showSupplyUsageDialog() {
+    private fun showSupplyUsageDialog(targetSupplyId: String? = null) {
         if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val supplies = service.supplies(farmId)
@@ -4021,6 +4043,10 @@ class FarmActivity : AppCompatActivity() {
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
         val supplySpinner = Spinner(this)
         supplySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, supplies.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetSupplyId != null) {
+            val idx = supplies.indexOfFirst { it.id == targetSupplyId }
+            if (idx >= 0) supplySpinner.setSelection(idx)
+        }
         val balanceText = TextView(this)
         val quantityInput = EditText(this).apply { hint = string(R.string.supply_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
         val noteInput = EditText(this).apply { hint = string(R.string.supply_note) }
@@ -4078,6 +4104,277 @@ class FarmActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun renderFarmWork() {
+        val farmId = currentFarmId ?: return
+        val farm = service.loadFarm(farmId) ?: return
+
+        // 1. Production Section
+        val products = farm.products
+        if (products.isEmpty()) {
+            farmWorkNoProductsText.visibility = View.VISIBLE
+            farmWorkProductionContainer.removeAllViews()
+        } else {
+            farmWorkNoProductsText.visibility = View.GONE
+            farmWorkProductionContainer.removeAllViews()
+            val today = OffsetDateTime.now(deviceZone).toLocalDate()
+            val todayRecords = farm.productionForDay(today, deviceZone)
+
+            products.forEach { product ->
+                val records = todayRecords.filter { it.productId == product.id }
+                val reconciliation = service.productionReconciliation(farmId, product.id, today, deviceZone)
+                val unitLabel = productUnitLabel(product.defaultUnit, product.customUnitLabel)
+
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    background = ContextCompat.getDrawable(this@FarmActivity, R.drawable.bg_today_card)
+                    setPadding(dp(16), dp(16), dp(16), dp(16))
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        topMargin = dp(8)
+                    }
+                    layoutParams = params
+                }
+
+                // Title: Product name · Today
+                val titleView = TextView(this).apply {
+                    text = "${product.name} · ${string(R.string.today_label)}"
+                    textSize = 18f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                }
+                card.addView(titleView)
+
+                // Today total produced headline
+                val producedView = TextView(this).apply {
+                    text = string(R.string.farm_work_today_production_headline, formatQuantity(reconciliation.produced), unitLabel)
+                    textSize = 15f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setPadding(0, dp(4), 0, 0)
+                }
+                card.addView(producedView)
+
+                // Sessions (Morning / Evening / Other) if any recorded
+                val morningQty = records.firstOrNull { it.session == ProductionSession.MORNING }?.quantity
+                val eveningQty = records.firstOrNull { it.session == ProductionSession.EVENING }?.quantity
+                val otherQty = records.firstOrNull { it.session == ProductionSession.OTHER }?.quantity
+
+                if (morningQty != null || eveningQty != null || otherQty != null) {
+                    val sessionParts = mutableListOf<String>()
+                    if (morningQty != null) sessionParts.add(string(R.string.farm_work_morning_label, "${formatQuantity(morningQty)} $unitLabel"))
+                    if (eveningQty != null) sessionParts.add(string(R.string.farm_work_evening_label, "${formatQuantity(eveningQty)} $unitLabel"))
+                    if (otherQty != null) sessionParts.add("${string(R.string.production_other)}: ${formatQuantity(otherQty)} $unitLabel")
+
+                    val sessionView = TextView(this).apply {
+                        text = sessionParts.joinToString("  ·  ")
+                        textSize = 13f
+                        setTextColor(getColor(R.color.textSecondary))
+                        setPadding(0, dp(2), 0, 0)
+                    }
+                    card.addView(sessionView)
+                }
+
+                // Reconciliation section ("Where did it go? / कहाँ गयो?")
+                val equationTitle = TextView(this).apply {
+                    text = string(R.string.farm_work_where_went)
+                    textSize = 14f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setPadding(0, dp(12), 0, dp(4))
+                }
+                card.addView(equationTitle)
+
+                // Sold breakdown
+                val soldText = string(R.string.farm_work_sold_label, "${formatQuantity(reconciliation.sold)} $unitLabel")
+                val soldView = TextView(this).apply {
+                    text = soldText
+                    textSize = 13f
+                }
+                card.addView(soldView)
+
+                // Allocations breakdown
+                if (reconciliation.allocations.isNotEmpty()) {
+                    val allocLines = reconciliation.allocations.map { (type, qty) ->
+                        val label = when (type) {
+                            ProductionAllocationType.HOME_USE -> string(R.string.production_home_use)
+                            ProductionAllocationType.PROCESSING -> string(R.string.production_processing)
+                            ProductionAllocationType.ANIMAL_FEED -> string(R.string.production_animal_feed)
+                            ProductionAllocationType.WASTE -> string(R.string.production_waste)
+                            ProductionAllocationType.OTHER -> string(R.string.production_other)
+                        }
+                        "$label: ${formatQuantity(qty)} $unitLabel"
+                    }
+                    val allocView = TextView(this).apply {
+                        text = allocLines.joinToString("\n")
+                        textSize = 13f
+                        setPadding(0, dp(2), 0, 0)
+                    }
+                    card.addView(allocView)
+                }
+
+                // Unexplained production status
+                if (reconciliation.unexplained > BigDecimal.ZERO) {
+                    val unexplainedTile = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        background = ContextCompat.getDrawable(this@FarmActivity, R.drawable.bg_metric_tile)
+                        setPadding(dp(12), dp(8), dp(12), dp(8))
+                        gravity = android.view.Gravity.CENTER_VERTICAL
+                        val p = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply { topMargin = dp(8) }
+                        layoutParams = p
+                    }
+                    val warnText = TextView(this).apply {
+                        text = string(R.string.farm_work_unexplained_label, "${formatQuantity(reconciliation.unexplained)} $unitLabel")
+                        textSize = 13f
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                        setTextColor(getColor(R.color.payableText))
+                        val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        layoutParams = lp
+                    }
+                    val reconcileBtn = Button(this).apply {
+                        text = string(R.string.today_reconcile_action)
+                        minHeight = dp(40)
+                        setOnClickListener { showProductionAllocationDialog(product.id) }
+                    }
+                    unexplainedTile.addView(warnText)
+                    unexplainedTile.addView(reconcileBtn)
+                    card.addView(unexplainedTile)
+                } else if (reconciliation.produced > BigDecimal.ZERO) {
+                    val explainedView = TextView(this).apply {
+                        text = string(R.string.farm_work_all_explained)
+                        textSize = 13f
+                        setTextColor(getColor(R.color.receivableText))
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                        setPadding(0, dp(6), 0, 0)
+                    }
+                    card.addView(explainedView)
+                }
+
+                // Contextual action buttons for this product
+                val actionRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    val p = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = dp(12) }
+                    layoutParams = p
+                }
+                val recordBtn = Button(this).apply {
+                    text = string(R.string.farm_work_record_production_action)
+                    minHeight = dp(44)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    setOnClickListener { showProductionDialog(product.id) }
+                }
+                val explainBtn = Button(this).apply {
+                    text = string(R.string.farm_work_explain_production_action)
+                    minHeight = dp(44)
+                    val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        marginStart = dp(8)
+                    }
+                    layoutParams = lp
+                    setOnClickListener { showProductionAllocationDialog(product.id) }
+                }
+                actionRow.addView(recordBtn)
+                actionRow.addView(explainBtn)
+                card.addView(actionRow)
+
+                farmWorkProductionContainer.addView(card)
+            }
+        }
+
+        // 2. Supplies Section
+        val supplies = farm.supplies
+        if (supplies.isEmpty()) {
+            farmWorkNoSuppliesText.visibility = View.VISIBLE
+            farmWorkSuppliesContainer.removeAllViews()
+        } else {
+            farmWorkNoSuppliesText.visibility = View.GONE
+            farmWorkSuppliesContainer.removeAllViews()
+
+            supplies.forEach { supply ->
+                val purchases = farm.supplyPurchaseDetails.filter { it.supplyId == supply.id }.fold(BigDecimal.ZERO) { acc, d -> acc.add(d.quantity) }
+                val used = farm.supplyUsages.filter { it.supplyId == supply.id }.fold(BigDecimal.ZERO) { acc, u -> acc.add(u.quantity) }
+                val remaining = purchases.subtract(used)
+                val unitLabel = supplyUnitLabel(supply.unit, supply.customUnitLabel)
+
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    background = ContextCompat.getDrawable(this@FarmActivity, R.drawable.bg_today_card)
+                    setPadding(dp(16), dp(16), dp(16), dp(16))
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        topMargin = dp(8)
+                    }
+                    layoutParams = params
+                }
+
+                // Top row: Supply name + Remaining quantity
+                val topRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                }
+                val nameView = TextView(this).apply {
+                    text = supply.name
+                    textSize = 18f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    layoutParams = lp
+                }
+                val remainingView = TextView(this).apply {
+                    text = string(R.string.farm_work_supply_remaining_format, formatQuantity(remaining), unitLabel)
+                    textSize = 15f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setTextColor(getColor(if (remaining > BigDecimal.ZERO) R.color.receivableText else R.color.textSecondary))
+                }
+                topRow.addView(nameView)
+                topRow.addView(remainingView)
+                card.addView(topRow)
+
+                // Secondary movement summary
+                val movementView = TextView(this).apply {
+                    text = string(R.string.farm_work_supply_movement_format, "${formatQuantity(purchases)} $unitLabel", "${formatQuantity(used)} $unitLabel")
+                    textSize = 13f
+                    setTextColor(getColor(R.color.textSecondary))
+                    setPadding(0, dp(4), 0, 0)
+                }
+                card.addView(movementView)
+
+                // Contextual buttons: [Use] [Buy]
+                val actionRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    val p = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = dp(12) }
+                    layoutParams = p
+                }
+                val useBtn = Button(this).apply {
+                    text = string(R.string.farm_work_use_supply_action)
+                    minHeight = dp(44)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    setOnClickListener { showSupplyUsageDialog(supply.id) }
+                }
+                val buyBtn = Button(this).apply {
+                    text = string(R.string.supply_purchase_action)
+                    minHeight = dp(44)
+                    val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        marginStart = dp(8)
+                    }
+                    layoutParams = lp
+                    setOnClickListener { showSupplierPurchaseDialog(supply.id) }
+                }
+                actionRow.addView(useBtn)
+                actionRow.addView(buyBtn)
+                card.addView(actionRow)
+
+                farmWorkSuppliesContainer.addView(card)
+            }
+        }
+    }
+
     private fun supplyUnitLabel(unit: ProductUnit, customLabel: String): String = when (unit) {
         ProductUnit.LITRE -> string(R.string.supply_unit_litre)
         ProductUnit.KILOGRAM -> string(R.string.supply_unit_kilogram)
@@ -4090,13 +4387,13 @@ class FarmActivity : AppCompatActivity() {
 
     private fun formatQuantity(quantity: BigDecimal): String = quantity.stripTrailingZeros().toPlainString()
 
-    private fun showProductionDialog() {
+    private fun showProductionDialog(targetProductId: String? = null) {
         if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         val products = service.products(farmId)
         if (products.isEmpty()) {
-            showProductCreationDialog { showProductionDialog() }
+            showProductCreationDialog { showProductionDialog(targetProductId) }
             return
         }
         val today = OffsetDateTime.now(deviceZone).toLocalDate()
@@ -4104,6 +4401,10 @@ class FarmActivity : AppCompatActivity() {
         val todaySummary = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
         val productSpinner = Spinner(this)
         productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetProductId != null) {
+            val idx = products.indexOfFirst { it.id == targetProductId }
+            if (idx >= 0) productSpinner.setSelection(idx)
+        }
         val unitText = TextView(this)
         val quantityInput = EditText(this).apply { hint = string(R.string.production_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
         val sessionGroup = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
@@ -4140,7 +4441,7 @@ class FarmActivity : AppCompatActivity() {
         content.addView(todaySummary); content.addView(allocationButton); content.addView(labelText(R.string.production_product)); content.addView(productSpinner)
         content.addView(quantityInput); content.addView(unitText); content.addView(sessionGroup)
         val dialog = AlertDialog.Builder(this).setTitle(R.string.production_title).setView(content)
-            .setNeutralButton(R.string.production_add_product) { _, _ -> showProductCreationDialog { showProductionDialog() } }
+            .setNeutralButton(R.string.production_add_product) { _, _ -> showProductCreationDialog { showProductionDialog(targetProductId) } }
             .setPositiveButton(R.string.production_save, null).setNegativeButton(R.string.action_cancel, null).create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -4159,13 +4460,12 @@ class FarmActivity : AppCompatActivity() {
         }
         productSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshUnitAndExisting() }
         sessionGroup.setOnCheckedChangeListener { _, _ -> refreshUnitAndExisting() }
-        allocationButton.setOnClickListener { showProductionAllocationDialog() }
+        allocationButton.setOnClickListener { showProductionAllocationDialog(selectedProduct()?.id) }
         dialog.show(); refreshSummary(); refreshUnitAndExisting()
         if (records.isNotEmpty()) {
             dialog.setOnDismissListener { }
             content.setOnClickListener { refreshSummary() }
         }
-        // Existing records remain editable through the same session upsert. Delete is exposed by the compact edit action below.
         records.firstOrNull()?.let { first ->
             dialog.setButton(AlertDialog.BUTTON_NEUTRAL, string(R.string.production_delete), DialogInterface.OnClickListener { _, _ ->
                 AlertDialog.Builder(this).setTitle(R.string.production_delete_title).setMessage(R.string.production_delete_message)
@@ -4176,7 +4476,7 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
-    private fun showProductionAllocationDialog() {
+    private fun showProductionAllocationDialog(targetProductId: String? = null) {
         if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val products = service.products(farmId)
@@ -4185,6 +4485,10 @@ class FarmActivity : AppCompatActivity() {
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
         val productSpinner = Spinner(this)
         productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetProductId != null) {
+            val idx = products.indexOfFirst { it.id == targetProductId }
+            if (idx >= 0) productSpinner.setSelection(idx)
+        }
         val unexplainedText = TextView(this)
         val typeSpinner = Spinner(this)
         val types = ProductionAllocationType.values().toList()
@@ -4989,6 +5293,7 @@ class FarmActivity : AppCompatActivity() {
         updateShellTitle()
         if (currentDestination == Destination.SETTINGS) renderSettings()
         if (currentDestination == Destination.KHATA) renderHisabKitab()
+        if (currentDestination == Destination.FARM_WORK) renderFarmWork()
         if (currentDestination == Destination.HISAB) renderHisabCalculator()
         if (currentDestination == Destination.FARMS) renderFarmsList()
         if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()

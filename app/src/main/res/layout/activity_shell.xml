@@ -2492,62 +2492,154 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
-                <TextView
+                <!-- 1. PRODUCTION SECTION -->
+                <LinearLayout
+                    android:id="@+id/farmWorkProductionHeaderContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/farm_work_production_section"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <Button
-                    android:id="@+id/farmWorkProductionButton"
+                    <TextView
+                        android:id="@+id/farmWorkProductionSectionLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/farm_work_production_section"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/farmWorkRecordProductionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
+                        android:text="@string/farm_work_record_production_action" />
+                </LinearLayout>
+
+                <!-- Empty state when no products or no production today -->
+                <TextView
+                    android:id="@+id/farmWorkNoProductsText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:minHeight="56dp"
-                    android:text="@string/production_action" />
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/farm_work_no_products"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
 
-                <Button
-                    android:id="@+id/farmWorkAllocationButton"
+                <!-- Container for production cards (one per product) -->
+                <LinearLayout
+                    android:id="@+id/farmWorkProductionContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:minHeight="56dp"
-                    android:text="@string/production_allocate" />
+                    android:orientation="vertical" />
 
-                <TextView
+                <!-- 2. SUPPLIES SECTION -->
+                <LinearLayout
+                    android:id="@+id/farmWorkSuppliesHeaderContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
-                    android:text="@string/farm_work_supplies_section"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <Button
-                    android:id="@+id/farmWorkBoughtButton"
+                    <TextView
+                        android:id="@+id/farmWorkSuppliesSectionLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/farm_work_supplies_section"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/farmWorkBuySupplyButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
+                        android:text="@string/farm_work_buy_supply_action" />
+                </LinearLayout>
+
+                <!-- Empty state when no supplies -->
+                <TextView
+                    android:id="@+id/farmWorkNoSuppliesText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:minHeight="56dp"
-                    android:text="@string/supply_purchase_action" />
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/farm_work_no_supplies"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
 
-                <Button
-                    android:id="@+id/farmWorkUsedButton"
+                <!-- Container for supply cards -->
+                <LinearLayout
+                    android:id="@+id/farmWorkSuppliesContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:minHeight="56dp"
-                    android:text="@string/supply_usage_action" />
+                    android:orientation="vertical" />
 
-                <Button
-                    android:id="@+id/farmWorkRemainingButton"
+                <!-- 3. Retained Compatibility / Action Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/farmWorkProductionButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/production_action" />
+
+                    <Button
+                        android:id="@+id/farmWorkAllocationButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/production_allocate" />
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:minHeight="56dp"
-                    android:text="@string/supply_stock_action" />
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/farmWorkBoughtButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/supply_purchase_action" />
+
+                    <Button
+                        android:id="@+id/farmWorkUsedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/supply_usage_action" />
+
+                    <Button
+                        android:id="@+id/farmWorkRemainingButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/supply_stock_action" />
+                </LinearLayout>
             </LinearLayout>
         </ScrollView>
 
