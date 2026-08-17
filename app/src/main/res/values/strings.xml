@@ -286,8 +286,30 @@ Unexplained: %4$s %5$s</string>
     <string name="nav_hisab_kitab">Hisab-Kitab</string>
     <string name="nav_hisab">Hisab</string>
     <string name="nav_settings">Settings</string>
+    <string name="nav_today">Today</string>
+    <string name="nav_khata">Khata</string>
+    <string name="nav_record">Record</string>
+    <string name="nav_farm_work">Farm Work</string>
+    <string name="nav_more">More</string>
     <string name="kisab_logo_content_description">Kisab logo</string>
     <string name="shell_menu_content_description">More options</string>
+
+    <string name="record_sheet_title">What happened?</string>
+    <string name="record_sheet_farm_output">Farm output</string>
+    <string name="record_sheet_sales_payments">Sales &amp; payments</string>
+    <string name="record_sheet_supplies">Supplies</string>
+    <string name="record_sheet_other_money">Other money</string>
+    <string name="record_sheet_cancel">Cancel</string>
+
+    <string name="farm_work_production_section">Production</string>
+    <string name="farm_work_supplies_section">Supplies</string>
+
+    <string name="more_hisab_label">Hisab</string>
+    <string name="more_farms_label">Farms</string>
+    <string name="more_backup_label">Backup / Restore</string>
+    <string name="more_about_label">About Kisab</string>
+    <string name="more_section_management_label">Review and management</string>
+    <string name="more_section_account_label">App and data</string>
 
     <string name="settings_action">Settings</string>
 

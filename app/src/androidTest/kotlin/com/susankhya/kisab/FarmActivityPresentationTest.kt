@@ -21,6 +21,7 @@ import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.Visibility
+import androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -122,9 +123,9 @@ class FarmActivityPresentationTest {
         try {
             createFarm("NPR Farm")
 
-            openSettings()
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText(FarmCurrencies.defaultFor(Locale.getDefault()))))
-            onView(withId(R.id.navHomeItem)).perform(click())
+            openFarmDetails("NPR Farm")
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label(FarmCurrencies.defaultFor(Locale.getDefault()), Locale.getDefault()))))
+            onView(withId(R.id.navTodayItem)).perform(click())
 
             openExpenseEditor()
             setOccurredAt(2024, 1, 1, 17, 45)
@@ -147,15 +148,15 @@ class FarmActivityPresentationTest {
         seedTransaction(amountMinor = 1500, currency = "USD", description = "Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            openSettings()
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("USD")))
-            onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            openFarmDetails("Demo Farm")
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("USD", Locale.getDefault()))))
+            onView(withId(R.id.farmDetailsChangeCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             var money: String? = null
             scenario.onActivity { activity -> money = activity.formatMoney("USD", 1500) }
             assertTrue("Expected USD amount in recent row", recentRowText(scenario).contains(money!!))
 
-            onView(withId(R.id.navHomeItem)).perform(click())
+            onView(withId(R.id.navTodayItem)).perform(click())
             openExpenseEditor()
             setOccurredAt(2024, 1, 1, 17, 45)
             fillEditor(description = "More feed", amount = "10.00")
@@ -373,6 +374,12 @@ class FarmActivityPresentationTest {
     private fun openSettings() {
         onView(withId(R.id.shellMenuButton)).perform(click())
         onView(withText(R.string.nav_settings)).perform(click())
+    }
+
+    private fun openFarmDetails(farmName: String) {
+        onView(withId(R.id.navMoreItem)).perform(click())
+        onView(withId(R.id.moreFarmsButton)).perform(click())
+        onView(allOf(isDescendantOfA(withId(R.id.farmsListContainer)), withText(farmName))).perform(click())
     }
 
     private fun setAppLocale(locale: Locale) {

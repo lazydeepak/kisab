@@ -281,8 +281,30 @@
     <string name="nav_hisab_kitab">हिसाब-किताब</string>
     <string name="nav_hisab">हिसाब</string>
     <string name="nav_settings">सेटिङहरू</string>
+    <string name="nav_today">आज</string>
+    <string name="nav_khata">खाता</string>
+    <string name="nav_record">लेख्नुहोस्</string>
+    <string name="nav_farm_work">फार्मको काम</string>
+    <string name="nav_more">अरू</string>
     <string name="kisab_logo_content_description">किसाबको लोगो</string>
     <string name="shell_menu_content_description">थप विकल्पहरू</string>
+
+    <string name="record_sheet_title">के भयो?</string>
+    <string name="record_sheet_farm_output">फार्मको उत्पादन</string>
+    <string name="record_sheet_sales_payments">बिक्री र भुक्तानी</string>
+    <string name="record_sheet_supplies">सामान</string>
+    <string name="record_sheet_other_money">अन्य पैसा</string>
+    <string name="record_sheet_cancel">रद्द गर्नुहोस्</string>
+
+    <string name="farm_work_production_section">उत्पादन</string>
+    <string name="farm_work_supplies_section">सामान</string>
+
+    <string name="more_hisab_label">हिसाब</string>
+    <string name="more_farms_label">फार्महरू</string>
+    <string name="more_backup_label">ब्याकअप / पुनर्स्थापना</string>
+    <string name="more_about_label">किसाबको बारेमा</string>
+    <string name="more_section_management_label">समीक्षा र व्यवस्थापन</string>
+    <string name="more_section_account_label">एप र डेटा</string>
 
     <string name="settings_action">सेटिङहरू</string>
 

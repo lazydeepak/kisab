@@ -2206,6 +2206,144 @@
                     android:text="@string/create_farm_action" />
             </LinearLayout>
         </ScrollView>
+
+        <ScrollView
+            android:id="@+id/farmWorkScreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/farm_work_production_section"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/farmWorkProductionButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/production_action" />
+
+                <Button
+                    android:id="@+id/farmWorkAllocationButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/production_allocate" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/farm_work_supplies_section"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/farmWorkBoughtButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/supply_purchase_action" />
+
+                <Button
+                    android:id="@+id/farmWorkUsedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/supply_usage_action" />
+
+                <Button
+                    android:id="@+id/farmWorkRemainingButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/supply_stock_action" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/moreScreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/more_section_management_label"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/moreHisabButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/more_hisab_label" />
+
+                <Button
+                    android:id="@+id/moreFarmsButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/more_farms_label" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/more_section_account_label"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/moreSettingsButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/nav_settings" />
+
+                <Button
+                    android:id="@+id/moreBackupButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/more_backup_label" />
+
+                <Button
+                    android:id="@+id/moreAboutButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/more_about_label" />
+            </LinearLayout>
+        </ScrollView>
     </FrameLayout>
 
     <LinearLayout
@@ -2222,14 +2360,14 @@
         android:paddingBottom="6dp">
 
         <LinearLayout
-            android:id="@+id/navHomeItem"
+            android:id="@+id/navTodayItem"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
             android:background="@drawable/bottom_nav_item_background"
             android:clickable="true"
-            android:contentDescription="@string/nav_home"
+            android:contentDescription="@string/nav_today"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
@@ -2253,20 +2391,20 @@
                 android:duplicateParentState="true"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="@string/nav_home"
+                android:text="@string/nav_today"
                 android:textColor="@color/bottom_nav_item_tint"
                 android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/navHisabKitabItem"
+            android:id="@+id/navKhataItem"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
             android:background="@drawable/bottom_nav_item_background"
             android:clickable="true"
-            android:contentDescription="@string/nav_hisab_kitab"
+            android:contentDescription="@string/nav_khata"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
@@ -2290,20 +2428,58 @@
                 android:duplicateParentState="true"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="@string/nav_hisab_kitab"
+                android:text="@string/nav_khata"
                 android:textColor="@color/bottom_nav_item_tint"
                 android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/navHisabItem"
+            android:id="@+id/navRecordItem"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:contentDescription="@string/nav_record"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:importantForAccessibility="yes"
+            android:minHeight="72dp"
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/record_action_button_background"
+                android:contentDescription="@string/nav_record"
+                android:duplicateParentState="true"
+                android:padding="9dp"
+                android:src="@drawable/ic_nav_record"
+                app:tint="@color/recordActionContent" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:duplicateParentState="true"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/nav_record"
+                android:textColor="@color/bottom_nav_item_tint"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navFarmWorkItem"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
             android:background="@drawable/bottom_nav_item_background"
             android:clickable="true"
-            android:contentDescription="@string/nav_hisab"
+            android:contentDescription="@string/nav_farm_work"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
@@ -2317,7 +2493,7 @@
                 android:layout_height="24dp"
                 android:duplicateParentState="true"
                 android:importantForAccessibility="no"
-                android:src="@drawable/ic_nav_hisab"
+                android:src="@drawable/ic_nav_farm_work"
                 app:tint="@color/bottom_nav_item_tint" />
 
             <TextView
@@ -2327,7 +2503,44 @@
                 android:duplicateParentState="true"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="@string/nav_hisab"
+                android:text="@string/nav_farm_work"
+                android:textColor="@color/bottom_nav_item_tint"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navMoreItem"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bottom_nav_item_background"
+            android:clickable="true"
+            android:contentDescription="@string/nav_more"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:importantForAccessibility="yes"
+            android:minHeight="64dp"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_nav_more"
+                app:tint="@color/bottom_nav_item_tint" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:duplicateParentState="true"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/nav_more"
                 android:textColor="@color/bottom_nav_item_tint"
                 android:textSize="12sp" />
         </LinearLayout>

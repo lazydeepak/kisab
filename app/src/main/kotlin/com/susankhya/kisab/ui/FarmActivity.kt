@@ -1,6 +1,7 @@
 package com.susankhya.kisab.ui
 
 import android.app.DatePickerDialog
+import android.app.Dialog
 import android.app.LocaleManager
 import android.app.TimePickerDialog
 import android.content.Intent
@@ -23,6 +24,9 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Gravity
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import androidx.annotation.RequiresApi
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -150,7 +154,7 @@ class FarmActivity : AppCompatActivity() {
     private var privateBuildExpiryStartupHandled = false
     internal lateinit var backupFileAdapter: FarmBackupFileAdapter
 
-    private enum class Destination { HOME, HISAB_KITAB, HISAB, SETTINGS, FARMS, FARM_DETAILS, ADD_FARM }
+    private enum class Destination { TODAY, KHATA, FARM_WORK, MORE, HISAB, SETTINGS, FARMS, FARM_DETAILS, ADD_FARM }
 
     private val moneyFormatter = MoneyFormatter()
     private val moneyInputParser = MoneyInputParser(moneyFormatter)
@@ -171,11 +175,15 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var shellMenuButton: ImageButton
     private lateinit var privateBuildExpiryBanner: TextView
     private lateinit var bottomNavigation: LinearLayout
-    private lateinit var navHomeItem: LinearLayout
-    private lateinit var navHisabKitabItem: LinearLayout
-    private lateinit var navHisabItem: LinearLayout
+    private lateinit var navTodayItem: LinearLayout
+    private lateinit var navKhataItem: LinearLayout
+    private lateinit var navRecordItem: LinearLayout
+    private lateinit var navFarmWorkItem: LinearLayout
+    private lateinit var navMoreItem: LinearLayout
     private lateinit var hisabKitabScreen: ScrollView
     private lateinit var hisabScreen: ScrollView
+    private lateinit var farmWorkScreen: ScrollView
+    private lateinit var moreScreen: ScrollView
     private lateinit var settingsScreen: ScrollView
 
     private lateinit var hisabNoFarmText: TextView
@@ -458,6 +466,16 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var productionButton: Button
     private lateinit var farmerOverviewTodayText: TextView
     private lateinit var farmerOverviewMonthButton: Button
+    private lateinit var farmWorkProductionButton: Button
+    private lateinit var farmWorkAllocationButton: Button
+    private lateinit var farmWorkBoughtButton: Button
+    private lateinit var farmWorkUsedButton: Button
+    private lateinit var farmWorkRemainingButton: Button
+    private lateinit var moreHisabButton: Button
+    private lateinit var moreFarmsButton: Button
+    private lateinit var moreSettingsButton: Button
+    private lateinit var moreBackupButton: Button
+    private lateinit var moreAboutButton: Button
 
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
@@ -486,8 +504,8 @@ class FarmActivity : AppCompatActivity() {
 
     private var createFarmCurrencyCode: String = FarmState.DEFAULT_CURRENCY_CODE
 
-    private var currentDestination: Destination = Destination.HOME
-    private var lastPrimaryDestination: Destination = Destination.HOME
+    private var currentDestination: Destination = Destination.TODAY
+    private var lastPrimaryDestination: Destination = Destination.TODAY
     private var editorState: TransactionEditorState? = null
     private var editorBaseline: TransactionEditorState? = null
     private var toolsExpanded: Boolean = false
@@ -597,7 +615,7 @@ class FarmActivity : AppCompatActivity() {
                     } else {
                         closeEditor()
                     }
-                } else if (currentDestination == Destination.HISAB_KITAB && settlementTargetTradeId != null) {
+                } else if (currentDestination == Destination.KHATA && settlementTargetTradeId != null) {
                     if (settlementEditorState != null) {
                         if (isSettlementEditorDirty()) {
                             showDiscardDialog { cancelSettlementForm() }
@@ -607,28 +625,28 @@ class FarmActivity : AppCompatActivity() {
                     } else {
                         closeSettlementEditor()
                     }
-                } else if (currentDestination == Destination.HISAB_KITAB && tradeEditorState != null) {
+                } else if (currentDestination == Destination.KHATA && tradeEditorState != null) {
                     if (isTradeEditorDirty()) {
                         showDiscardDialog { closeTradeEditor() }
                     } else {
                         closeTradeEditor()
                     }
-                } else if (currentDestination == Destination.HISAB_KITAB && editingPartyId != null) {
+                } else if (currentDestination == Destination.KHATA && editingPartyId != null) {
                     if (isPartyEditorDirty()) {
                         showDiscardDialog { closePartyEditor() }
                     } else {
                         closePartyEditor()
                     }
-                } else if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+                } else if (currentDestination == Destination.KHATA && khataPartyId != null) {
                     closePartyKhata()
                 } else if (currentDestination == Destination.FARM_DETAILS || currentDestination == Destination.ADD_FARM) {
                     managedFarmId = null
                     showDestination(Destination.FARMS)
-                } else if (currentDestination == Destination.FARMS || currentDestination == Destination.SETTINGS) {
+                } else if (currentDestination == Destination.FARMS || currentDestination == Destination.SETTINGS || currentDestination == Destination.HISAB) {
                     managedFarmId = null
                     showDestination(lastPrimaryDestination)
-                } else if (currentDestination != Destination.HOME) {
-                    showDestination(Destination.HOME)
+                } else if (currentDestination != Destination.TODAY) {
+                    showDestination(Destination.TODAY)
                 } else {
                     finish()
                 }
@@ -739,11 +757,15 @@ class FarmActivity : AppCompatActivity() {
         shellMenuButton = findViewById(R.id.shellMenuButton)
         privateBuildExpiryBanner = findViewById(R.id.privateBuildExpiryBanner)
         bottomNavigation = findViewById(R.id.bottomNavigation)
-        navHomeItem = findViewById(R.id.navHomeItem)
-        navHisabKitabItem = findViewById(R.id.navHisabKitabItem)
-        navHisabItem = findViewById(R.id.navHisabItem)
+        navTodayItem = findViewById(R.id.navTodayItem)
+        navKhataItem = findViewById(R.id.navKhataItem)
+        navRecordItem = findViewById(R.id.navRecordItem)
+        navFarmWorkItem = findViewById(R.id.navFarmWorkItem)
+        navMoreItem = findViewById(R.id.navMoreItem)
         hisabKitabScreen = findViewById(R.id.hisabKitabScreen)
         hisabScreen = findViewById(R.id.hisabScreen)
+        farmWorkScreen = findViewById(R.id.farmWorkScreen)
+        moreScreen = findViewById(R.id.moreScreen)
         settingsScreen = findViewById(R.id.settingsScreen)
         hisabNoFarmText = findViewById(R.id.hisabNoFarmText)
         hisabNoPartiesText = findViewById(R.id.hisabNoPartiesText)
@@ -1007,6 +1029,16 @@ class FarmActivity : AppCompatActivity() {
         productionButton = findViewById(R.id.productionButton)
         farmerOverviewTodayText = findViewById(R.id.farmerOverviewTodayText)
         farmerOverviewMonthButton = findViewById(R.id.farmerOverviewMonthButton)
+        farmWorkProductionButton = findViewById(R.id.farmWorkProductionButton)
+        farmWorkAllocationButton = findViewById(R.id.farmWorkAllocationButton)
+        farmWorkBoughtButton = findViewById(R.id.farmWorkBoughtButton)
+        farmWorkUsedButton = findViewById(R.id.farmWorkUsedButton)
+        farmWorkRemainingButton = findViewById(R.id.farmWorkRemainingButton)
+        moreHisabButton = findViewById(R.id.moreHisabButton)
+        moreFarmsButton = findViewById(R.id.moreFarmsButton)
+        moreSettingsButton = findViewById(R.id.moreSettingsButton)
+        moreBackupButton = findViewById(R.id.moreBackupButton)
+        moreAboutButton = findViewById(R.id.moreAboutButton)
 
         entryKindSpinner.adapter = ArrayAdapter(
             this,
@@ -1149,6 +1181,25 @@ class FarmActivity : AppCompatActivity() {
         otherEntriesButton.setOnClickListener { toggleOtherEntries() }
         productionButton.setOnClickListener { showProductionDialog() }
         farmerOverviewMonthButton.setOnClickListener { showFarmerMonthDialog() }
+        farmWorkProductionButton.setOnClickListener { showProductionDialog() }
+        farmWorkAllocationButton.setOnClickListener { showProductionAllocationDialog() }
+        farmWorkBoughtButton.setOnClickListener { showSupplierPurchaseDialog() }
+        farmWorkUsedButton.setOnClickListener { showSupplyUsageDialog() }
+        farmWorkRemainingButton.setOnClickListener { showSupplyStockDialog() }
+        moreHisabButton.setOnClickListener { navigateTo(Destination.HISAB) }
+        moreFarmsButton.setOnClickListener {
+            managedFarmId = null
+            navigateTo(Destination.FARMS)
+        }
+        moreSettingsButton.setOnClickListener {
+            pendingSettingsScrollToSection = null
+            navigateTo(Destination.SETTINGS)
+        }
+        moreBackupButton.setOnClickListener {
+            pendingSettingsScrollToSection = settingsDataSection
+            navigateTo(Destination.SETTINGS)
+        }
+        moreAboutButton.setOnClickListener { showAboutDialog() }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
         settingsAboutUpdateButton.setOnClickListener { checkForPrivateAppUpdate() }
@@ -1197,9 +1248,11 @@ class FarmActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
         })
 
-        navHomeItem.setOnClickListener { navigateTo(Destination.HOME) }
-        navHisabKitabItem.setOnClickListener { navigateTo(Destination.HISAB_KITAB) }
-        navHisabItem.setOnClickListener { navigateTo(Destination.HISAB) }
+        navTodayItem.setOnClickListener { navigateTo(Destination.TODAY) }
+        navKhataItem.setOnClickListener { navigateTo(Destination.KHATA) }
+        navRecordItem.setOnClickListener { showRecordSheet() }
+        navFarmWorkItem.setOnClickListener { navigateTo(Destination.FARM_WORK) }
+        navMoreItem.setOnClickListener { navigateTo(Destination.MORE) }
         shellMenuButton.setOnClickListener { showShellMenu() }
         calculateArithmeticButton.setOnClickListener { calculateArithmetic() }
         calculateProfitButton.setOnClickListener { calculateProfit() }
@@ -1378,14 +1431,16 @@ class FarmActivity : AppCompatActivity() {
 
     private fun showDestination(destination: Destination) {
         currentDestination = destination
-        if (destination != Destination.HISAB_KITAB && khataPartyId != null) {
+        if (destination != Destination.KHATA && khataPartyId != null) {
             closePartyKhata()
         }
-        if (destination in setOf(Destination.HOME, Destination.HISAB_KITAB, Destination.HISAB)) {
+        if (destination in setOf(Destination.TODAY, Destination.KHATA, Destination.FARM_WORK, Destination.MORE)) {
             lastPrimaryDestination = destination
         }
-        scrollView.visibility = if (destination == Destination.HOME) View.VISIBLE else View.GONE
-        hisabKitabScreen.visibility = if (destination == Destination.HISAB_KITAB) View.VISIBLE else View.GONE
+        scrollView.visibility = if (destination == Destination.TODAY) View.VISIBLE else View.GONE
+        hisabKitabScreen.visibility = if (destination == Destination.KHATA) View.VISIBLE else View.GONE
+        farmWorkScreen.visibility = if (destination == Destination.FARM_WORK) View.VISIBLE else View.GONE
+        moreScreen.visibility = if (destination == Destination.MORE) View.VISIBLE else View.GONE
         hisabScreen.visibility = if (destination == Destination.HISAB) View.VISIBLE else View.GONE
         settingsScreen.visibility = if (destination == Destination.SETTINGS) View.VISIBLE else View.GONE
         farmsScreen.visibility = if (destination == Destination.FARMS) View.VISIBLE else View.GONE
@@ -1394,7 +1449,7 @@ class FarmActivity : AppCompatActivity() {
         updateShellTitle()
         updateShellNavigationState()
         if (destination == Destination.SETTINGS) renderSettings()
-        if (destination == Destination.HISAB_KITAB) renderHisabKitab()
+        if (destination == Destination.KHATA) renderHisabKitab()
         if (destination == Destination.HISAB) renderHisabCalculator()
         if (destination == Destination.FARMS) renderFarmsList()
         if (destination == Destination.FARM_DETAILS) renderFarmDetails()
@@ -1453,9 +1508,49 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun updateShellNavigationState() {
-        navHomeItem.isSelected = currentDestination == Destination.HOME
-        navHisabKitabItem.isSelected = currentDestination == Destination.HISAB_KITAB
-        navHisabItem.isSelected = currentDestination == Destination.HISAB
+        navTodayItem.isSelected = currentDestination == Destination.TODAY
+        navKhataItem.isSelected = currentDestination == Destination.KHATA
+        navRecordItem.isSelected = false
+        navFarmWorkItem.isSelected = currentDestination == Destination.FARM_WORK
+        navMoreItem.isSelected = currentDestination == Destination.MORE
+    }
+
+    private fun showRecordSheet() {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.record_action_sheet)
+        dialog.window?.apply {
+            setGravity(Gravity.BOTTOM)
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+        dialog.findViewById<Button>(R.id.recordSheetProductionButton).setOnClickListener {
+            dialog.dismiss()
+            showProductionDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetSellButton).setOnClickListener {
+            dialog.dismiss()
+            showQuickSaleDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetReceivedMoneyButton).setOnClickListener {
+            dialog.dismiss()
+            showReceivedMoneyDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetBoughtButton).setOnClickListener {
+            dialog.dismiss()
+            showSupplierPurchaseDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetUsedButton).setOnClickListener {
+            dialog.dismiss()
+            showSupplyUsageDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetPaidMoneyButton).setOnClickListener {
+            dialog.dismiss()
+            showSupplierPaymentDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetCancelButton).setOnClickListener { dialog.dismiss() }
+        dialog.show()
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.DEFAULT_SP
+        dialog.window?.decorView?.let { applyTextScale(it, scale) }
     }
 
     private fun calculateArithmetic() {
@@ -1780,11 +1875,13 @@ class FarmActivity : AppCompatActivity() {
 
     private fun updateShellTitle() {
         shellTitle.text = when (currentDestination) {
-            Destination.HOME -> {
+            Destination.TODAY -> {
                 val farm = currentFarmId?.let { service.loadFarm(it) }
                 farm?.name ?: string(R.string.app_name)
             }
-            Destination.HISAB_KITAB -> string(R.string.nav_hisab_kitab)
+            Destination.KHATA -> string(R.string.nav_khata)
+            Destination.FARM_WORK -> string(R.string.nav_farm_work)
+            Destination.MORE -> string(R.string.nav_more)
             Destination.HISAB -> string(R.string.nav_hisab)
             Destination.SETTINGS -> string(R.string.nav_settings)
             Destination.FARMS -> string(R.string.farms_page_title)
@@ -2114,7 +2211,7 @@ class FarmActivity : AppCompatActivity() {
         tradeTotalInput.setText("")
         tradePaidInput.setText("")
         tradeDescriptionInput.setText("")
-        if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+        if (currentDestination == Destination.KHATA && khataPartyId != null) {
             refreshKhataView()
         }
     }
@@ -2542,7 +2639,7 @@ class FarmActivity : AppCompatActivity() {
             tradeEditorContainer.visibility = View.VISIBLE
             tradeEditorState?.let { refreshTradeEditorPaymentSection(it) }
         }
-        if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null && tradeEditorState == null) {
+        if (currentDestination == Destination.KHATA && khataPartyId != null && tradeEditorState == null) {
             refreshKhataView()
             return
         }
@@ -2819,7 +2916,7 @@ class FarmActivity : AppCompatActivity() {
                 showToast(R.string.toast_party_saved)
             }
             closePartyEditor()
-            if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+            if (currentDestination == Destination.KHATA && khataPartyId != null) {
                 refreshKhataView()
             } else {
                 renderParties()
@@ -2857,7 +2954,7 @@ class FarmActivity : AppCompatActivity() {
     private fun closePartyEditor() {
         editingPartyId = null
         setPartyEditorVisible(false)
-        if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+        if (currentDestination == Destination.KHATA && khataPartyId != null) {
             refreshKhataView()
         } else {
             renderParties()
@@ -4498,7 +4595,7 @@ class FarmActivity : AppCompatActivity() {
             currentFarmId = service.currentFarmId()
             managedFarmId = null
             render()
-            showDestination(if (currentFarmId == null) Destination.HOME else Destination.FARMS)
+            showDestination(if (currentFarmId == null) Destination.TODAY else Destination.FARMS)
             showToast(R.string.toast_farm_deleted)
         } catch (exception: Exception) {
             showUnexpectedFailure(exception, "delete farm failed")
@@ -4602,7 +4699,7 @@ class FarmActivity : AppCompatActivity() {
         renderFarm(farm)
         updateShellTitle()
         if (currentDestination == Destination.SETTINGS) renderSettings()
-        if (currentDestination == Destination.HISAB_KITAB) renderHisabKitab()
+        if (currentDestination == Destination.KHATA) renderHisabKitab()
         if (currentDestination == Destination.HISAB) renderHisabCalculator()
         if (currentDestination == Destination.FARMS) renderFarmsList()
         if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()
@@ -4953,7 +5050,7 @@ class FarmActivity : AppCompatActivity() {
             currentFarmId = farm.id
             managedFarmId = farm.id
             render()
-            showDestination(Destination.HOME)
+            showDestination(Destination.TODAY)
             showToast(R.string.toast_farm_created)
         } catch (exception: Exception) {
             showUnexpectedFailure(exception, "add farm failed")

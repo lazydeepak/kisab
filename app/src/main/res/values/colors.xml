@@ -4,6 +4,9 @@
     <color name="bottomNavContent">#53645A</color>
     <color name="bottomNavSelectedContent">#1B5E20</color>
     <color name="bottomNavSelectedBackground">#C8E6C9</color>
+    <color name="recordActionBackground">#2E7D32</color>
+    <color name="recordActionContent">#FFFFFF</color>
+    <color name="recordActionSelectedBackground">#1B5E20</color>
     <color name="dangerZone">#C62828</color>
     <color name="dangerZoneLabel">#C62828</color>
     <color name="dangerZoneContainer">#FFEBEE</color>

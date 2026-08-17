@@ -49,7 +49,8 @@ class KisanToolboxDeviceBatteryTest {
     fun arithmeticAllOperationsAndDivideByZero() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
             onView(withId(R.id.kisanCalculatorToolbox)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             // ADD (default selection): 10 + 2.5 = 12.5
@@ -91,7 +92,8 @@ class KisanToolboxDeviceBatteryTest {
     fun arithmeticRejectsBlankInputWithInlineError() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
             onView(withId(R.id.arithmeticFirstInput)).perform(scrollTo(), replaceText("5"), closeSoftKeyboard())
             onView(withId(R.id.arithmeticSecondInput)).perform(scrollTo(), replaceText(""), closeSoftKeyboard())
             onView(withId(R.id.calculateArithmeticButton)).perform(scrollTo(), click())
@@ -109,7 +111,8 @@ class KisanToolboxDeviceBatteryTest {
     fun profitLossMarginAndMarkupAndNegativeGuard() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
 
             // Profit: cost 40, revenue 100 -> profit 60, markup 150%
             onView(withId(R.id.profitCostInput)).perform(scrollTo(), replaceText("40"), closeSoftKeyboard())
@@ -153,7 +156,8 @@ class KisanToolboxDeviceBatteryTest {
     fun simpleInterestComputesInterestAndTotal() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
             // Principal 10000, rate 12%/yr, 6 months -> interest 600, total 10600.
             onView(withId(R.id.interestPrincipalInput)).perform(scrollTo(), replaceText("10000"), closeSoftKeyboard())
             onView(withId(R.id.interestRateInput)).perform(scrollTo(), replaceText("12"), closeSoftKeyboard())
@@ -176,7 +180,8 @@ class KisanToolboxDeviceBatteryTest {
     fun landConversionsHillAndTeraiAndNegativeAreaRejected() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
 
             // Hill: 1 Ropani -> Aana = 16
             convertLand("1", 1, 2)

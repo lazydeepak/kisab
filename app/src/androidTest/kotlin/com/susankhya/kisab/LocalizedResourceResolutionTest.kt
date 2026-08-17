@@ -46,7 +46,12 @@ class LocalizedResourceResolutionTest {
 
     @Test
     fun formattedDialogMessageResolvesInEnglish() {
-        val message = english.getString(R.string.dialog_import_backup_message_format, "Demo Farm", "Entries: 0\nTransactions: 0")
+        val message = english.getString(
+            R.string.dialog_import_backup_message_format,
+            "Demo Farm",
+            "Entries: 0\nTransactions: 0",
+            "This will replace the current farm permanently."
+        )
         assertTrue(message.startsWith("Import backup for Demo Farm?"))
         assertTrue(message.endsWith("This will replace the current farm permanently."))
     }
@@ -176,8 +181,11 @@ class LocalizedResourceResolutionTest {
     @Test
     fun shellNavigationStringsResolveInBothLocales() {
         val keys = listOf(
-            R.string.nav_home,
-            R.string.nav_hisab_kitab,
+            R.string.nav_today,
+            R.string.nav_khata,
+            R.string.nav_record,
+            R.string.nav_farm_work,
+            R.string.nav_more,
             R.string.nav_hisab,
             R.string.nav_settings,
             R.string.settings_action,
