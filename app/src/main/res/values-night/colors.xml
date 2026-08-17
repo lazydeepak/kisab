@@ -17,4 +17,14 @@
     <color name="farmActiveBadgeBackground">#2E4A35</color>
     <color name="farmActiveBadgeText">#C8E6C9</color>
     <color name="sectionDivider">#3A4A3E</color>
+    <color name="cardBackground">#1A241C</color>
+    <color name="cardStroke">#3A4F3E</color>
+    <color name="receivableBackground">#1C2E20</color>
+    <color name="receivableStroke">#2E5434</color>
+    <color name="receivableText">#A5D6A7</color>
+    <color name="payableBackground">#2E1C1C</color>
+    <color name="payableStroke">#542E2E</color>
+    <color name="payableText">#EF9A9A</color>
+    <color name="metricTileBackground">#223325</color>
+    <color name="metricTileStroke">#38523D</color>
 </resources>

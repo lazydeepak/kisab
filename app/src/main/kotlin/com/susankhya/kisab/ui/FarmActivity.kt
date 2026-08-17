@@ -32,6 +32,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.RadioButton
@@ -172,6 +173,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var shellRoot: LinearLayout
     private lateinit var shellAppBar: LinearLayout
     private lateinit var shellTitle: TextView
+    private lateinit var shellFarmSwitchIcon: ImageView
     private lateinit var shellMenuButton: ImageButton
     private lateinit var privateBuildExpiryBanner: TextView
     private lateinit var bottomNavigation: LinearLayout
@@ -477,6 +479,36 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var moreBackupButton: Button
     private lateinit var moreAboutButton: Button
 
+    private lateinit var todayHeaderBar: LinearLayout
+    private lateinit var todayDateText: TextView
+    private lateinit var todayHeroCard: View
+    private lateinit var todayHeroTitle: TextView
+    private lateinit var todayEmptyStateText: TextView
+    private lateinit var todayProductionContainer: View
+    private lateinit var todayProductionHeadlineText: TextView
+    private lateinit var todayUnexplainedContainer: View
+    private lateinit var todayUnexplainedText: TextView
+    private lateinit var todayReconcileButton: Button
+    private lateinit var todayMoneyMetricsContainer: View
+    private lateinit var todaySalesValueText: TextView
+    private lateinit var todayReceivedValueText: TextView
+    private lateinit var todayExpensesValueText: TextView
+    private lateinit var todayCreditSalesContainer: View
+    private lateinit var todayCreditSalesValueText: TextView
+    private lateinit var todayMoneyAttentionCard: View
+    private lateinit var todayKhataSettledText: TextView
+    private lateinit var todayReceivableContainer: View
+    private lateinit var todayReceivableAmountText: TextView
+    private lateinit var todayViewReceivablesButton: Button
+    private lateinit var todayPayableContainer: View
+    private lateinit var todayPayableAmountText: TextView
+    private lateinit var todayViewPayablesButton: Button
+    private lateinit var todayFarmStatusCard: View
+    private lateinit var todayNoFarmStatusText: TextView
+    private lateinit var todayProductionStatusText: TextView
+    private lateinit var todaySuppliesStatusText: TextView
+    private lateinit var todayViewFarmWorkButton: Button
+
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var languagePreferences: AppLanguagePreferences
@@ -754,6 +786,7 @@ class FarmActivity : AppCompatActivity() {
         shellAppBar = findViewById(R.id.shellAppBar)
         scrollView = findViewById(R.id.scrollView)
         shellTitle = findViewById(R.id.shellTitle)
+        shellFarmSwitchIcon = findViewById<ImageView>(R.id.shellFarmSwitchIcon)
         shellMenuButton = findViewById(R.id.shellMenuButton)
         privateBuildExpiryBanner = findViewById(R.id.privateBuildExpiryBanner)
         bottomNavigation = findViewById(R.id.bottomNavigation)
@@ -1040,6 +1073,36 @@ class FarmActivity : AppCompatActivity() {
         moreBackupButton = findViewById(R.id.moreBackupButton)
         moreAboutButton = findViewById(R.id.moreAboutButton)
 
+        todayHeaderBar = findViewById(R.id.todayHeaderBar)
+        todayDateText = findViewById(R.id.todayDateText)
+        todayHeroCard = findViewById(R.id.todayHeroCard)
+        todayHeroTitle = findViewById(R.id.todayHeroTitle)
+        todayEmptyStateText = findViewById(R.id.todayEmptyStateText)
+        todayProductionContainer = findViewById(R.id.todayProductionContainer)
+        todayProductionHeadlineText = findViewById(R.id.todayProductionHeadlineText)
+        todayUnexplainedContainer = findViewById(R.id.todayUnexplainedContainer)
+        todayUnexplainedText = findViewById(R.id.todayUnexplainedText)
+        todayReconcileButton = findViewById(R.id.todayReconcileButton)
+        todayMoneyMetricsContainer = findViewById(R.id.todayMoneyMetricsContainer)
+        todaySalesValueText = findViewById(R.id.todaySalesValueText)
+        todayReceivedValueText = findViewById(R.id.todayReceivedValueText)
+        todayExpensesValueText = findViewById(R.id.todayExpensesValueText)
+        todayCreditSalesContainer = findViewById(R.id.todayCreditSalesContainer)
+        todayCreditSalesValueText = findViewById(R.id.todayCreditSalesValueText)
+        todayMoneyAttentionCard = findViewById(R.id.todayMoneyAttentionCard)
+        todayKhataSettledText = findViewById(R.id.todayKhataSettledText)
+        todayReceivableContainer = findViewById(R.id.todayReceivableContainer)
+        todayReceivableAmountText = findViewById(R.id.todayReceivableAmountText)
+        todayViewReceivablesButton = findViewById(R.id.todayViewReceivablesButton)
+        todayPayableContainer = findViewById(R.id.todayPayableContainer)
+        todayPayableAmountText = findViewById(R.id.todayPayableAmountText)
+        todayViewPayablesButton = findViewById(R.id.todayViewPayablesButton)
+        todayFarmStatusCard = findViewById(R.id.todayFarmStatusCard)
+        todayNoFarmStatusText = findViewById(R.id.todayNoFarmStatusText)
+        todayProductionStatusText = findViewById(R.id.todayProductionStatusText)
+        todaySuppliesStatusText = findViewById(R.id.todaySuppliesStatusText)
+        todayViewFarmWorkButton = findViewById(R.id.todayViewFarmWorkButton)
+
         entryKindSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
@@ -1179,6 +1242,12 @@ class FarmActivity : AppCompatActivity() {
         supplyStockButton.setOnClickListener { showSupplyStockDialog() }
         supplierPaymentButton.setOnClickListener { showSupplierPaymentDialog() }
         otherEntriesButton.setOnClickListener { toggleOtherEntries() }
+        shellTitle.setOnClickListener { showFarmSwitcherDialog() }
+        shellFarmSwitchIcon.setOnClickListener { showFarmSwitcherDialog() }
+        todayReconcileButton.setOnClickListener { showProductionAllocationDialog() }
+        todayViewReceivablesButton.setOnClickListener { navigateTo(Destination.KHATA) }
+        todayViewPayablesButton.setOnClickListener { navigateTo(Destination.KHATA) }
+        todayViewFarmWorkButton.setOnClickListener { navigateTo(Destination.FARM_WORK) }
         productionButton.setOnClickListener { showProductionDialog() }
         farmerOverviewMonthButton.setOnClickListener { showFarmerMonthDialog() }
         farmWorkProductionButton.setOnClickListener { showProductionDialog() }
@@ -1874,6 +1943,14 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun updateShellTitle() {
+        val isToday = currentDestination == Destination.TODAY
+        val hasFarm = currentFarmId != null
+        shellFarmSwitchIcon.visibility = if (isToday && hasFarm) View.VISIBLE else View.GONE
+        shellFarmSwitchIcon.isClickable = isToday && hasFarm
+        shellFarmSwitchIcon.isFocusable = isToday && hasFarm
+        shellTitle.isClickable = isToday && hasFarm
+        shellTitle.isFocusable = isToday && hasFarm
+
         shellTitle.text = when (currentDestination) {
             Destination.TODAY -> {
                 val farm = currentFarmId?.let { service.loadFarm(it) }
@@ -1887,6 +1964,50 @@ class FarmActivity : AppCompatActivity() {
             Destination.FARMS -> string(R.string.farms_page_title)
             Destination.FARM_DETAILS -> string(R.string.farm_details_page_title)
             Destination.ADD_FARM -> string(R.string.add_farm_page_title)
+        }
+    }
+
+    private fun showFarmSwitcherDialog() {
+        val persisted = service.farmIds()
+        val owned = localUserService.ownedFarmIds()
+        val visibleIds = FarmManagement.visibleFarmIds(persisted, owned)
+        val activeId = currentFarmId ?: service.currentFarmId()
+        val farms = visibleIds.mapNotNull { service.loadFarm(it) }
+        val farmItems = farms.map { farm ->
+            val activeSuffix = if (farm.id == activeId) "  ·  " + string(R.string.farm_switcher_active_badge) else ""
+            "${farm.name} (${farm.currencyCode})$activeSuffix"
+        }.toTypedArray()
+
+        val activeIndex = farms.indexOfFirst { it.id == activeId }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.farm_switcher_dialog_title)
+            .setSingleChoiceItems(farmItems, activeIndex) { d, which ->
+                val selectedFarm = farms.getOrNull(which)
+                d.dismiss()
+                if (selectedFarm != null && selectedFarm.id != activeId) {
+                    switchToFarm(selectedFarm.id)
+                }
+            }
+            .setPositiveButton(R.string.farm_switcher_manage_farms) { _, _ ->
+                managedFarmId = null
+                navigateTo(Destination.FARMS)
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun switchToFarm(farmId: String) {
+        if (!requireMutationsAllowed()) return
+        try {
+            service.setCurrentFarmId(farmId)
+            currentFarmId = farmId
+            managedFarmId = farmId
+            render()
+            showToast(R.string.toast_farm_switched)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "switch farm failed")
         }
     }
 
@@ -4727,7 +4848,95 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun renderFarmerOverview(farm: FarmState) {
-        val overview = farm.farmerOverview(OffsetDateTime.now(deviceZone), deviceZone).daily
+        val now = OffsetDateTime.now(deviceZone)
+        val overview = farm.farmerOverview(now, deviceZone).daily
+        val currency = farm.currencyCode
+
+        // Date header
+        todayDateText.text = timePresentation.displayDate(presentationLocale, deviceZone, now)
+
+        // 1. Today Hero Card
+        val hasDailyProduction = overview.production.isNotEmpty()
+        val hasDailyMoney = overview.salesMinor > 0 || overview.moneyReceivedMinor > 0 || overview.expensesMinor > 0 || overview.creditSalesMinor > 0
+        val hasTodayActivity = hasDailyProduction || hasDailyMoney
+
+        todayEmptyStateText.visibility = if (hasTodayActivity) View.GONE else View.VISIBLE
+        todayProductionContainer.visibility = if (hasDailyProduction) View.VISIBLE else View.GONE
+
+        if (hasDailyProduction) {
+            val prodSummary = overview.production.joinToString(", ") {
+                "${it.name}: ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}"
+            }
+            todayProductionHeadlineText.text = string(R.string.farmer_overview_production_format, prodSummary)
+
+            val unexplained = overview.production.filter { it.unexplained != null && it.unexplained > BigDecimal.ZERO }
+            if (unexplained.isNotEmpty()) {
+                todayUnexplainedContainer.visibility = View.VISIBLE
+                val unexplainedSummary = unexplained.joinToString(", ") {
+                    "${it.name} ${formatQuantity(it.unexplained ?: BigDecimal.ZERO)} ${productUnitLabel(it.unit, "")}"
+                }
+                todayUnexplainedText.text = string(R.string.today_unexplained_warning_format, unexplainedSummary)
+            } else {
+                todayUnexplainedContainer.visibility = View.GONE
+            }
+        } else {
+            todayUnexplainedContainer.visibility = View.GONE
+        }
+
+        todaySalesValueText.text = formatMoney(currency, overview.salesMinor)
+        todayReceivedValueText.text = formatMoney(currency, overview.moneyReceivedMinor)
+        todayExpensesValueText.text = formatMoney(currency, overview.expensesMinor)
+
+        if (overview.creditSalesMinor > 0) {
+            todayCreditSalesContainer.visibility = View.VISIBLE
+            todayCreditSalesValueText.text = formatMoney(currency, overview.creditSalesMinor)
+        } else {
+            todayCreditSalesContainer.visibility = View.GONE
+        }
+
+        // 2. Money Needing Attention Card (Directional Khata)
+        val receivable = overview.currentReceivableMinor
+        val payable = overview.currentPayableMinor
+        val allSettled = receivable == 0L && payable == 0L
+
+        todayKhataSettledText.visibility = if (allSettled) View.VISIBLE else View.GONE
+        todayReceivableContainer.visibility = if (receivable > 0) View.VISIBLE else View.GONE
+        todayPayableContainer.visibility = if (payable > 0) View.VISIBLE else View.GONE
+
+        todayReceivableAmountText.text = formatMoney(currency, receivable)
+        todayPayableAmountText.text = formatMoney(currency, payable)
+
+        // 3. Farm Status Card
+        val hasProducts = farm.products.isNotEmpty()
+        val hasSupplies = overview.supplies.isNotEmpty()
+
+        if (!hasProducts && !hasSupplies && overview.production.isEmpty()) {
+            todayNoFarmStatusText.visibility = View.VISIBLE
+            todayProductionStatusText.visibility = View.GONE
+            todaySuppliesStatusText.visibility = View.GONE
+        } else {
+            todayNoFarmStatusText.visibility = View.GONE
+            if (overview.production.isNotEmpty()) {
+                todayProductionStatusText.visibility = View.VISIBLE
+                todayProductionStatusText.text = string(
+                    R.string.farmer_overview_production_format,
+                    overview.production.joinToString(", ") { "${it.name}: ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" }
+                )
+            } else {
+                todayProductionStatusText.visibility = View.GONE
+            }
+
+            if (overview.supplies.isNotEmpty()) {
+                todaySuppliesStatusText.visibility = View.VISIBLE
+                todaySuppliesStatusText.text = string(
+                    R.string.farmer_overview_supplies_format,
+                    overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" }
+                )
+            } else {
+                todaySuppliesStatusText.visibility = View.GONE
+            }
+        }
+
         val lines = mutableListOf<String>(string(R.string.farmer_overview_today_title))
         overview.production.forEach { production ->
             lines += string(R.string.farmer_overview_production_format, "${production.name}: ${formatQuantity(production.quantity)} ${productUnitLabel(production.unit, "")}")
@@ -4765,7 +4974,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun renderRecentTransactions(farm: FarmState, currency: String) {
-        val transactions = farm.transactionsNewestFirst()
+        val transactions = farm.transactionsNewestFirst().take(5)
         recentTransactionsContainer.removeAllViews()
         if (transactions.isEmpty()) {
             val empty = TextView(this)

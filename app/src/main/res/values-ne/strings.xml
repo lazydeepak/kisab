@@ -288,6 +288,28 @@
     <string name="nav_more">अरू</string>
     <string name="kisab_logo_content_description">किसाबको लोगो</string>
     <string name="shell_menu_content_description">थप विकल्पहरू</string>
+    <string name="farm_switcher_content_description">फार्म बदल्नुहोस्</string>
+    <string name="farm_switcher_dialog_title">फार्म बदल्नुहोस्</string>
+    <string name="farm_switcher_manage_farms">फार्महरू व्यवस्थापन</string>
+    <string name="farm_switcher_active_badge">सक्रिय</string>
+
+    <string name="today_hero_title">आजको काम र पैसा</string>
+    <string name="today_no_activity">आज कुनै काम दर्ता भएको छैन।</string>
+    <string name="today_sales_label">बिक्री</string>
+    <string name="today_received_label">पैसा आयो</string>
+    <string name="today_expenses_label">खर्च</string>
+    <string name="today_credit_sales_label">उधार बिक्री</string>
+    <string name="today_money_attention_title">पैसाको अवस्था (खाता)</string>
+    <string name="today_receivable_label">लिन बाँकी (ग्राहकबाट)</string>
+    <string name="today_payable_label">तिर्न बाँकी (आपूर्तिकर्तालाई)</string>
+    <string name="today_view_khata_action">खाता हेर्नुहोस्</string>
+    <string name="today_khata_settled">सबै हिसाब चुक्ता छ (लिन वा तिर्न बाँकी केही छैन)।</string>
+    <string name="today_farm_status_title">फार्मको स्थिति</string>
+    <string name="today_no_farm_status">कुनै उत्पादन वा सामान थपिएको छैन।</string>
+    <string name="today_view_farm_work_action">फार्मको काम हेर्नुहोस्</string>
+    <string name="today_recent_activity_title">हालैको गतिविधि</string>
+    <string name="today_unexplained_warning_format">%1$s नखुलेको</string>
+    <string name="today_reconcile_action">मिलाउनुहोस्</string>
 
     <string name="record_sheet_title">के भयो?</string>
     <string name="record_sheet_farm_output">फार्मको उत्पादन</string>

@@ -293,6 +293,28 @@ Unexplained: %4$s %5$s</string>
     <string name="nav_more">More</string>
     <string name="kisab_logo_content_description">Kisab logo</string>
     <string name="shell_menu_content_description">More options</string>
+    <string name="farm_switcher_content_description">Switch farm</string>
+    <string name="farm_switcher_dialog_title">Switch farm</string>
+    <string name="farm_switcher_manage_farms">Manage farms</string>
+    <string name="farm_switcher_active_badge">Active</string>
+
+    <string name="today_hero_title">Today\'s work and money</string>
+    <string name="today_no_activity">No activity recorded today.</string>
+    <string name="today_sales_label">Sales</string>
+    <string name="today_received_label">Received</string>
+    <string name="today_expenses_label">Expenses</string>
+    <string name="today_credit_sales_label">Credit sales</string>
+    <string name="today_money_attention_title">Money needing attention</string>
+    <string name="today_receivable_label">To receive (customers)</string>
+    <string name="today_payable_label">To pay (suppliers)</string>
+    <string name="today_view_khata_action">View Khata</string>
+    <string name="today_khata_settled">All accounts settled (nothing owed or owing).</string>
+    <string name="today_farm_status_title">Farm status</string>
+    <string name="today_no_farm_status">No production or supplies registered yet.</string>
+    <string name="today_view_farm_work_action">View Farm Work</string>
+    <string name="today_recent_activity_title">Recent activity</string>
+    <string name="today_unexplained_warning_format">%1$s unexplained</string>
+    <string name="today_reconcile_action">Reconcile</string>
 
     <string name="record_sheet_title">What happened?</string>
     <string name="record_sheet_farm_output">Farm output</string>
