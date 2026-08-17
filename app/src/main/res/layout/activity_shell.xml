@@ -844,210 +844,215 @@
                 android:orientation="vertical"
                 android:padding="24dp">
 
+                <!-- 1. Top-level Khata Overview Container -->
                 <LinearLayout
+                    android:id="@+id/khataOverviewContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/newSaleButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:minHeight="48dp"
-                        android:text="@string/new_sale_action" />
-
-                    <Button
-                        android:id="@+id/newPurchaseButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:layout_weight="1"
-                        android:minHeight="48dp"
-                        android:text="@string/new_purchase_action" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/hisabSummaryContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
                     android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/toReceiveText"
+                    <!-- Search Input -->
+                    <EditText
+                        android:id="@+id/khataSearchInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="16sp" />
+                        android:background="@drawable/bg_metric_tile"
+                        android:hint="@string/khata_search_hint"
+                        android:imeOptions="actionDone"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:padding="12dp"
+                        android:textSize="14sp" />
 
-                    <TextView
-                        android:id="@+id/toPayText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textSize="16sp" />
-                </LinearLayout>
-
-                <androidx.appcompat.widget.LinearLayoutCompat
-                    android:id="@+id/financialOverviewContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/financial_overview_section"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <TextView
+                    <!-- Summary Cards: Total to receive & Total to pay -->
+                    <LinearLayout
+                        android:id="@+id/hisabSummaryContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="@string/overview_period_label"
-                        android:textStyle="bold" />
+                        android:orientation="horizontal">
 
-                    <Spinner
-                        android:id="@+id/overviewPeriodSpinner"
+                        <!-- To receive summary -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_receivable_card"
+                            android:orientation="vertical"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/today_receivable_label"
+                                android:textColor="@color/receivableText"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/toReceiveText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="@color/receivableText"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- To pay summary -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_payable_card"
+                            android:orientation="vertical"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/today_payable_label"
+                                android:textColor="@color/payableText"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/toPayText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="@color/payableText"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Segmented Filter: [सबै] [लिन बाँकी] [तिर्न बाँकी] -->
+                    <RadioGroup
+                        android:id="@+id/khataFilterRadioGroup"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/cash_activity_section"
-                        android:textStyle="bold" />
+                        <RadioButton
+                            android:id="@+id/khataFilterAllRadio"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:checked="true"
+                            android:text="@string/khata_filter_all"
+                            android:textSize="13sp" />
 
-                    <TextView
-                        android:id="@+id/overviewCashIncomeText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
+                        <RadioButton
+                            android:id="@+id/khataFilterToReceiveRadio"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/khata_filter_to_receive"
+                            android:textSize="13sp" />
 
-                    <TextView
-                        android:id="@+id/overviewCashExpenseText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
+                        <RadioButton
+                            android:id="@+id/khataFilterToPayRadio"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/khata_filter_to_pay"
+                            android:textSize="13sp" />
+                    </RadioGroup>
 
-                    <TextView
-                        android:id="@+id/overviewCashNetText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewCashEmptyText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/overview_cash_empty"
-                        android:visibility="gone" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/trade_activity_section"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/overviewSalesText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
-
-                    <TextView
-                        android:id="@+id/overviewPurchasesText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewPaymentsReceivedText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewPaymentsMadeText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewTradeEmptyText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/overview_trade_empty"
-                        android:visibility="gone" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/current_position_section"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/overviewPositionAsOfText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
-
-                    <TextView
-                        android:id="@+id/overviewReceivableText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewPayableText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewNetPositionText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/overviewPositionEmptyText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/overview_position_empty"
-                        android:visibility="gone" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/monthly_trend_section"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/overviewTrendEmptyText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/overview_trend_empty"
-                        android:visibility="gone" />
-
+                    <!-- Parties Header & Add Party action -->
                     <LinearLayout
-                        android:id="@+id/overviewTrendContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/partiesSectionLabel"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/parties_section"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/addPartyButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minHeight="44dp"
+                            android:text="@string/add_party_action" />
+                    </LinearLayout>
+
+                    <!-- Empty state: No parties at all -->
+                    <TextView
+                        android:id="@+id/partiesEmptyText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:lineSpacingMultiplier="1.15"
+                        android:text="@string/parties_empty"
+                        android:textColor="@color/textSecondary"
+                        android:visibility="gone" />
+
+                    <!-- Empty state: Filter matching 0 parties -->
+                    <TextView
+                        android:id="@+id/khataFilterEmptyText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:lineSpacingMultiplier="1.15"
+                        android:text="@string/khata_filter_empty"
+                        android:textColor="@color/textSecondary"
+                        android:visibility="gone" />
+
+                    <!-- Parties List Container -->
+                    <LinearLayout
+                        android:id="@+id/partiesContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:orientation="vertical" />
+                </LinearLayout>
+
+                <!-- Hidden compatibility container for financial overview & legacy buttons -->
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:id="@+id/financialOverviewContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <Button android:id="@+id/newSaleButton" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <Button android:id="@+id/newPurchaseButton" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/tradesSectionLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/tradesEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <LinearLayout android:id="@+id/tradesContainer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" />
+
+                    <TextView android:id="@+id/overviewSalesText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPurchasesText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPaymentsReceivedText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPaymentsMadeText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewTradeEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewCashIncomeText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewCashExpenseText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewCashNetText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewCashEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPositionAsOfText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+
+                    <TextView android:id="@+id/overviewReceivableText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPayableText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewNetPositionText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPositionEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+
+                    <TextView android:id="@+id/overviewTrendEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <LinearLayout android:id="@+id/overviewTrendContainer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" />
+                    <Spinner android:id="@+id/overviewPeriodSpinner" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </androidx.appcompat.widget.LinearLayoutCompat>
 
                 <androidx.appcompat.widget.LinearLayoutCompat
@@ -1085,27 +1090,71 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp" />
 
-                    <TextView
-                        android:id="@+id/partyKhataToReceiveText"
+                    <!-- Directional Headline Card -->
+                    <LinearLayout
+                        android:id="@+id/partyKhataHeadlineCard"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:textSize="16sp" />
+                        android:background="@drawable/bg_today_card"
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <TextView
-                        android:id="@+id/partyKhataToPayText"
+                        <TextView
+                            android:id="@+id/partyKhataHeadlineText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <!-- Contextual payment actions -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/khataContextualReceiveButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:minHeight="48dp"
+                                android:text="@string/khata_contextual_receive_action"
+                                android:visibility="gone" />
+
+                            <Button
+                                android:id="@+id/khataContextualPayButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:minHeight="48dp"
+                                android:text="@string/khata_contextual_pay_action"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Subordinate compatibility views -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textSize="16sp" />
+                        android:visibility="gone">
 
-                    <TextView
-                        android:id="@+id/partyKhataNetText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/partyKhataToReceiveText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+
+                        <TextView
+                            android:id="@+id/partyKhataToPayText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+
+                        <TextView
+                            android:id="@+id/partyKhataNetText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -1542,62 +1591,6 @@
                         android:minHeight="48dp"
                         android:text="@string/action_done" />
                 </androidx.appcompat.widget.LinearLayoutCompat>
-
-                <TextView
-                    android:id="@+id/tradesSectionLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/trades_section"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tradesEmptyText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/trades_empty"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/tradesContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="vertical" />
-
-                <TextView
-                    android:id="@+id/partiesSectionLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="@string/parties_section"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/partiesEmptyText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/parties_empty"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/partiesContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="vertical" />
-
-                <Button
-                    android:id="@+id/addPartyButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:minHeight="48dp"
-                    android:text="@string/add_party_action" />
 
                 <TextView
                     android:id="@+id/partyEditorTitle"

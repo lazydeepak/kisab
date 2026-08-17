@@ -87,6 +87,10 @@ import com.susankhya.kisab.domain.ProductionSession
 import com.susankhya.kisab.domain.productionForDay
 import com.susankhya.kisab.domain.ProductionAllocationDraft
 import com.susankhya.kisab.domain.ProductionAllocationType
+import com.susankhya.kisab.domain.PartyLedger
+import com.susankhya.kisab.domain.PartyLedgerSummary
+import com.susankhya.kisab.domain.partyLedger
+import com.susankhya.kisab.domain.partyLedgerSummary
 import com.susankhya.kisab.domain.farmerOverview
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
@@ -156,6 +160,7 @@ class FarmActivity : AppCompatActivity() {
     internal lateinit var backupFileAdapter: FarmBackupFileAdapter
 
     private enum class Destination { TODAY, KHATA, FARM_WORK, MORE, HISAB, SETTINGS, FARMS, FARM_DETAILS, ADD_FARM }
+    private enum class KhataFilter { ALL, TO_RECEIVE, TO_PAY }
 
     private val moneyFormatter = MoneyFormatter()
     private val moneyInputParser = MoneyInputParser(moneyFormatter)
@@ -509,6 +514,22 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var todaySuppliesStatusText: TextView
     private lateinit var todayViewFarmWorkButton: Button
 
+    private lateinit var khataOverviewContainer: LinearLayout
+    private lateinit var khataSearchInput: EditText
+    private lateinit var khataFilterRadioGroup: RadioGroup
+    private lateinit var khataFilterAllRadio: RadioButton
+    private lateinit var khataFilterToReceiveRadio: RadioButton
+    private lateinit var khataFilterToPayRadio: RadioButton
+    private lateinit var khataFilterEmptyText: TextView
+    private lateinit var partyKhataHeadlineCard: View
+    private lateinit var partyKhataHeadlineText: TextView
+    private lateinit var khataContextualReceiveButton: Button
+    private lateinit var khataContextualPayButton: Button
+
+    private var currentKhataFilter: KhataFilter = KhataFilter.ALL
+    private var khataSearchQuery: String = ""
+    private var khataFilterSuppressed = false
+
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var languagePreferences: AppLanguagePreferences
@@ -734,6 +755,7 @@ class FarmActivity : AppCompatActivity() {
                 }
             }
         }
+        outState.putString(STATE_KHATA_FILTER, currentKhataFilter.name)
         khataPartyId?.let { outState.putString(STATE_KHATA_PARTY_ID, it) }
     }
 
@@ -1103,6 +1125,18 @@ class FarmActivity : AppCompatActivity() {
         todaySuppliesStatusText = findViewById(R.id.todaySuppliesStatusText)
         todayViewFarmWorkButton = findViewById(R.id.todayViewFarmWorkButton)
 
+        khataOverviewContainer = findViewById(R.id.khataOverviewContainer)
+        khataSearchInput = findViewById(R.id.khataSearchInput)
+        khataFilterRadioGroup = findViewById(R.id.khataFilterRadioGroup)
+        khataFilterAllRadio = findViewById(R.id.khataFilterAllRadio)
+        khataFilterToReceiveRadio = findViewById(R.id.khataFilterToReceiveRadio)
+        khataFilterToPayRadio = findViewById(R.id.khataFilterToPayRadio)
+        khataFilterEmptyText = findViewById(R.id.khataFilterEmptyText)
+        partyKhataHeadlineCard = findViewById(R.id.partyKhataHeadlineCard)
+        partyKhataHeadlineText = findViewById(R.id.partyKhataHeadlineText)
+        khataContextualReceiveButton = findViewById(R.id.khataContextualReceiveButton)
+        khataContextualPayButton = findViewById(R.id.khataContextualPayButton)
+
         entryKindSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
@@ -1245,8 +1279,14 @@ class FarmActivity : AppCompatActivity() {
         shellTitle.setOnClickListener { showFarmSwitcherDialog() }
         shellFarmSwitchIcon.setOnClickListener { showFarmSwitcherDialog() }
         todayReconcileButton.setOnClickListener { showProductionAllocationDialog() }
-        todayViewReceivablesButton.setOnClickListener { navigateTo(Destination.KHATA) }
-        todayViewPayablesButton.setOnClickListener { navigateTo(Destination.KHATA) }
+        todayViewReceivablesButton.setOnClickListener {
+            setKhataFilter(KhataFilter.TO_RECEIVE)
+            navigateTo(Destination.KHATA)
+        }
+        todayViewPayablesButton.setOnClickListener {
+            setKhataFilter(KhataFilter.TO_PAY)
+            navigateTo(Destination.KHATA)
+        }
         todayViewFarmWorkButton.setOnClickListener { navigateTo(Destination.FARM_WORK) }
         productionButton.setOnClickListener { showProductionDialog() }
         farmerOverviewMonthButton.setOnClickListener { showFarmerMonthDialog() }
@@ -1269,6 +1309,36 @@ class FarmActivity : AppCompatActivity() {
             navigateTo(Destination.SETTINGS)
         }
         moreAboutButton.setOnClickListener { showAboutDialog() }
+
+        khataSearchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                khataSearchQuery = s?.toString()?.trim().orEmpty()
+                renderParties()
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
+
+        khataFilterRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            if (!khataFilterSuppressed) {
+                currentKhataFilter = when (checkedId) {
+                    R.id.khataFilterToReceiveRadio -> KhataFilter.TO_RECEIVE
+                    R.id.khataFilterToPayRadio -> KhataFilter.TO_PAY
+                    else -> KhataFilter.ALL
+                }
+                renderParties()
+            }
+        }
+
+        khataContextualReceiveButton.setOnClickListener {
+            val partyId = khataPartyId ?: return@setOnClickListener
+            showReceivedMoneyDialog(partyId)
+        }
+
+        khataContextualPayButton.setOnClickListener {
+            val partyId = khataPartyId ?: return@setOnClickListener
+            showSupplierPaymentDialog(partyId)
+        }
         settingsExportBackupButton.setOnClickListener { exportBackup() }
         settingsImportBackupButton.setOnClickListener { importBackup() }
         settingsAboutUpdateButton.setOnClickListener { checkForPrivateAppUpdate() }
@@ -2033,14 +2103,14 @@ class FarmActivity : AppCompatActivity() {
         }
         hisabSummaryContainer.visibility = View.VISIBLE
         val currency = farm.currencyCode
-        val toReceive = farm.trades.filter { it.type == TradeType.SALE }.fold(0L) { acc, trade ->
-            Math.addExact(acc, farm.settlements.paymentSummaryFor(trade).outstandingMinor)
+        val toReceive = farm.parties.fold(0L) { acc, party ->
+            Math.addExact(acc, farm.partyLedgerSummary(party.id).toReceiveMinor)
         }
-        val toPay = farm.trades.filter { it.type == TradeType.PURCHASE }.fold(0L) { acc, trade ->
-            Math.addExact(acc, farm.settlements.paymentSummaryFor(trade).outstandingMinor)
+        val toPay = farm.parties.fold(0L) { acc, party ->
+            Math.addExact(acc, farm.partyLedgerSummary(party.id).toPayMinor)
         }
-        toReceiveText.text = string(R.string.to_receive_summary_format, formatMoney(currency, toReceive))
-        toPayText.text = string(R.string.to_pay_summary_format, formatMoney(currency, toPay))
+        toReceiveText.text = formatMoney(currency, toReceive)
+        toPayText.text = formatMoney(currency, toPay)
     }
 
     private fun renderFinancialOverview() {
@@ -2959,27 +3029,66 @@ class FarmActivity : AppCompatActivity() {
     private fun renderParties() {
         val farmId = currentFarmId ?: run {
             partiesEmptyText.visibility = View.VISIBLE
+            khataFilterEmptyText.visibility = View.GONE
             partiesContainer.removeAllViews()
             return
         }
-        val parties = service.parties(farmId)
-        partiesEmptyText.visibility = if (parties.isEmpty()) View.VISIBLE else View.GONE
+        val allParties = service.parties(farmId)
+        if (allParties.isEmpty()) {
+            partiesEmptyText.visibility = View.VISIBLE
+            khataFilterEmptyText.visibility = View.GONE
+            partiesContainer.removeAllViews()
+            return
+        }
+        partiesEmptyText.visibility = View.GONE
+
+        val partySummaries = allParties.map { party ->
+            party to service.partyLedgerSummary(farmId, party.id)
+        }
+
+        val query = khataSearchQuery.lowercase()
+        val searched = if (query.isBlank()) {
+            partySummaries
+        } else {
+            partySummaries.filter { (party, _) ->
+                party.name.lowercase().contains(query) || party.contact.lowercase().contains(query)
+            }
+        }
+
+        val filtered = when (currentKhataFilter) {
+            KhataFilter.ALL -> searched
+            KhataFilter.TO_RECEIVE -> searched.filter { (_, summary) -> summary.toReceiveMinor > 0 }
+            KhataFilter.TO_PAY -> searched.filter { (_, summary) -> summary.toPayMinor > 0 }
+        }
+
+        if (filtered.isEmpty()) {
+            khataFilterEmptyText.visibility = View.VISIBLE
+            partiesContainer.removeAllViews()
+            return
+        }
+        khataFilterEmptyText.visibility = View.GONE
         partiesContainer.removeAllViews()
-        if (parties.isEmpty()) return
+
+        val sorted = filtered.sortedWith(
+            compareByDescending<Pair<Party, PartyLedgerSummary>> { (_, s) -> maxOf(s.toReceiveMinor, s.toPayMinor) > 0L }
+                .thenByDescending { (_, s) -> maxOf(s.toReceiveMinor, s.toPayMinor) }
+                .thenBy { (p, _) -> p.name.lowercase() }
+        )
+
+        val currency = currentFarmCurrency()
         val inflater = LayoutInflater.from(this)
-        parties.forEach { party ->
+        sorted.forEach { (party, summary) ->
             val row = inflater.inflate(R.layout.item_party_row, partiesContainer, false) as TextView
             row.setTag(party.id)
-            row.text = string(
-                R.string.party_row_format,
-                party.name,
-                FarmLabels.partyRole(this, party.role)
-            )
-            row.contentDescription = string(
-                R.string.party_row_format,
-                party.name,
-                FarmLabels.partyRole(this, party.role)
-            )
+            val statusText = when {
+                summary.toReceiveMinor > 0 -> "${string(R.string.today_receivable_label)} ${formatMoney(currency, summary.toReceiveMinor)}"
+                summary.toPayMinor > 0 -> "${string(R.string.today_payable_label)} ${formatMoney(currency, summary.toPayMinor)}"
+                else -> string(R.string.khata_settled_label)
+            }
+            val contactText = if (party.contact.isNotBlank()) " · ${party.contact}" else ""
+            val roleText = FarmLabels.partyRole(this, party.role)
+            row.text = "${party.name}\n$statusText ($roleText$contactText)"
+            row.contentDescription = "${party.name}, $statusText, $roleText$contactText"
             row.setOnClickListener {
                 openPartyKhataFor(party.id)
             }
@@ -3121,7 +3230,39 @@ class FarmActivity : AppCompatActivity() {
         val ledger = service.partyLedger(farmId, partyId)
         val currency = currentFarmCurrency()
         partyKhataTitle.text = party.name
-        partyKhataRoleText.text = FarmLabels.partyRole(this, party.role)
+        val contactSubtitle = if (party.contact.isNotBlank()) " · ${party.contact}" else ""
+        partyKhataRoleText.text = "${FarmLabels.partyRole(this, party.role)}$contactSubtitle"
+
+        when {
+            ledger.summary.toReceiveMinor > 0 -> {
+                partyKhataHeadlineText.text = string(
+                    R.string.khata_headline_to_receive_format,
+                    formatMoney(currency, ledger.summary.toReceiveMinor)
+                )
+                partyKhataHeadlineText.setTextColor(getColor(R.color.receivableText))
+                khataContextualReceiveButton.visibility = View.VISIBLE
+                khataContextualPayButton.visibility = View.GONE
+            }
+            ledger.summary.toPayMinor > 0 -> {
+                partyKhataHeadlineText.text = string(
+                    R.string.khata_headline_to_pay_format,
+                    formatMoney(currency, ledger.summary.toPayMinor)
+                )
+                partyKhataHeadlineText.setTextColor(getColor(R.color.payableText))
+                khataContextualReceiveButton.visibility = View.GONE
+                khataContextualPayButton.visibility = View.VISIBLE
+            }
+            else -> {
+                partyKhataHeadlineText.text = string(
+                    R.string.khata_headline_settled_format,
+                    formatMoney(currency, 0L)
+                )
+                partyKhataHeadlineText.setTextColor(getColor(R.color.textSecondary))
+                khataContextualReceiveButton.visibility = View.GONE
+                khataContextualPayButton.visibility = View.GONE
+            }
+        }
+
         partyKhataToReceiveText.text = string(
             R.string.to_receive_summary_format,
             formatMoney(currency, ledger.summary.toReceiveMinor)
@@ -3146,17 +3287,28 @@ class FarmActivity : AppCompatActivity() {
         if (entries.isEmpty()) return
 
         val inflater = LayoutInflater.from(this)
+        val now = OffsetDateTime.now(deviceZone)
         entries.asReversed().forEach { entry ->
             val row = inflater.inflate(R.layout.item_ledger_entry_row, khataEntriesContainer, false) as TextView
             row.setTag(entry.sourceId)
-            val header = when (entry.sourceType) {
-                PartyLedgerEntryType.SALE -> FarmLabels.tradeType(this, TradeType.SALE)
-                PartyLedgerEntryType.PURCHASE -> FarmLabels.tradeType(this, TradeType.PURCHASE)
-                PartyLedgerEntryType.PAYMENT_RECEIVED -> string(R.string.payment_received_label)
-                PartyLedgerEntryType.PAYMENT_MADE -> string(R.string.payment_made_label)
+            val actionFormatted = when (entry.sourceType) {
+                PartyLedgerEntryType.SALE -> string(R.string.khata_entry_sold_format, formatMoney(currency, entry.amountMinor))
+                PartyLedgerEntryType.PURCHASE -> string(R.string.khata_entry_bought_format, formatMoney(currency, entry.amountMinor))
+                PartyLedgerEntryType.PAYMENT_RECEIVED -> string(R.string.khata_entry_received_format, formatMoney(currency, entry.amountMinor))
+                PartyLedgerEntryType.PAYMENT_MADE -> string(R.string.khata_entry_paid_format, formatMoney(currency, entry.amountMinor))
+            }
+            val dateFormatted = if (timePresentation.isToday(deviceZone, entry.occurredAt, now)) {
+                string(
+                    R.string.today_time_format,
+                    string(R.string.today_label),
+                    timePresentation.shortTime(presentationLocale, deviceZone, entry.occurredAt)
+                )
+            } else {
+                timePresentation.displayDateTime(presentationLocale, deviceZone, entry.occurredAt)
             }
             val detail = buildString {
-                append(string(R.string.ledger_entry_header_format, header, formatMoney(currency, entry.amountMinor)))
+                append(actionFormatted)
+                append("  ·  ").append(dateFormatted)
                 append("\n").append(
                     string(
                         R.string.ledger_entry_balance_after_format,
@@ -3167,24 +3319,21 @@ class FarmActivity : AppCompatActivity() {
                 if (entry.sourceType == PartyLedgerEntryType.SALE) {
                     service.loadFarm(farmId)?.productSaleDetails
                         ?.firstOrNull { it.tradeId == entry.tradeId }
-                        ?.let { detail ->
-                            val product = service.product(farmId, detail.productId)
+                        ?.let { prodDetail ->
+                            val product = service.product(farmId, prodDetail.productId)
                             if (product != null) {
                                 append("\n").append(
                                     string(
                                         R.string.khata_product_sale_detail_format,
                                         product.name,
-                                        detail.normalizedQuantity().toPlainString(),
-                                        productUnitLabel(detail.unit, detail.customUnitLabel),
-                                        formatMoney(currency, detail.rateMinor)
+                                        prodDetail.normalizedQuantity().toPlainString(),
+                                        productUnitLabel(prodDetail.unit, prodDetail.customUnitLabel),
+                                        formatMoney(currency, prodDetail.rateMinor)
                                     )
                                 )
                             }
                         }
                 }
-                append("\n").append(
-                    timePresentation.displayDateTime(presentationLocale, deviceZone, entry.occurredAt)
-                )
             }
             row.text = detail
             row.contentDescription = detail
@@ -3207,18 +3356,23 @@ class FarmActivity : AppCompatActivity() {
 
     private fun updateHisabKitabChromeVisibility(khataActive: Boolean) {
         val chromeVisibility = if (khataActive) View.GONE else View.VISIBLE
-        newSaleButton.visibility = chromeVisibility
-        newPurchaseButton.visibility = chromeVisibility
-        hisabSummaryContainer.visibility = chromeVisibility
-        financialOverviewContainer.visibility = chromeVisibility
-        tradesSectionLabel.visibility = chromeVisibility
-        tradesEmptyText.visibility = chromeVisibility
-        tradesContainer.visibility = chromeVisibility
-        partiesSectionLabel.visibility = chromeVisibility
-        partiesEmptyText.visibility = chromeVisibility
-        partiesContainer.visibility = chromeVisibility
-        addPartyButton.visibility = chromeVisibility
+        khataOverviewContainer.visibility = chromeVisibility
         partyKhataContainer.visibility = if (khataActive) View.VISIBLE else View.GONE
+    }
+
+    private fun setKhataFilter(filter: KhataFilter) {
+        currentKhataFilter = filter
+        syncKhataFilterSelection()
+    }
+
+    private fun syncKhataFilterSelection() {
+        khataFilterSuppressed = true
+        when (currentKhataFilter) {
+            KhataFilter.ALL -> khataFilterAllRadio.isChecked = true
+            KhataFilter.TO_RECEIVE -> khataFilterToReceiveRadio.isChecked = true
+            KhataFilter.TO_PAY -> khataFilterToPayRadio.isChecked = true
+        }
+        khataFilterSuppressed = false
     }
 
     private fun partyBalanceSemantics(currency: String, balanceMinor: Long): String = when {
@@ -3249,6 +3403,10 @@ class FarmActivity : AppCompatActivity() {
 
     private fun restoreKhataFrom(bundle: Bundle?) {
         if (bundle == null) return
+        bundle.getString(STATE_KHATA_FILTER)?.let { runCatching { KhataFilter.valueOf(it) }.getOrNull() }?.let {
+            currentKhataFilter = it
+            syncKhataFilterSelection()
+        }
         val partyId = bundle.getString(STATE_KHATA_PARTY_ID) ?: return
         val farmId = currentFarmId ?: return
         if (service.party(farmId, partyId) == null) return
@@ -3317,6 +3475,8 @@ class FarmActivity : AppCompatActivity() {
         try {
             val farm = service.createFarm(name, createFarmCurrencyCode)
             localUserService.associateFarm(farm.id)
+            currentFarmId = farm.id
+            managedFarmId = farm.id
             render()
             showToast(R.string.toast_farm_created)
         } catch (exception: Exception) {
@@ -3833,13 +3993,17 @@ class FarmActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showSupplierPaymentDialog() {
+    private fun showSupplierPaymentDialog(targetPartyId: String? = null) {
         if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val suppliers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.PURCHASE) }
         if (suppliers.isEmpty()) return showToast(R.string.supplier_no_balance)
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
         val spinner = Spinner(this); spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, suppliers.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetPartyId != null) {
+            val idx = suppliers.indexOfFirst { it.id == targetPartyId }
+            if (idx >= 0) spinner.setSelection(idx)
+        }
         val balance = TextView(this); val amount = EditText(this).apply { hint = string(R.string.received_money_amount); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }; val full = Button(this).apply { text = string(R.string.supplier_payment_full_amount); minHeight = dp(48) }
         content.addView(spinner); content.addView(balance); content.addView(amount); content.addView(full)
         fun refresh() { val value = service.partyLedgerSummary(farmId, suppliers[spinner.selectedItemPosition].id).toPayMinor; balance.text = string(R.string.supplier_payment_balance_format, formatMoney(currentFarmCurrency(), value)); full.isEnabled = value > 0; full.setOnClickListener { amount.setText(moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), value)); amount.setSelection(amount.text?.length ?: 0) } }
@@ -4111,7 +4275,7 @@ class FarmActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showReceivedMoneyDialog() {
+    private fun showReceivedMoneyDialog(targetPartyId: String? = null) {
         if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
@@ -4127,6 +4291,10 @@ class FarmActivity : AppCompatActivity() {
         val customerSpinner = Spinner(this)
         customerSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, customers.map { it.name })
             .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetPartyId != null) {
+            val idx = customers.indexOfFirst { it.id == targetPartyId }
+            if (idx >= 0) customerSpinner.setSelection(idx)
+        }
         val balanceText = TextView(this)
         val amountInput = EditText(this).apply {
             hint = string(R.string.received_money_amount)
@@ -6008,6 +6176,7 @@ class FarmActivity : AppCompatActivity() {
         const val STATE_TRADE_EDITOR_OCCURRED_AT = "OccurredAt"
         const val STATE_SETTLEMENT_TARGET_TRADE_ID = "settlementTargetTradeId"
         const val STATE_KHATA_PARTY_ID = "khataPartyId"
+        const val STATE_KHATA_FILTER = "khataFilter"
         const val STATE_OVERVIEW_PERIOD_PRESET = "overviewPeriodPreset"
         const val STATE_HISAB_PARTY_ID = "hisabPartyId"
         const val STATE_HISAB_PERIOD_PRESET = "hisabPeriodPreset"
