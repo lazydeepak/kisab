@@ -4594,10 +4594,12 @@ class FarmActivity : AppCompatActivity() {
         }
         records.firstOrNull()?.let { first ->
             dialog.setButton(AlertDialog.BUTTON_NEUTRAL, string(R.string.production_delete), DialogInterface.OnClickListener { _, _ ->
-                AlertDialog.Builder(this).setTitle(R.string.production_delete_title).setMessage(R.string.production_delete_message)
+                val delDialog = AlertDialog.Builder(this).setTitle(R.string.production_delete_title).setMessage(R.string.production_delete_message)
                     .setPositiveButton(R.string.production_delete) { _, _ ->
                         service.deleteProductionRecord(farmId, first.id); dialog.dismiss(); render(); showToast(R.string.production_deleted)
-                    }.setNegativeButton(R.string.action_cancel, null).show()
+                    }.setNegativeButton(R.string.action_cancel, null).create()
+                delDialog.show()
+                scaleDialogContent(delDialog)
             })
         }
     }
@@ -4972,10 +4974,11 @@ class FarmActivity : AppCompatActivity() {
             .setNegativeButton(string(R.string.action_cancel), null)
             .create()
         dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun showChangeCurrencyConfirmation(fromCode: String, toCode: String) {
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_change_currency_title))
             .setMessage(
                 string(
@@ -4986,7 +4989,9 @@ class FarmActivity : AppCompatActivity() {
             )
             .setPositiveButton(string(R.string.change_currency_action)) { _, _ -> applyFarmCurrencyChange(toCode) }
             .setNegativeButton(string(R.string.action_cancel), null)
-            .show()
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun applyFarmCurrencyChange(code: String) {
@@ -5056,7 +5061,7 @@ class FarmActivity : AppCompatActivity() {
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         managedFarmId = farm.id
         resetFlow.begin()
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_reset_farm_title))
             .setMessage(string(R.string.dialog_reset_farm_message))
             .setPositiveButton(string(R.string.action_continue)) { _, _ ->
@@ -5069,7 +5074,9 @@ class FarmActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
-            .show()
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun showDangerBackupGateDialog(forDelete: Boolean) {
@@ -5215,7 +5222,7 @@ class FarmActivity : AppCompatActivity() {
         val lastBackupAt = backupFreshnessStore.lastSuccessfulBackupAt(farmId)
         val titleRes = if (forDelete) R.string.dialog_delete_recent_backup_title else R.string.dialog_reset_recent_backup_title
         val messageRes = if (forDelete) R.string.dialog_delete_recent_backup_message_format else R.string.dialog_reset_recent_backup_message_format
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(string(titleRes))
             .setMessage(string(messageRes, formatBackupTime(lastBackupAt)))
             .setPositiveButton(string(R.string.action_continue)) { _, _ ->
@@ -5224,7 +5231,9 @@ class FarmActivity : AppCompatActivity() {
             .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
                 if (forDelete) deleteFlow.cancel() else resetFlow.cancel()
             }
-            .show()
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
     }
 
     /** Farmer-friendly recorded backup time, e.g. "Today, 1:56 PM" or a localized date/time. */
@@ -5264,7 +5273,7 @@ class FarmActivity : AppCompatActivity() {
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         managedFarmId = farm.id
         deleteFlow.begin()
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(string(R.string.dialog_delete_farm_title))
             .setMessage(string(R.string.dialog_delete_farm_named_message_format, farm.name))
             .setPositiveButton(string(R.string.action_continue)) { _, _ ->
@@ -5277,7 +5286,9 @@ class FarmActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton(string(R.string.action_cancel)) { _, _ -> deleteFlow.cancel() }
-            .show()
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun showDeleteTypedConfirmation() {
@@ -5383,12 +5394,14 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun showDiscardDialog(onDiscard: () -> Unit) {
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(string(R.string.discard_changes_title))
             .setMessage(string(R.string.discard_changes_message))
             .setPositiveButton(string(R.string.action_discard)) { _, _ -> onDiscard() }
             .setNegativeButton(string(R.string.action_keep_editing), null)
-            .show()
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun saveActionRes(state: TransactionEditorState): Int = when (state.mode) {
@@ -5614,7 +5627,9 @@ class FarmActivity : AppCompatActivity() {
         lines += string(R.string.farmer_overview_receivable_format, formatMoney(farm.currencyCode, overview.currentReceivableMinor))
         lines += string(R.string.farmer_overview_payable_format, formatMoney(farm.currencyCode, overview.currentPayableMinor))
         if (overview.supplies.isNotEmpty()) lines += string(R.string.farmer_overview_supplies_format, overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" })
-        AlertDialog.Builder(this).setTitle(R.string.farmer_overview_month_title).setMessage(lines.joinToString("\n")).setPositiveButton(R.string.action_done, null).show()
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.farmer_overview_month_title).setMessage(lines.joinToString("\n")).setPositiveButton(R.string.action_done, null).create()
+        dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun renderRecentTransactions(farm: FarmState, currency: String) {
@@ -5899,9 +5914,14 @@ class FarmActivity : AppCompatActivity() {
         }
         try {
             val farm = service.createFarm(name, addFarmCurrencyCode)
+            service.setCurrentFarmId(farm.id)
             localUserService.associateFarm(farm.id)
             currentFarmId = farm.id
             managedFarmId = farm.id
+            khataPartyId = null
+            editingPartyId = null
+            tradeEditorState = null
+            settlementEditorState = null
             render()
             showDestination(Destination.TODAY)
             showToast(R.string.toast_farm_created)
@@ -5915,6 +5935,10 @@ class FarmActivity : AppCompatActivity() {
         try {
             service.setCurrentFarmId(farmId)
             currentFarmId = farmId
+            khataPartyId = null
+            editingPartyId = null
+            tradeEditorState = null
+            settlementEditorState = null
             render()
             renderFarmDetails()
             showToast(R.string.toast_farm_switched)
@@ -6266,7 +6290,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun showAboutDialog() {
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.dialog_about_title)
             .setMessage(
                 string(
@@ -6275,7 +6299,9 @@ class FarmActivity : AppCompatActivity() {
                 ) + "\n\n" + string(R.string.settings_about_privacy_note) + privateBuildExpiryAboutSuffix()
             )
             .setPositiveButton(R.string.action_done, null)
-            .show()
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun onLanguageSelected(language: AppLanguage) {
