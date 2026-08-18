@@ -16,8 +16,8 @@ val hasReleaseSigning = listOf(
     releaseKeyPassword
 ).all { it.isPresent && it.get().isNotBlank() }
 
-val appVersionCode = 3
-val appVersionName = "0.2.0"
+val appVersionCode = 4
+val appVersionName = "0.2.1"
 val configuredUpdateManifestUrl = providers.gradleProperty("kisab.privateUpdateManifestUrl")
     .orNull
     ?.trim()
