@@ -1587,8 +1587,9 @@ class FarmActivity : AppCompatActivity() {
 
     private fun showDestination(destination: Destination) {
         currentDestination = destination
-        if (destination != Destination.KHATA && khataPartyId != null) {
-            closePartyKhata()
+        if (destination != Destination.KHATA) {
+            if (khataPartyId != null) closePartyKhata()
+            if (editingPartyId != null) setPartyEditorVisible(false)
         }
         if (destination in setOf(Destination.TODAY, Destination.KHATA, Destination.FARM_WORK, Destination.MORE)) {
             lastPrimaryDestination = destination
@@ -2092,6 +2093,10 @@ class FarmActivity : AppCompatActivity() {
             service.setCurrentFarmId(farmId)
             currentFarmId = farmId
             managedFarmId = farmId
+            khataPartyId = null
+            editingPartyId = null
+            tradeEditorState = null
+            settlementEditorState = null
             render()
             showToast(R.string.toast_farm_switched)
         } catch (exception: Exception) {
@@ -3492,6 +3497,7 @@ class FarmActivity : AppCompatActivity() {
         }
         try {
             val farm = service.createFarm(name, createFarmCurrencyCode)
+            service.setCurrentFarmId(farm.id)
             localUserService.associateFarm(farm.id)
             currentFarmId = farm.id
             managedFarmId = farm.id

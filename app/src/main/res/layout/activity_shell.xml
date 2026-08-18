@@ -88,7 +88,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
         <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/createFarmContainer"
@@ -842,7 +842,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
                 <!-- 1. Top-level Khata Overview Container -->
                 <LinearLayout
@@ -1700,7 +1700,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
                 <include layout="@layout/view_kisan_calculator_toolbox" />
 
@@ -1868,7 +1868,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
                 <TextView
                     android:id="@+id/settingsAccountSection"
@@ -2653,7 +2653,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
                 <TextView
                     android:layout_width="match_parent"

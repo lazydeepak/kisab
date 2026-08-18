@@ -147,6 +147,7 @@ class FarmOverviewAndHisabDeviceTest {
         try {
             onView(withId(R.id.navMoreItem)).perform(click())
             onView(withId(R.id.moreHisabButton)).perform(click())
+            waitForIdle()
 
             // First party is Alpha Buyer (CUSTOMER): its SALE trade renders.
             assertHisabRole(scenario, roleLabel(com.susankhya.kisab.domain.PartyRole.CUSTOMER))
@@ -186,6 +187,7 @@ class FarmOverviewAndHisabDeviceTest {
         try {
             onView(withId(R.id.navMoreItem)).perform(click())
             onView(withId(R.id.moreHisabButton)).perform(click())
+            waitForIdle()
             scenario.onActivity { activity ->
                 val spinner = activity.findViewById<android.widget.Spinner>(R.id.hisabPartySpinner)
                 val betaIndex = (0 until spinner.count).indexOfFirst {
@@ -202,6 +204,7 @@ class FarmOverviewAndHisabDeviceTest {
 
             onView(withId(R.id.navMoreItem)).perform(click())
             onView(withId(R.id.moreHisabButton)).perform(click())
+            waitForIdle()
             assertHisabRole(scenario, roleLabel(com.susankhya.kisab.domain.PartyRole.SUPPLIER))
             // ALL_TIME must survive recreation: 20,000 proves the period (not a
             // THIS_MONTH reset, which would show 10,000).
