@@ -25,9 +25,9 @@ class DecimalValueFormatter {
         return runCatching { value.intValueExact() }.getOrNull()
     }
 
-    fun format(locale: Locale, value: BigDecimal, maximumFractionDigits: Int = 6): String =
+    fun format(locale: Locale, value: BigDecimal, maximumFractionDigits: Int = 6, grouping: Boolean = true): String =
         NumberFormat.getNumberInstance(locale).apply {
-            isGroupingUsed = true
+            isGroupingUsed = grouping
             minimumFractionDigits = 0
             this.maximumFractionDigits = maximumFractionDigits
         }.format(value)

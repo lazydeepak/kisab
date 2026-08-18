@@ -64,7 +64,7 @@ class FarmActivityShellInsetsTest {
     fun bottomNavigationContentClearsNavigationBar() {
         scenario.onActivity { activity ->
             val bottomNav = activity.findViewById<LinearLayout>(R.id.bottomNavigation)
-            val navItem = activity.findViewById<LinearLayout>(R.id.navHomeItem)
+            val navItem = activity.findViewById<LinearLayout>(R.id.navTodayItem)
             val navigationBarBottom = rootInsets(bottomNav)
                 ?.getInsets(WindowInsetsCompat.Type.navigationBars())?.bottom ?: 0
 

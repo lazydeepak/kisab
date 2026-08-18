@@ -10,6 +10,7 @@ import androidx.annotation.StringRes
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
+import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.closeSoftKeyboard
@@ -19,6 +20,7 @@ import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.Visibility
+import androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isSelected
 import androidx.test.espresso.matcher.ViewMatchers.withClassName
@@ -33,13 +35,16 @@ import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.FarmActivity
+import com.susankhya.kisab.ui.FarmCurrencies
 import com.susankhya.kisab.ui.FarmOrdering
 import java.time.Duration
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.Locale
 import org.hamcrest.CoreMatchers.allOf
+import org.hamcrest.CoreMatchers.anything
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.CoreMatchers.not
@@ -115,7 +120,7 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
-    fun firstIncomeQuickActionRecordsWithoutCurrencyOrIsoInput() {
+    fun firstIncomeQuickActionRecordsWithoutCurrencyInput() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("Workflow Farm")
@@ -137,12 +142,14 @@ class FarmActivityWorkflowTest {
                 val transaction = farm.transactions.single()
                 assertEquals(TransactionType.INCOME, transaction.type)
                 assertEquals(150000, transaction.amountMinor)
-                assertEquals("NPR", farm.currencyCode)
+                assertEquals(FarmCurrencies.defaultFor(Locale.getDefault()), farm.currencyCode)
                 assertEquals(expectedInstant(2024, 1, 1, 17, 45), transaction.occurredAt.toInstant().toString())
             }
 
             var income: String? = null
-            scenario.onActivity { activity -> income = activity.formatMoney("NPR", 150000) }
+            scenario.onActivity { activity ->
+                income = activity.formatMoney(FarmCurrencies.defaultFor(Locale.getDefault()), 150000)
+            }
             onView(withId(R.id.balanceText)).check(matches(withText(containsString(income))))
             onView(withId(R.id.incomeText)).check(matches(withText(containsString(income))))
 
@@ -324,18 +331,19 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
-    fun emptyFarmDefaultsToNprAndAllowsCurrencyChoice() {
+    fun emptyFarmUsesSuggestedCurrencyAndAllowsChoice() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("Currency Farm")
-            openSettings()
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("NPR")))
-            onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            openFarmDetails("Currency Farm")
+            val suggested = FarmCurrencies.label(FarmCurrencies.defaultFor(Locale.getDefault()), Locale.getDefault())
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(suggested)))
+            onView(withId(R.id.farmDetailsChangeCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
-            changeSettingCurrency("USD")
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("USD")))
+            changeFarmCurrency("USD")
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("USD", Locale.getDefault()))))
 
-            onView(withId(R.id.navHomeItem)).perform(click())
+            onView(withId(R.id.navTodayItem)).perform(click())
             onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
             PickerTestHelpers.pickDateTime(2024, 0, 1, 17, 45)
             fillEditor(description = "Sale", amount = "100")
@@ -352,7 +360,7 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
-    fun establishedFarmLocksCurrencyInSettings() {
+    fun establishedFarmCanChangeCurrencyWithConfirmation() {
         seedFarm(
             "USD Farm",
             SeedTransaction("Feed", 1000, "USD"),
@@ -360,10 +368,21 @@ class FarmActivityWorkflowTest {
         )
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            openSettings()
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("USD")))
-            onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            onView(withId(R.id.settingsCurrencyLockedText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            openFarmDetails("USD Farm")
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("USD", Locale.getDefault()))))
+            onView(withId(R.id.farmDetailsChangeCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+
+            changeFarmCurrency("NPR")
+            onView(withText(R.string.dialog_change_currency_title)).inRoot(isDialog()).check(matches(isDisplayed()))
+            clickDialogAction(R.string.change_currency_action)
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("NPR", Locale.getDefault()))))
+
+            scenario.onActivity { activity ->
+                val farm = farmFor(activity)
+                assertEquals("NPR", farm.currencyCode)
+                assertEquals(1000, farm.transactions.first { it.description == "Feed" }.amountMinor)
+                assertEquals(2000, farm.transactions.first { it.description == "Supplies" }.amountMinor)
+            }
         } finally {
             scenario.close()
         }
@@ -453,22 +472,18 @@ class FarmActivityWorkflowTest {
     }
 
     @Test
-    fun invalidCurrencyIsoKeepsDialogOpenWithError() {
+    fun currencyChooserOffersSupportedCurrenciesAndCancelKeepsCurrency() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("Currency Farm")
-            openSettings()
+            openFarmDetails("Currency Farm")
+            val current = FarmCurrencies.label(FarmCurrencies.defaultFor(Locale.getDefault()), Locale.getDefault())
 
-            onView(withId(R.id.changeSettingsCurrencyButton)).perform(scrollTo(), click())
-            onView(withId(R.id.currencyInput)).inRoot(isDialog()).perform(replaceText("US"), closeSoftKeyboard())
-            clickDialogAction(R.string.action_ok)
-            onView(withId(R.id.currencyErrorText)).inRoot(isDialog())
-                .check(matches(withText(R.string.error_currency_iso_three_letters)))
-            onView(withId(R.id.currencyInput)).inRoot(isDialog()).check(matches(isDisplayed()))
-
-            onView(withId(R.id.currencyInput)).inRoot(isDialog()).perform(replaceText("USD"), closeSoftKeyboard())
-            clickDialogAction(R.string.action_ok)
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("USD")))
+            onView(withId(R.id.farmDetailsChangeCurrencyButton)).perform(scrollTo(), click())
+            onView(withText(containsString("(NPR)"))).inRoot(isDialog()).check(matches(isDisplayed()))
+            onView(withText(containsString("(USD)"))).inRoot(isDialog()).check(matches(isDisplayed()))
+            clickDialogAction(R.string.action_cancel)
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(current)))
         } finally {
             scenario.close()
         }
@@ -539,10 +554,10 @@ class FarmActivityWorkflowTest {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("JPY Farm")
-            openSettings()
-            changeSettingCurrency("JPY")
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("JPY")))
-            onView(withId(R.id.navHomeItem)).perform(click())
+            openFarmDetails("JPY Farm")
+            changeFarmCurrency("JPY")
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("JPY", Locale.getDefault()))))
+            onView(withId(R.id.navTodayItem)).perform(click())
             onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
             fillEditor(description = "Rice", amount = "1500")
             clickSave(scenario)
@@ -568,9 +583,9 @@ class FarmActivityWorkflowTest {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("KWD Farm")
-            openSettings()
-            changeSettingCurrency("KWD")
-            onView(withId(R.id.navHomeItem)).perform(click())
+            openFarmDetails("KWD Farm")
+            changeFarmCurrency("KWD")
+            onView(withId(R.id.navTodayItem)).perform(click())
             onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
             fillEditor(description = "Feed", amount = "1.500")
             clickSave(scenario)
@@ -590,34 +605,46 @@ class FarmActivityWorkflowTest {
             onView(withId(R.id.scrollView)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.hisabKitabScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.hisabScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.farmWorkScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.moreScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.settingsScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            onView(withId(R.id.navHomeItem)).check(matches(isSelected()))
-            onView(withId(R.id.navHisabKitabItem)).check(matches(not(isSelected())))
-            onView(withId(R.id.navHisabItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navTodayItem)).check(matches(isSelected()))
+            onView(withId(R.id.navKhataItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navFarmWorkItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navMoreItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navRecordItem)).check(matches(not(isSelected())))
 
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
             onView(withId(R.id.scrollView)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.hisabKitabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-            onView(withId(R.id.shellTitle)).check(matches(withText(R.string.nav_hisab_kitab)))
-            onView(withId(R.id.navHisabKitabItem)).check(matches(isSelected()))
-            onView(withId(R.id.navHomeItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.shellTitle)).check(matches(withText(R.string.nav_khata)))
+            onView(withId(R.id.navKhataItem)).check(matches(isSelected()))
+            onView(withId(R.id.navTodayItem)).check(matches(not(isSelected())))
 
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navFarmWorkItem)).perform(click())
             onView(withId(R.id.hisabKitabScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            onView(withId(R.id.hisabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-            onView(withId(R.id.shellTitle)).check(matches(withText(R.string.nav_hisab)))
-            onView(withId(R.id.navHisabItem)).check(matches(isSelected()))
-            onView(withId(R.id.navHisabKitabItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.farmWorkScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.shellTitle)).check(matches(withText(R.string.nav_farm_work)))
+            onView(withId(R.id.navFarmWorkItem)).check(matches(isSelected()))
+            onView(withId(R.id.navKhataItem)).check(matches(not(isSelected())))
+
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.farmWorkScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.moreScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.shellTitle)).check(matches(withText(R.string.nav_more)))
+            onView(withId(R.id.navMoreItem)).check(matches(isSelected()))
+            onView(withId(R.id.navFarmWorkItem)).check(matches(not(isSelected())))
 
             openSettings()
             onView(withId(R.id.settingsScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-            onView(withId(R.id.hisabScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.moreScreen)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             onView(withId(R.id.shellTitle)).check(matches(withText(R.string.nav_settings)))
-            onView(withId(R.id.navHomeItem)).check(matches(not(isSelected())))
-            onView(withId(R.id.navHisabKitabItem)).check(matches(not(isSelected())))
-            onView(withId(R.id.navHisabItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navTodayItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navKhataItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navFarmWorkItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.navMoreItem)).check(matches(not(isSelected())))
 
-            onView(withId(R.id.navHomeItem)).perform(click())
+            onView(withId(R.id.navTodayItem)).perform(click())
             onView(withId(R.id.scrollView)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
         } finally {
             scenario.close()
@@ -628,7 +655,8 @@ class FarmActivityWorkflowTest {
     fun kisanArithmeticWorksWithoutCreatingAFarm() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
             onView(withId(R.id.kisanCalculatorToolbox))
                 .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.arithmeticFirstInput))
@@ -649,7 +677,7 @@ class FarmActivityWorkflowTest {
     fun backFromSettingsRestoresPriorPrimaryDestination() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
             onView(withId(R.id.hisabKitabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             openSettings()
@@ -669,12 +697,12 @@ class FarmActivityWorkflowTest {
     fun backFromPrimaryDestinationReturnsToHome() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
-            onView(withId(R.id.hisabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.navFarmWorkItem)).perform(click())
+            onView(withId(R.id.farmWorkScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             Espresso.pressBack()
             onView(withId(R.id.scrollView)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
             Espresso.pressBack()
             onView(withId(R.id.scrollView)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
         } finally {
@@ -687,7 +715,7 @@ class FarmActivityWorkflowTest {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("Party Farm")
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
             onView(withId(R.id.partiesEmptyText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.addPartyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
@@ -733,7 +761,7 @@ class FarmActivityWorkflowTest {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("Party Farm")
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
             onView(withId(R.id.addPartyButton)).perform(scrollTo(), click())
             onView(withId(R.id.savePartyButton)).perform(scrollTo(), click())
             onView(withText(R.string.error_party_name_required)).check(matches(isDisplayed()))
@@ -750,7 +778,7 @@ class FarmActivityWorkflowTest {
         seedParty("Delete Me", "9800000001")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
             onView(withId(R.id.partyRow)).perform(click())
             onView(withId(R.id.khataEditPartyButton)).perform(scrollTo(), click())
             onView(withId(R.id.deletePartyButton)).perform(scrollTo(), click())
@@ -785,14 +813,14 @@ class FarmActivityWorkflowTest {
     fun primaryDestinationSelectionSurvivesRecreation() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
-            onView(withId(R.id.navHisabItem)).check(matches(isSelected()))
+            onView(withId(R.id.navFarmWorkItem)).perform(click())
+            onView(withId(R.id.navFarmWorkItem)).check(matches(isSelected()))
 
             scenario.recreate()
 
-            onView(withId(R.id.hisabScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-            onView(withId(R.id.navHisabItem)).check(matches(isSelected()))
-            onView(withId(R.id.navHomeItem)).check(matches(not(isSelected())))
+            onView(withId(R.id.farmWorkScreen)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.navFarmWorkItem)).check(matches(isSelected()))
+            onView(withId(R.id.navTodayItem)).check(matches(not(isSelected())))
         } finally {
             scenario.close()
         }
@@ -802,7 +830,8 @@ class FarmActivityWorkflowTest {
     fun seedCalculatorWorksWithoutFarm() {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
             onView(withId(R.id.seedCalculatorContainer))
                 .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             onView(withId(R.id.seedAreaInput)).perform(scrollTo(), replaceText("2"))
@@ -846,9 +875,9 @@ class FarmActivityWorkflowTest {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             openSettings()
-            onView(withId(R.id.settingsNoFarmText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.settingsDataNoFarmText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(withId(R.id.settingsExportBackupButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.settingsImportBackupButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
         } finally {
             scenario.close()
         }
@@ -885,11 +914,16 @@ class FarmActivityWorkflowTest {
         onView(withText(R.string.nav_settings)).perform(click())
     }
 
-    private fun changeSettingCurrency(code: String) {
-        onView(withId(R.id.changeSettingsCurrencyButton)).perform(scrollTo(), click())
-        onView(withId(R.id.currencyInput)).inRoot(isDialog()).perform(replaceText(code), closeSoftKeyboard())
-        onView(withId(R.id.currencyInput)).inRoot(isDialog()).check(matches(withText(code)))
-        clickDialogAction(R.string.action_ok)
+    private fun openFarmDetails(farmName: String) {
+        onView(withId(R.id.navMoreItem)).perform(click())
+        onView(withId(R.id.moreFarmsButton)).perform(click())
+        onView(allOf(isDescendantOfA(withId(R.id.farmsListContainer)), withText(farmName))).perform(click())
+    }
+
+    private fun changeFarmCurrency(code: String) {
+        onView(withId(R.id.farmDetailsChangeCurrencyButton)).perform(scrollTo(), click())
+        val index = FarmCurrencies.SUPPORTED.indexOf(code)
+        onData(anything()).inRoot(isDialog()).atPosition(index).perform(click())
     }
 
     private fun expectedInstant(year: Int, month: Int, day: Int, hour: Int, minute: Int): String =

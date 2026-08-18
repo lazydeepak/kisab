@@ -211,9 +211,9 @@ class FarmSliceServiceTest {
     }
 
     @Test
-    fun farmCurrencyLocksAfterFirstTransaction() {
+    fun farmCurrencyCanChangeAfterTransactionsKeepingAmountsUnchanged() {
         val farm = service.createFarm("Demo Farm")
-        service.createTransaction(
+        val transaction = service.createTransaction(
             farm.id,
             FarmTransactionDraft(
                 type = TransactionType.INCOME,
@@ -224,14 +224,37 @@ class FarmSliceServiceTest {
             )
         )
 
-        try {
-            service.setFarmCurrency(farm.id, "USD")
-            fail("Expected IllegalArgumentException")
-        } catch (exception: IllegalArgumentException) {
-            assertEquals("Farm currency cannot change after transactions are recorded", exception.message)
-        }
+        service.setFarmCurrency(farm.id, "USD")
 
-        assertEquals("NPR", service.loadFarm(farm.id)?.currencyCode)
+        val updated = service.loadFarm(farm.id)!!
+        assertEquals("USD", updated.currencyCode)
+        assertEquals(transaction, updated.transactions.single())
+        assertEquals(1000, updated.transactions.single().amountMinor)
+    }
+
+    @Test
+    fun farmCurrencyCanChangeAfterTradeAndSettlementKeepingAmountsUnchanged() {
+        val farm = service.createFarm("Demo Farm")
+        service.addParty(farm.id, PartyDraft(name = "Feed Store", role = PartyRole.SUPPLIER))
+        val trade = service.addTradeWithInitialSettlement(
+            farm.id,
+            TradeDraft(
+                type = TradeType.PURCHASE,
+                partyId = service.parties(farm.id).single().id,
+                totalMinor = 2500,
+                description = "Feed stock",
+                occurredAt = "2024-01-01T12:00:00Z"
+            ),
+            initialSettlementMinor = 2500
+        )
+
+        service.setFarmCurrency(farm.id, "JPY")
+
+        val updated = service.loadFarm(farm.id)!!
+        assertEquals("JPY", updated.currencyCode)
+        assertEquals(trade, updated.trades.single())
+        assertEquals(2500, updated.trades.single().totalMinor)
+        assertEquals(2500, updated.settlements.single().amountMinor)
     }
 
     @Test
@@ -322,7 +345,7 @@ class FarmSliceServiceTest {
 
         val encoded = FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!)
         val reloaded = FarmPersistenceCodec.decode(encoded)
-        assertEquals(6, reloaded.schemaVersion)
+        assertEquals(12, reloaded.schemaVersion)
         assertEquals(1, reloaded.parties.size)
         assertEquals("Feed Store", reloaded.parties.single().name)
         assertEquals(PartyRole.SUPPLIER, reloaded.parties.single().role)
@@ -631,7 +654,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema4)
 
-        assertEquals(6, farm.schemaVersion)
+        assertEquals(12, farm.schemaVersion)
         assertEquals(0, farm.trades.size)
         assertEquals(0, farm.parties.size)
     }
@@ -653,7 +676,7 @@ class FarmSliceServiceTest {
         )
 
         val reloaded = FarmPersistenceCodec.decode(FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!))
-        assertEquals(6, reloaded.schemaVersion)
+        assertEquals(12, reloaded.schemaVersion)
         val trade = reloaded.trades.single()
         assertEquals(TradeType.SALE, trade.type)
         assertEquals(party.id, trade.partyId)
@@ -738,7 +761,7 @@ class FarmSliceServiceTest {
         val encoded = FarmPersistenceCodec.encode(persisted)
         val reloaded = FarmPersistenceCodec.decode(encoded)
 
-        assertEquals(6, reloaded.schemaVersion)
+        assertEquals(12, reloaded.schemaVersion)
         assertEquals(1, reloaded.parties.size)
         assertEquals(1, reloaded.trades.size)
         assertEquals(trade.id, reloaded.trades.single().id)
@@ -752,7 +775,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema3)
 
-        assertEquals(6, farm.schemaVersion)
+        assertEquals(12, farm.schemaVersion)
         assertEquals("Farm S3", farm.name)
         assertEquals(1, farm.transactions.size)
         assertEquals(0, farm.parties.size)
@@ -816,7 +839,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema2)
 
-        assertEquals(6, farm.schemaVersion)
+        assertEquals(12, farm.schemaVersion)
         assertEquals("USD", farm.currencyCode)
         assertEquals(1, farm.transactions.size)
         assertEquals(1500, farm.transactions[0].amountMinor)
@@ -830,7 +853,7 @@ class FarmSliceServiceTest {
 
         val farm = FarmPersistenceCodec.decode(schema2)
 
-        assertEquals(6, farm.schemaVersion)
+        assertEquals(12, farm.schemaVersion)
         assertEquals("NPR", farm.currencyCode)
         assertEquals(0, farm.transactions.size)
     }
@@ -1271,8 +1294,11 @@ class FarmSliceServiceTest {
         val encoded = FarmBackupCodec.encode(persisted, exportedAt)
 
         val payload = Base64.getEncoder().encodeToString(
-            ("6\u001F${persisted.id}\u001FDemo Farm\u001FLIVESTOCK:Goat:2\u001FNPR\u001F" +
-                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z\u001F\u001F\u001F")
+            listOf(
+                "12", persisted.id, "Demo Farm", "LIVESTOCK:Goat:2", "NPR",
+                "${persisted.transactions[0].id}\u001DEXPENSE\u001DFEED\u001D1500\u001DFeed\u001D2024-01-01T12:00:00Z",
+                "", "", "", "", "", "", "", "", "", ""
+            ).joinToString("\u001F")
                 .toByteArray(StandardCharsets.UTF_8)
         )
         assertEquals("1\u001F2024-06-01T12:00:00Z\u001F$payload", encoded)
@@ -1544,5 +1570,141 @@ class FarmSliceServiceTest {
         assertEquals(farm.trades.single().occurredAt, settlement.occurredAt)
         assertEquals(settlement.id, again.settlements.single().id)
         assertEquals(7000L, farm.settlements.outstandingMinorFor(farm.trades.single()))
+    }
+
+    @Test
+    fun resetFarmDataClearsAllRecordsAndKeepsFarmIdentity() {
+        val farm = service.createFarm("Demo Farm", currencyCode = "NPR")
+        service.addEntry(farm.id, FarmEntry(FarmEntryKind.LIVESTOCK, "Goat", 3))
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 5000,
+                description = "Feed purchase",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        service.addTradeWithInitialSettlement(
+            farm.id,
+            TradeDraft(type = TradeType.SALE, partyId = party.id, totalMinor = 5000, occurredAt = "2024-01-01T12:00:00Z"),
+            initialSettlementMinor = 2000
+        )
+
+        service.resetFarmData(farm.id)
+
+        val reset = service.loadFarm(farm.id)
+        assertNotNull(reset)
+        assertEquals(farm.id, reset?.id)
+        assertEquals("Demo Farm", reset?.name)
+        assertEquals("NPR", reset?.currencyCode)
+        assertEquals(0, reset?.entries?.size)
+        assertEquals(0, reset?.transactions?.size)
+        assertEquals(0, reset?.parties?.size)
+        assertEquals(0, reset?.trades?.size)
+        assertEquals(0, reset?.settlements?.size)
+        assertEquals(farm.id, service.currentFarmId())
+    }
+
+    @Test
+    fun resetFarmDataRequiresAnExistingFarm() {
+        try {
+            service.resetFarmData("farm-missing")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Unknown farm: farm-missing", exception.message)
+        }
+    }
+
+    @Test
+    fun deleteFarmRemovesFarmAndReturnsToNoFarmState() {
+        val farm = service.createFarm("Demo Farm", currencyCode = "NPR")
+        val party = service.addParty(farm.id, PartyDraft(name = "Dairy", role = PartyRole.CUSTOMER))
+        service.addTradeWithInitialSettlement(
+            farm.id,
+            TradeDraft(type = TradeType.SALE, partyId = party.id, totalMinor = 5000, occurredAt = "2024-01-01T12:00:00Z"),
+            initialSettlementMinor = 2000
+        )
+
+        service.deleteFarm(farm.id)
+
+        assertNull(service.loadFarm(farm.id))
+        assertNull(service.currentFarmId())
+    }
+
+    @Test
+    fun deleteFarmKeepsCurrentFarmWhenDeletingAnotherFarm() {
+        val first = service.createFarm("First")
+        val second = service.createFarm("Second")
+
+        service.deleteFarm(first.id)
+
+        assertNull(service.loadFarm(first.id))
+        assertEquals(second.id, service.currentFarmId())
+    }
+
+    @Test
+    fun deleteFarmRequiresAnExistingFarm() {
+        try {
+            service.deleteFarm("farm-missing")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Unknown farm: farm-missing", exception.message)
+        }
+    }
+
+    @Test
+    fun renameFarmChangesNameAndPreservesEverythingElse() {
+        val farm = service.createFarm("Demo Farm", currencyCode = "NPR")
+        service.addEntry(farm.id, FarmEntry(FarmEntryKind.LIVESTOCK, "Goat", 3))
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 5000,
+                description = "Feed purchase",
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+
+        val renamed = service.renameFarm(farm.id, "  New Name  ")
+
+        assertEquals("New Name", renamed.name)
+        val loaded = service.loadFarm(farm.id)
+        assertNotNull(loaded)
+        assertEquals(farm.id, loaded?.id)
+        assertEquals("New Name", loaded?.name)
+        assertEquals("NPR", loaded?.currencyCode)
+        assertEquals(1, loaded?.entries?.size)
+        assertEquals(1, loaded?.transactions?.size)
+        assertEquals(farm.schemaVersion, loaded?.schemaVersion)
+        assertEquals(farm.id, service.currentFarmId())
+    }
+
+    @Test
+    fun renameFarmRequiresNonBlankNameAndKeepsExistingName() {
+        val farm = service.createFarm("Demo Farm")
+
+        try {
+            service.renameFarm(farm.id, "   ")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Farm name is required", exception.message)
+        }
+
+        assertEquals("Demo Farm", service.loadFarm(farm.id)?.name)
+    }
+
+    @Test
+    fun renameFarmRequiresAnExistingFarm() {
+        try {
+            service.renameFarm("farm-missing", "New Name")
+            fail("Expected IllegalArgumentException")
+        } catch (exception: IllegalArgumentException) {
+            assertEquals("Unknown farm: farm-missing", exception.message)
+        }
     }
 }

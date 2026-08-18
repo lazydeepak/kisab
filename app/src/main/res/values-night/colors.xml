@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="shellAppBarBackground">#1b5e20</color>
+    <color name="bottomNavBackground">#162a1b</color>
+    <color name="bottomNavContent">#a7c2ad</color>
+    <color name="bottomNavSelectedContent">#c8e6c9</color>
+    <color name="bottomNavSelectedBackground">#2e4a35</color>
+    <color name="recordActionBackground">#66BB6A</color>
+    <color name="recordActionContent">#0A1F0E</color>
+    <color name="recordActionSelectedBackground">#A5D6A7</color>
+    <color name="dangerZone">#C62828</color>
+    <color name="dangerZoneLabel">#EF9A9A</color>
+    <color name="dangerZoneContainer">#3E2727</color>
+    <color name="textSecondary">#B0B8B0</color>
+    <color name="farmRowStroke">#3A4F3E</color>
+    <color name="farmRowBackground">#1A241C</color>
+    <color name="farmActiveBadgeBackground">#2E4A35</color>
+    <color name="farmActiveBadgeText">#C8E6C9</color>
+    <color name="sectionDivider">#3A4A3E</color>
+    <color name="cardBackground">#1A241C</color>
+    <color name="cardStroke">#3A4F3E</color>
+    <color name="receivableBackground">#1C2E20</color>
+    <color name="receivableStroke">#2E5434</color>
+    <color name="receivableText">#A5D6A7</color>
+    <color name="payableBackground">#2E1C1C</color>
+    <color name="payableStroke">#542E2E</color>
+    <color name="payableText">#EF9A9A</color>
+    <color name="metricTileBackground">#223325</color>
+    <color name="metricTileStroke">#38523D</color>
+</resources>

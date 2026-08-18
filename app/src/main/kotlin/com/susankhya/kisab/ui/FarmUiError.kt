@@ -22,8 +22,6 @@ enum class FarmUiError(@param:StringRes val resourceId: Int) {
     AMOUNT_NOT_POSITIVE(R.string.error_transaction_amount_positive),
     AMOUNT_TOO_PRECISE(R.string.error_transaction_amount_too_precise),
     AMOUNT_TOO_LARGE(R.string.error_transaction_amount_too_large),
-    CURRENCY_ISO_THREE_LETTERS(R.string.error_currency_iso_three_letters),
-    CURRENCY_LOCKED(R.string.error_currency_locked),
     PARTY_NAME_REQUIRED(R.string.error_party_name_required),
     PARTY_HAS_TRADES(R.string.error_party_has_trades),
     PARTY_ROLE_INCOMPATIBLE(R.string.error_party_role_incompatible),

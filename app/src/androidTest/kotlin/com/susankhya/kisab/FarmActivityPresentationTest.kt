@@ -21,6 +21,7 @@ import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.Visibility
+import androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -35,6 +36,7 @@ import com.susankhya.kisab.persistence.SharedPreferencesAppLanguagePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.AppLanguage
 import com.susankhya.kisab.ui.FarmActivity
+import com.susankhya.kisab.ui.FarmCurrencies
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -89,7 +91,9 @@ class FarmActivityPresentationTest {
             clickSave(scenario)
 
             var balance: String? = null
-            scenario.onActivity { activity -> balance = activity.formatMoney("NPR", 12345) }
+            scenario.onActivity { activity ->
+                balance = activity.formatMoney(FarmCurrencies.defaultFor(Locale.getDefault()), 12345)
+            }
             onView(withId(R.id.balanceText)).check(matches(withText(containsString(balance))))
 
             openEditorForTransaction("Feed")
@@ -104,7 +108,7 @@ class FarmActivityPresentationTest {
                 val farm = service.loadFarm(service.currentFarmId()!!)!!
                 assertEquals(1, farm.transactions.size)
                 assertEquals(12345, farm.transactions.single().amountMinor)
-                assertEquals("NPR", farm.currencyCode)
+                assertEquals(FarmCurrencies.defaultFor(Locale.getDefault()), farm.currencyCode)
                 assertEquals(expectedInstant(2024, 1, 1, 17, 45), farm.transactions.single().occurredAt.toInstant().toString())
             }
         } finally {
@@ -113,15 +117,15 @@ class FarmActivityPresentationTest {
     }
 
     @Test
-    fun nepaliLocaleDefaultsToNprAndFormatsWithLocalizedDigits() {
+    fun nepaliLocaleFormatsWithLocalizedDigits() {
         setAppLocale(Locale.forLanguageTag("ne"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("NPR Farm")
 
-            openSettings()
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("NPR")))
-            onView(withId(R.id.navHomeItem)).perform(click())
+            openFarmDetails("NPR Farm")
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label(FarmCurrencies.defaultFor(Locale.getDefault()), Locale.getDefault()))))
+            onView(withId(R.id.navTodayItem)).perform(click())
 
             openExpenseEditor()
             setOccurredAt(2024, 1, 1, 17, 45)
@@ -129,7 +133,9 @@ class FarmActivityPresentationTest {
             clickSave(scenario)
 
             var balance: String? = null
-            scenario.onActivity { activity -> balance = activity.formatMoney("NPR", 12345) }
+            scenario.onActivity { activity ->
+                balance = activity.formatMoney(FarmCurrencies.defaultFor(Locale.getDefault()), 12345)
+            }
             assertTrue("Expected Nepali digits in balance, was: $balance", balance!!.contains("१२३.४५"))
             onView(withId(R.id.balanceText)).check(matches(withText(containsString(balance!!))))
         } finally {
@@ -138,20 +144,19 @@ class FarmActivityPresentationTest {
     }
 
     @Test
-    fun usdFarmDerivesCurrencyAndLocksFarmCurrency() {
+    fun usdFarmDerivesCurrencyAndAllowsChange() {
         seedTransaction(amountMinor = 1500, currency = "USD", description = "Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            openSettings()
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("USD")))
-            onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            onView(withId(R.id.settingsCurrencyLockedText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            openFarmDetails("Demo Farm")
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("USD", Locale.getDefault()))))
+            onView(withId(R.id.farmDetailsChangeCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             var money: String? = null
             scenario.onActivity { activity -> money = activity.formatMoney("USD", 1500) }
             assertTrue("Expected USD amount in recent row", recentRowText(scenario).contains(money!!))
 
-            onView(withId(R.id.navHomeItem)).perform(click())
+            onView(withId(R.id.navTodayItem)).perform(click())
             openExpenseEditor()
             setOccurredAt(2024, 1, 1, 17, 45)
             fillEditor(description = "More feed", amount = "10.00")
@@ -369,6 +374,12 @@ class FarmActivityPresentationTest {
     private fun openSettings() {
         onView(withId(R.id.shellMenuButton)).perform(click())
         onView(withText(R.string.nav_settings)).perform(click())
+    }
+
+    private fun openFarmDetails(farmName: String) {
+        onView(withId(R.id.navMoreItem)).perform(click())
+        onView(withId(R.id.moreFarmsButton)).perform(click())
+        onView(allOf(isDescendantOfA(withId(R.id.farmsListContainer)), withText(farmName))).perform(click())
     }
 
     private fun setAppLocale(locale: Locale) {

@@ -105,8 +105,12 @@
             android:id="@+id/seedResultText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
             android:accessibilityLiveRegion="polite"
+            android:background="@drawable/bg_metric_tile"
+            android:lineSpacingMultiplier="1.15"
+            android:padding="12dp"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:visibility="gone" />
     </LinearLayout>
@@ -184,8 +188,12 @@
             android:id="@+id/fertilizerResultText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
             android:accessibilityLiveRegion="polite"
+            android:background="@drawable/bg_metric_tile"
+            android:lineSpacingMultiplier="1.15"
+            android:padding="12dp"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:visibility="gone" />
     </LinearLayout>
@@ -259,8 +267,12 @@
             android:id="@+id/feedResultText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
             android:accessibilityLiveRegion="polite"
+            android:background="@drawable/bg_metric_tile"
+            android:lineSpacingMultiplier="1.15"
+            android:padding="12dp"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:visibility="gone" />
     </LinearLayout>
@@ -334,8 +346,12 @@
             android:id="@+id/milkResultText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
             android:accessibilityLiveRegion="polite"
+            android:background="@drawable/bg_metric_tile"
+            android:lineSpacingMultiplier="1.15"
+            android:padding="12dp"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:visibility="gone" />
     </LinearLayout>
@@ -413,8 +429,12 @@
             android:id="@+id/cropYieldResultText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
             android:accessibilityLiveRegion="polite"
+            android:background="@drawable/bg_metric_tile"
+            android:lineSpacingMultiplier="1.15"
+            android:padding="12dp"
+            android:textSize="16sp"
             android:textStyle="bold"
             android:visibility="gone" />
     </LinearLayout>
@@ -424,5 +444,5 @@
         android:layout_height="1dp"
         android:layout_marginTop="28dp"
         android:layout_marginBottom="24dp"
-        android:background="#33000000" />
+        android:background="@color/sectionDivider" />
 </LinearLayout>

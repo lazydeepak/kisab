@@ -1,5 +1,6 @@
 package com.susankhya.kisab.domain
 
+import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
 object FarmStateValidator {
@@ -36,6 +37,56 @@ object FarmStateValidator {
         farm.settlements.forEach { validateSettlement(farm, it) }
         val settlementIds = farm.settlements.map { it.id }
         require(settlementIds.size == settlementIds.toSet().size) { "Settlement IDs must be unique" }
+        farm.products.forEach(::validateProduct)
+        val productIds = farm.products.map { it.id }
+        require(productIds.size == productIds.toSet().size) { "Product IDs must be unique" }
+        farm.productSaleDetails.forEach { validateProductSaleDetail(farm, it) }
+        val detailTradeIds = farm.productSaleDetails.map { it.tradeId }
+        require(detailTradeIds.size == detailTradeIds.toSet().size) {
+            "Product sale details must be unique per trade"
+        }
+        farm.supplies.forEach(::validateSupply)
+        val supplyIds = farm.supplies.map { it.id }
+        require(supplyIds.size == supplyIds.toSet().size) { "Supply IDs must be unique" }
+        farm.supplyPurchaseDetails.forEach { validateSupplyPurchaseDetail(farm, it) }
+        val purchaseSourceIds = farm.supplyPurchaseDetails.map { detail ->
+            detail.transactionId?.let { "transaction:$it" } ?: "trade:${detail.purchaseTradeId}"
+        }
+        require(purchaseSourceIds.size == purchaseSourceIds.toSet().size) {
+            "Supply purchase details must be unique per source"
+        }
+        farm.supplyUsages.forEach { usage ->
+            require(farm.supplies.any { it.id == usage.supplyId }) { "Supply usage supply not found: ${usage.supplyId}" }
+            val supply = farm.supplies.first { it.id == usage.supplyId }
+            require(supply.unit == usage.unit) { "Supply usage unit does not match" }
+        }
+        val usageIds = farm.supplyUsages.map { it.id }
+        require(usageIds.size == usageIds.toSet().size) { "Supply usage IDs must be unique" }
+        farm.supplies.forEach { supply ->
+            require(farm.supplyQuantityAvailable(supply.id) >= BigDecimal.ZERO) {
+                "Supply stock cannot be negative: ${supply.id}"
+            }
+        }
+        farm.productionRecords.forEach { record ->
+            require(farm.products.any { it.id == record.productId }) {
+                "Production product not found: ${record.productId}"
+            }
+            require(farm.products.first { it.id == record.productId }.defaultUnit == record.unit) {
+                "Production unit does not match product"
+            }
+        }
+        val productionIds = farm.productionRecords.map { it.id }
+        require(productionIds.size == productionIds.toSet().size) { "Production IDs must be unique" }
+        farm.productionAllocations.forEach { allocation ->
+            require(farm.products.any { it.id == allocation.productId }) {
+                "Allocation product not found: ${allocation.productId}"
+            }
+            require(farm.products.first { it.id == allocation.productId }.defaultUnit == allocation.unit) {
+                "Allocation unit does not match product"
+            }
+        }
+        val allocationIds = farm.productionAllocations.map { it.id }
+        require(allocationIds.size == allocationIds.toSet().size) { "Allocation IDs must be unique" }
     }
 
     fun validateParty(party: Party) {
@@ -72,5 +123,46 @@ object FarmStateValidator {
         require(settlement.occurredAt.format(DATE_TIME_FORMATTER).isNotBlank()) { "Settlement date/time is required" }
         val paidMinor = farm.settlements.paidMinorFor(settlement.tradeId)
         require(paidMinor <= trade.totalMinor) { "Settlement amount cannot exceed the remaining balance" }
+    }
+
+    fun validateProduct(product: FarmProduct) {
+        require(product.id.isNotBlank()) { "Product id is required" }
+        require(product.name.isNotBlank()) { "Product name is required" }
+        if (product.defaultUnit == ProductUnit.CUSTOM) {
+            require(product.customUnitLabel.isNotBlank()) { "Custom unit label is required" }
+        }
+    }
+
+    fun validateProductSaleDetail(farm: FarmState, detail: ProductSaleDetail) {
+        val trade = farm.trades.firstOrNull { it.id == detail.tradeId }
+            ?: throw IllegalArgumentException("Product sale detail trade not found: ${detail.tradeId}")
+        require(trade.type == TradeType.SALE) { "Product sale detail trade must be a sale" }
+        require(farm.products.any { it.id == detail.productId }) {
+            "Product sale detail product not found: ${detail.productId}"
+        }
+        require(detail.totalMinor() == trade.totalMinor) {
+            "Product sale detail total does not match the trade"
+        }
+    }
+
+    fun validateSupply(supply: FarmSupply) {
+        require(supply.id.isNotBlank()) { "Supply id is required" }
+        require(supply.name.isNotBlank()) { "Supply name is required" }
+        if (supply.unit == ProductUnit.CUSTOM) require(supply.customUnitLabel.isNotBlank()) { "Custom unit label is required" }
+    }
+
+    fun validateSupplyPurchaseDetail(farm: FarmState, detail: SupplyPurchaseDetail) {
+        if (detail.transactionId != null) {
+            val transaction = farm.transactions.firstOrNull { it.id == detail.transactionId }
+                ?: throw IllegalArgumentException("Supply purchase transaction not found: ${detail.transactionId}")
+            require(transaction.type == TransactionType.EXPENSE) { "Supply purchase must link to an expense" }
+        } else {
+            val trade = farm.trades.firstOrNull { it.id == detail.purchaseTradeId }
+                ?: throw IllegalArgumentException("Supply purchase trade not found: ${detail.purchaseTradeId}")
+            require(trade.type == TradeType.PURCHASE) { "Supply purchase must link to a purchase" }
+        }
+        val supply = farm.supplies.firstOrNull { it.id == detail.supplyId }
+            ?: throw IllegalArgumentException("Supply purchase supply not found: ${detail.supplyId}")
+        require(supply.unit == detail.unit) { "Supply purchase unit does not match" }
     }
 }

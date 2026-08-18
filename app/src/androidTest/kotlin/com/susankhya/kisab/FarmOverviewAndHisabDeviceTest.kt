@@ -59,7 +59,7 @@ class FarmOverviewAndHisabDeviceTest {
         seedOverviewFarm()
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
 
             // THIS_MONTH: income is in-window, the 60-day-old expense is not.
             overviewCashIncome(scenario, formattedFor(scenario, 100000))
@@ -105,7 +105,7 @@ class FarmOverviewAndHisabDeviceTest {
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
             createFarm("Empty Overview Farm")
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
             assertOverviewEmptyState(scenario, R.id.overviewCashEmptyText, View.VISIBLE)
             assertOverviewEmptyState(scenario, R.id.overviewTradeEmptyText, View.VISIBLE)
             assertOverviewEmptyState(scenario, R.id.overviewPositionEmptyText, View.VISIBLE)
@@ -120,13 +120,13 @@ class FarmOverviewAndHisabDeviceTest {
         seedOverviewFarm()
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
             selectOverviewPeriod(scenario, FinancialPeriodPreset.ALL_TIME)
             overviewCashExpense(scenario, formattedFor(scenario, 50000))
 
             scenario.recreate()
 
-            onView(withId(R.id.navHisabKitabItem)).perform(click())
+            onView(withId(R.id.navKhataItem)).perform(click())
             overviewCashExpense(scenario, formattedFor(scenario, 50000))
             scenario.onActivity { activity ->
                 val spinner = activity.findViewById<android.widget.Spinner>(R.id.overviewPeriodSpinner)
@@ -145,7 +145,9 @@ class FarmOverviewAndHisabDeviceTest {
         seedOverviewFarm()
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
+            waitForIdle()
 
             // First party is Alpha Buyer (CUSTOMER): its SALE trade renders.
             assertHisabRole(scenario, roleLabel(com.susankhya.kisab.domain.PartyRole.CUSTOMER))
@@ -183,7 +185,9 @@ class FarmOverviewAndHisabDeviceTest {
         seedOverviewFarm()
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
+            waitForIdle()
             scenario.onActivity { activity ->
                 val spinner = activity.findViewById<android.widget.Spinner>(R.id.hisabPartySpinner)
                 val betaIndex = (0 until spinner.count).indexOfFirst {
@@ -198,7 +202,9 @@ class FarmOverviewAndHisabDeviceTest {
 
             scenario.recreate()
 
-            onView(withId(R.id.navHisabItem)).perform(click())
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
+            waitForIdle()
             assertHisabRole(scenario, roleLabel(com.susankhya.kisab.domain.PartyRole.SUPPLIER))
             // ALL_TIME must survive recreation: 20,000 proves the period (not a
             // THIS_MONTH reset, which would show 10,000).
