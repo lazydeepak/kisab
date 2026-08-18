@@ -61,8 +61,12 @@
         android:id="@+id/arithmeticResultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_metric_tile"
+        android:lineSpacingMultiplier="1.15"
+        android:padding="12dp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -103,8 +107,12 @@
         android:id="@+id/profitResultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_metric_tile"
+        android:lineSpacingMultiplier="1.15"
+        android:padding="12dp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -154,8 +162,12 @@
         android:id="@+id/interestResultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_metric_tile"
+        android:lineSpacingMultiplier="1.15"
+        android:padding="12dp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -217,8 +229,12 @@
         android:id="@+id/landResultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_metric_tile"
+        android:lineSpacingMultiplier="1.15"
+        android:padding="12dp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone" />
 
