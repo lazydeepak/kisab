@@ -73,9 +73,9 @@ permissions:
   contents: read
 
 env:
-  # Frozen v0.2.0 release-candidate commit to sign (RC-01). This exact commit
-  # is the ONLY candidate this workflow may sign; the payload must equal it.
-  FROZEN_CANDIDATE_SHA: 53de2711cb7fabca6fb39ee13892822518b36d4f
+  # Frozen v0.2.0 release-candidate commit to sign (RC-02 / Farmer Pilot Candidate).
+  # This exact commit is the ONLY candidate this workflow may sign; the payload must equal it.
+  FROZEN_CANDIDATE_SHA: d1c250cb9bb0e1c43d6cc9f675202b952f921d56
 
 jobs:
   validate:
