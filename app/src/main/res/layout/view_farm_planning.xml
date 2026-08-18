@@ -444,5 +444,5 @@
         android:layout_height="1dp"
         android:layout_marginTop="28dp"
         android:layout_marginBottom="24dp"
-        android:background="#33000000" />
+        android:background="@color/sectionDivider" />
 </LinearLayout>
