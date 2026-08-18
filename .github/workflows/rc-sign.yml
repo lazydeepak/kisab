@@ -75,7 +75,7 @@ permissions:
 env:
   # Frozen v0.2.0 release-candidate commit to sign (RC-02 / Farmer Pilot Candidate).
   # This exact commit is the ONLY candidate this workflow may sign; the payload must equal it.
-  FROZEN_CANDIDATE_SHA: d1c250cb9bb0e1c43d6cc9f675202b952f921d56
+  FROZEN_CANDIDATE_SHA: b04f309a96e625c276f5efaeefdf3d52656360c7
 
 jobs:
   validate:
@@ -259,7 +259,7 @@ jobs:
           KISAB_KEYSTORE_PASSWORD: ${{ secrets.KISAB_KEYSTORE_PASSWORD }}
           KISAB_KEY_ALIAS: ${{ secrets.KISAB_KEY_ALIAS }}
           KISAB_KEY_PASSWORD: ${{ secrets.KISAB_KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease
+        run: ./gradlew :app:assembleRelease -Pkisab.privateUpdateManifestUrl="https://raw.githubusercontent.com/lazydeepak/kisab/main/docs/release/manifests/pilot-manifest.json"
 
       - name: Verify APK signing and record SHA-256 and certificate
         id: verify

@@ -1,0 +1,8 @@
+{
+  "versionCode": 3,
+  "versionName": "0.2.0",
+  "apkUrl": "https://github.com/lazydeepak/kisab/releases/download/v0.2.0/kisab-v0.2.0-rc-signed.apk",
+  "sha256": "2c1103f2dbd074a57a29e5c3ebcafa757bbac5480c6eaf117eb1b90da50f8476",
+  "releaseNotes": "Kisab v0.2.0 farmer pilot release candidate with redesigned 5-element shell, Today dashboard, Khata ledger, 6 operational record flows, and Farm Work reconciliation.",
+  "publishedAt": "2026-08-18T14:15:00Z"
+}
