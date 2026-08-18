@@ -3,7 +3,7 @@ name: RC sign launcher
 # Secret-free entry point that starts the protected `RC sign` workflow.
 #
 # This workflow provides the "Run workflow" UI button for signing the frozen
-# v0.2.0 release-candidate commit. It holds no secrets, signs nothing, and does
+# v0.2.1 release-candidate commit. It holds no secrets, signs nothing, and does
 # not reference the `release-signing` environment. It only emits a
 # `repository_dispatch` event (`rc-signing-request`) carrying the exact frozen
 # candidate SHA that the `RC sign` workflow validates and signs.
@@ -26,9 +26,9 @@ permissions:
   contents: read
 
 env:
-  # Frozen v0.2.0 release-candidate commit to sign (RC-02 / Farmer Pilot Candidate).
+  # Frozen v0.2.1 release-candidate commit to sign (RC-03 / First Pilot OTA Target).
   # This exact commit is the only candidate this launcher may dispatch.
-  FROZEN_CANDIDATE_SHA: 17b24639b20bf39e7b6303327cf01d53335d3187
+  FROZEN_CANDIDATE_SHA: 18d5f5f2c89e12d090bf00f5f47031e3db6d40be
 
 jobs:
   launch:
