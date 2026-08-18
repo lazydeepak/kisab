@@ -44,10 +44,10 @@ The update manifest is a static JSON file served over HTTPS.
 {
   "versionCode": 4,
   "versionName": "0.2.1",
-  "apkUrl": "https://github.com/lazydeepak/kisab/releases/download/v0.2.1/kisab-v0.2.1-signed.apk",
-  "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-  "releaseNotes": "Farmer usability pilot updates and improvements.",
-  "publishedAt": "2026-08-18T14:00:00Z"
+  "apkUrl": "https://github.com/lazydeepak/kisab/releases/download/v0.2.1/kisab-v0.2.1-rc-signed.apk",
+  "sha256": "443e6582b3766348b60c3e608daedd5dfbea0b40f601bb9c661fe88961e417b7",
+  "releaseNotes": "Kisab v0.2.1 first pilot OTA target: active update channel delivering an in-place signed upgrade with data preservation.",
+  "publishedAt": "2026-08-18T15:37:00Z"
 }
 ```
 
@@ -67,8 +67,13 @@ To configure a pilot build with an active update channel:
 
 ```bash
 # Pass the manifest URL property during Gradle packaging
-./gradlew assembleRelease -Pkisab.privateUpdateManifestUrl="https://raw.githubusercontent.com/lazydeepak/kisab/release-manifests/pilot-manifest.json"
+./gradlew assembleRelease -Pkisab.privateUpdateManifestUrl="https://raw.githubusercontent.com/lazydeepak/kisab/main/docs/release/manifests/pilot-manifest.json"
 ```
+
+### Live Manifest URL:
+- **Manifest**: `https://raw.githubusercontent.com/lazydeepak/kisab/main/docs/release/manifests/pilot-manifest.json`
+- **Hosting**: GitHub raw content (public repository) serving the JSON manifest over HTTPS; APKs hosted as GitHub Releases assets under `https://github.com/lazydeepak/kisab/releases/download/v0.2.x/kisab-v0.2.x-rc-signed.apk`.
+- **Redirect handling**: GitHub Release asset URLs 302-redirect to signed object storage; the update client follows HTTPS redirects transparently.
 
 ### Fallback Behavior:
 - If `kisab.privateUpdateManifestUrl` is omitted or blank (default), `BuildConfig.PRIVATE_UPDATE_MANIFEST_URL` is set to `""`.
