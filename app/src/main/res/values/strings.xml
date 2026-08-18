@@ -322,6 +322,18 @@ Unexplained: %4$s %5$s</string>
     <string name="record_sheet_supplies">Supplies</string>
     <string name="record_sheet_other_money">Other money</string>
     <string name="record_sheet_cancel">Cancel</string>
+    <string name="record_sale_title">Sale</string>
+    <string name="record_sale_save_action">Save sale</string>
+    <string name="record_purchase_save_action">Save purchase</string>
+    <string name="record_received_save_action">Save received money</string>
+    <string name="record_payment_save_action">Save payment</string>
+    <string name="record_usage_save_action">Save usage</string>
+    <string name="record_production_save_action">Save production</string>
+    <string name="record_full_cash">Paid in full (Cash)</string>
+    <string name="record_credit">On credit</string>
+    <string name="record_partial">Partial payment</string>
+    <string name="record_change_date_time">Change date / time</string>
+    <string name="record_remaining_due_format">Remaining: %1$s</string>
 
     <string name="farm_work_production_section">Production</string>
     <string name="farm_work_supplies_section">Supplies</string>

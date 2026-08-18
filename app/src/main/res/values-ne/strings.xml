@@ -317,6 +317,18 @@
     <string name="record_sheet_supplies">सामान</string>
     <string name="record_sheet_other_money">अन्य पैसा</string>
     <string name="record_sheet_cancel">रद्द गर्नुहोस्</string>
+    <string name="record_sale_title">बिक्री</string>
+    <string name="record_sale_save_action">बिक्री राख्नुहोस्</string>
+    <string name="record_purchase_save_action">खरिद राख्नुहोस्</string>
+    <string name="record_received_save_action">पैसा राख्नुहोस्</string>
+    <string name="record_payment_save_action">भुक्तानी राख्नुहोस्</string>
+    <string name="record_usage_save_action">प्रयोग राख्नुहोस्</string>
+    <string name="record_production_save_action">उत्पादन राख्नुहोस्</string>
+    <string name="record_full_cash">पूरै पैसा आयो</string>
+    <string name="record_credit">उधार</string>
+    <string name="record_partial">केही पैसा आयो</string>
+    <string name="record_change_date_time">मिति वा समय बदल्नुहोस्</string>
+    <string name="record_remaining_due_format">बाँकी: %1$s</string>
 
     <string name="farm_work_production_section">उत्पादन</string>
     <string name="farm_work_supplies_section">सामान</string>

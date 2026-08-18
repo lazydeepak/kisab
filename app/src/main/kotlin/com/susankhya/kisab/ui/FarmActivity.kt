@@ -3642,6 +3642,34 @@ class FarmActivity : AppCompatActivity() {
         saveTransactionButton.text = string(saveActionRes(updated))
     }
 
+    private fun showRecordDateTimePicker(
+        initialDateTime: OffsetDateTime,
+        onDateTimeSelected: (OffsetDateTime) -> Unit
+    ) {
+        val date = initialDateTime.atZoneSameInstant(deviceZone).toLocalDate()
+        DatePickerDialog(
+            this,
+            { _, year, month, dayOfMonth ->
+                val time = initialDateTime.atZoneSameInstant(deviceZone).toLocalTime()
+                TimePickerDialog(
+                    this,
+                    { _, hourOfDay, minute ->
+                        val selected = java.time.LocalDateTime.of(year, month + 1, dayOfMonth, hourOfDay, minute)
+                            .atZone(deviceZone)
+                            .toOffsetDateTime()
+                        onDateTimeSelected(selected)
+                    },
+                    time.hour,
+                    time.minute,
+                    false
+                ).show()
+            },
+            date.year,
+            date.monthValue - 1,
+            date.dayOfMonth
+        ).show()
+    }
+
     private fun showQuickSaleDialog(
         preselectedCustomerId: String? = null,
         preselectedProductId: String? = null,
@@ -3668,23 +3696,33 @@ class FarmActivity : AppCompatActivity() {
             return
         }
         val selectableCustomers = customers.toMutableList()
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(8), dp(24), 0)
+            setPadding(dp(20), dp(12), dp(20), dp(12))
         }
+        scrollView.addView(content)
+
         val customerSpinner = Spinner(this)
         val customerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, selectableCustomers.map { it.name }.toMutableList())
             .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         customerSpinner.adapter = customerAdapter
+
         val addCustomerButton = Button(this).apply {
             text = string(R.string.quick_sale_add_customer)
-            minHeight = dp(48)
+            minHeight = dp(44)
         }
         val productSpinner = Spinner(this)
         productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { product ->
             "${product.name} · ${productUnitLabel(product.defaultUnit, product.customUnitLabel)}"
         }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-        val customerBalanceText = TextView(this)
+
+        val customerBalanceText = TextView(this).apply {
+            textSize = 13f
+            setTextColor(getColor(R.color.receivableText))
+            setPadding(0, dp(2), 0, dp(6))
+        }
+
         val quantityInput = EditText(this).apply {
             hint = string(R.string.quick_sale_quantity)
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
@@ -3693,8 +3731,27 @@ class FarmActivity : AppCompatActivity() {
             hint = string(R.string.quick_sale_rate)
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
         }
-        val unitText = TextView(this)
-        val summaryText = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
+        val unitText = TextView(this).apply {
+            textSize = 13f
+            setTextColor(getColor(R.color.textSecondary))
+        }
+
+        val summaryTile = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = ContextCompat.getDrawable(this@FarmActivity, R.drawable.bg_metric_tile)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(8)
+            }
+            layoutParams = lp
+        }
+        val summaryText = TextView(this).apply {
+            textSize = 14f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        summaryTile.addView(summaryText)
+
         val paymentGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
         val paidRadio = RadioButton(this).apply { text = string(R.string.quick_sale_paid) }
         val creditRadio = RadioButton(this).apply { text = string(R.string.quick_sale_credit) }
@@ -3703,11 +3760,25 @@ class FarmActivity : AppCompatActivity() {
         paymentGroup.addView(creditRadio)
         paymentGroup.addView(partialRadio)
         paidRadio.isChecked = true
+
         val partialInput = EditText(this).apply {
             hint = string(R.string.quick_sale_partial_amount)
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
             visibility = View.GONE
         }
+
+        var saleOccurredAt = OffsetDateTime.now(deviceZone)
+        val dateTimeButton = Button(this).apply {
+            text = string(R.string.record_change_date_time)
+            minHeight = dp(44)
+            setOnClickListener {
+                showRecordDateTimePicker(saleOccurredAt) { selected ->
+                    saleOccurredAt = selected
+                    text = timePresentation.displayDateTime(presentationLocale, deviceZone, selected)
+                }
+            }
+        }
+
         content.addView(labelText(R.string.quick_sale_customer))
         content.addView(customerSpinner)
         content.addView(addCustomerButton)
@@ -3717,9 +3788,11 @@ class FarmActivity : AppCompatActivity() {
         content.addView(quantityInput)
         content.addView(unitText)
         content.addView(rateInput)
-        content.addView(summaryText)
+        content.addView(summaryTile)
         content.addView(paymentGroup)
         content.addView(partialInput)
+        content.addView(dateTimeButton)
+
         var rateEdited = prefilledRateMinor != null
         var suppressRateEdit = false
         fun selectedCustomer(): Party? = selectableCustomers.getOrNull(customerSpinner.selectedItemPosition)
@@ -3743,10 +3816,14 @@ class FarmActivity : AppCompatActivity() {
         fun refreshCustomerBalance() {
             val customer = selectedCustomer() ?: return
             val summary = service.partyLedgerSummary(farmId, customer.id)
-            customerBalanceText.text = string(
-                R.string.quick_sale_customer_balance_format,
-                formatMoney(currentFarmCurrency(), summary.toReceiveMinor)
-            )
+            customerBalanceText.text = if (summary.toReceiveMinor > 0) {
+                string(
+                    R.string.quick_sale_customer_balance_format,
+                    formatMoney(currentFarmCurrency(), summary.toReceiveMinor)
+                )
+            } else {
+                ""
+            }
         }
         fun refreshSummary() {
             val product = selectedProduct() ?: return
@@ -3826,7 +3903,7 @@ class FarmActivity : AppCompatActivity() {
         }
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.quick_sale_title)
-            .setView(content)
+            .setView(scrollView)
             .setPositiveButton(R.string.quick_sale_save, null)
             .setNeutralButton(R.string.quick_sale_add_product) { _, _ -> showProductCreationDialog { showQuickSaleDialog() } }
             .setNegativeButton(R.string.action_cancel, null)
@@ -3856,7 +3933,7 @@ class FarmActivity : AppCompatActivity() {
                         quantity = quantity,
                         rateMinor = rate.amountMinor,
                         initialPaymentMinor = paid,
-                        occurredAt = OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                        occurredAt = saleOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                     )
                     dialog.dismiss()
                     render()
@@ -3867,6 +3944,7 @@ class FarmActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+        scaleDialogContent(dialog)
         customerSpinner.setSelection(selectableCustomers.indexOfFirst { it.id == preselectedCustomerId }.coerceAtLeast(0))
         productSpinner.setSelection(products.indexOfFirst { it.id == preselectedProductId }.coerceAtLeast(0))
         if (prefilledRateMinor != null) {
@@ -3880,10 +3958,12 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun showQuickCustomerDialog(afterCreate: (Party) -> Unit) {
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(8), dp(24), 0)
+            setPadding(dp(20), dp(12), dp(20), dp(12))
         }
+        scrollView.addView(content)
         val nameInput = EditText(this).apply { hint = string(R.string.quick_sale_customer_name) }
         val phoneInput = EditText(this).apply {
             hint = string(R.string.quick_sale_customer_phone)
@@ -3893,7 +3973,7 @@ class FarmActivity : AppCompatActivity() {
         content.addView(phoneInput)
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.quick_sale_add_customer)
-            .setView(content)
+            .setView(scrollView)
             .setPositiveButton(R.string.action_ok, null)
             .setNegativeButton(R.string.action_cancel, null)
             .create()
@@ -3915,6 +3995,7 @@ class FarmActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun showSupplyPurchaseDialog() {
@@ -4397,21 +4478,52 @@ class FarmActivity : AppCompatActivity() {
             return
         }
         val today = OffsetDateTime.now(deviceZone).toLocalDate()
-        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
-        val todaySummary = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        scrollView.addView(content)
+
+        val todaySummary = TextView(this).apply {
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            textSize = 14f
+        }
         val productSpinner = Spinner(this)
         productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         if (targetProductId != null) {
             val idx = products.indexOfFirst { it.id == targetProductId }
             if (idx >= 0) productSpinner.setSelection(idx)
         }
-        val unitText = TextView(this)
-        val quantityInput = EditText(this).apply { hint = string(R.string.production_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val unitText = TextView(this).apply {
+            textSize = 13f
+            setTextColor(getColor(R.color.textSecondary))
+        }
+        val quantityInput = EditText(this).apply {
+            hint = string(R.string.production_quantity)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
         val sessionGroup = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
         val morning = RadioButton(this).apply { text = string(R.string.production_morning) }
         val evening = RadioButton(this).apply { text = string(R.string.production_evening) }
         val other = RadioButton(this).apply { text = string(R.string.production_other) }
-        sessionGroup.addView(morning); sessionGroup.addView(evening); sessionGroup.addView(other); morning.isChecked = true
+        sessionGroup.addView(morning)
+        sessionGroup.addView(evening)
+        sessionGroup.addView(other)
+        morning.isChecked = true
+
+        var prodOccurredAt = OffsetDateTime.now(deviceZone)
+        val dateTimeButton = Button(this).apply {
+            text = string(R.string.record_change_date_time)
+            minHeight = dp(44)
+            setOnClickListener {
+                showRecordDateTimePicker(prodOccurredAt) { selected ->
+                    prodOccurredAt = selected
+                    text = timePresentation.displayDateTime(presentationLocale, deviceZone, selected)
+                }
+            }
+        }
+
         val records = farm.productionForDay(today, deviceZone)
         fun sessionOf(): ProductionSession = when { morning.isChecked -> ProductionSession.MORNING; evening.isChecked -> ProductionSession.EVENING; else -> ProductionSession.OTHER }
         fun selectedProduct(): FarmProduct? = products.getOrNull(productSpinner.selectedItemPosition)
@@ -4438,9 +4550,16 @@ class FarmActivity : AppCompatActivity() {
             quantityInput.setText(existing?.quantity?.let(::formatQuantity).orEmpty())
         }
         val allocationButton = Button(this).apply { text = string(R.string.production_allocate); minHeight = dp(48) }
-        content.addView(todaySummary); content.addView(allocationButton); content.addView(labelText(R.string.production_product)); content.addView(productSpinner)
-        content.addView(quantityInput); content.addView(unitText); content.addView(sessionGroup)
-        val dialog = AlertDialog.Builder(this).setTitle(R.string.production_title).setView(content)
+        content.addView(todaySummary)
+        content.addView(allocationButton)
+        content.addView(labelText(R.string.production_product))
+        content.addView(productSpinner)
+        content.addView(quantityInput)
+        content.addView(unitText)
+        content.addView(sessionGroup)
+        content.addView(dateTimeButton)
+
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.production_title).setView(scrollView)
             .setNeutralButton(R.string.production_add_product) { _, _ -> showProductCreationDialog { showProductionDialog(targetProductId) } }
             .setPositiveButton(R.string.production_save, null).setNegativeButton(R.string.action_cancel, null).create()
         dialog.setOnShowListener {
@@ -4451,7 +4570,7 @@ class FarmActivity : AppCompatActivity() {
                 try {
                     service.addProductionRecord(
                         farmId,
-                        ProductionRecordDraft(product.id, quantity, product.defaultUnit, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), sessionOf()),
+                        ProductionRecordDraft(product.id, quantity, product.defaultUnit, prodOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), sessionOf()),
                         deviceZone
                     )
                     dialog.dismiss(); render(); showToast(if (existing == null) R.string.production_saved else R.string.production_updated)
@@ -4462,6 +4581,7 @@ class FarmActivity : AppCompatActivity() {
         sessionGroup.setOnCheckedChangeListener { _, _ -> refreshUnitAndExisting() }
         allocationButton.setOnClickListener { showProductionAllocationDialog(selectedProduct()?.id) }
         dialog.show(); refreshSummary(); refreshUnitAndExisting()
+        scaleDialogContent(dialog)
         if (records.isNotEmpty()) {
             dialog.setOnDismissListener { }
             content.setOnClickListener { refreshSummary() }
@@ -4482,27 +4602,50 @@ class FarmActivity : AppCompatActivity() {
         val products = service.products(farmId)
         if (products.isEmpty()) return showToast(R.string.production_empty)
         val date = OffsetDateTime.now(deviceZone).toLocalDate()
-        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        scrollView.addView(content)
+
         val productSpinner = Spinner(this)
         productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         if (targetProductId != null) {
             val idx = products.indexOfFirst { it.id == targetProductId }
             if (idx >= 0) productSpinner.setSelection(idx)
         }
-        val unexplainedText = TextView(this)
+        val unexplainedText = TextView(this).apply {
+            textSize = 14f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(getColor(R.color.payableText))
+        }
         val typeSpinner = Spinner(this)
         val types = ProductionAllocationType.values().toList()
         typeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, types.map { allocationTypeLabel(it) }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         val quantityInput = EditText(this).apply { hint = string(R.string.production_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
         val noteInput = EditText(this).apply { hint = string(R.string.production_allocation_note) }
-        content.addView(productSpinner); content.addView(unexplainedText); content.addView(typeSpinner); content.addView(quantityInput); content.addView(noteInput)
+
+        var allocOccurredAt = OffsetDateTime.now(deviceZone)
+        val dateTimeButton = Button(this).apply {
+            text = string(R.string.record_change_date_time)
+            minHeight = dp(44)
+            setOnClickListener {
+                showRecordDateTimePicker(allocOccurredAt) { selected ->
+                    allocOccurredAt = selected
+                    text = timePresentation.displayDateTime(presentationLocale, deviceZone, selected)
+                }
+            }
+        }
+
+        content.addView(productSpinner); content.addView(unexplainedText); content.addView(typeSpinner); content.addView(quantityInput); content.addView(noteInput); content.addView(dateTimeButton)
         fun refreshUnexplained() {
             val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return
             val reconciliation = service.productionReconciliation(farmId, product.id, date, deviceZone)
             unexplainedText.text = string(R.string.production_unexplained_format, formatQuantity(reconciliation.unexplained), productUnitLabel(product.defaultUnit, product.customUnitLabel))
         }
         productSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshUnexplained() }
-        val dialog = AlertDialog.Builder(this).setTitle(R.string.production_allocate_title).setView(content).setPositiveButton(R.string.production_save, null).setNegativeButton(R.string.action_cancel, null).create()
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.production_allocate_title).setView(scrollView).setPositiveButton(R.string.production_save, null).setNegativeButton(R.string.action_cancel, null).create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return@setOnClickListener
@@ -4511,7 +4654,7 @@ class FarmActivity : AppCompatActivity() {
                 try {
                     service.addProductionAllocation(
                         farmId,
-                        ProductionAllocationDraft(product.id, quantity, product.defaultUnit, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), type, noteInput.text?.toString().orEmpty()),
+                        ProductionAllocationDraft(product.id, quantity, product.defaultUnit, allocOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), type, noteInput.text?.toString().orEmpty()),
                         deviceZone
                     )
                     dialog.dismiss(); render(); showToast(R.string.production_allocation_saved)
@@ -4522,6 +4665,7 @@ class FarmActivity : AppCompatActivity() {
             }
         }
         dialog.show(); refreshUnexplained()
+        scaleDialogContent(dialog)
     }
 
     private fun allocationTypeLabel(type: ProductionAllocationType): String = when (type) {
@@ -4544,10 +4688,12 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun showProductCreationDialog(afterSave: () -> Unit) {
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(8), dp(24), 0)
+            setPadding(dp(20), dp(12), dp(20), dp(12))
         }
+        scrollView.addView(content)
         val nameInput = EditText(this).apply { hint = string(R.string.quick_sale_product_name) }
         val unitSpinner = Spinner(this)
         val units = listOf(ProductUnit.LITRE, ProductUnit.KILOGRAM, ProductUnit.PIECE, ProductUnit.BAG, ProductUnit.PACKET, ProductUnit.BOTTLE)
@@ -4557,7 +4703,7 @@ class FarmActivity : AppCompatActivity() {
         content.addView(unitSpinner)
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.quick_sale_add_product)
-            .setView(content)
+            .setView(scrollView)
             .setPositiveButton(R.string.action_ok, null)
             .setNegativeButton(R.string.action_cancel, null)
             .create()
@@ -4577,6 +4723,7 @@ class FarmActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun showReceivedMoneyDialog(targetPartyId: String? = null) {
@@ -4588,10 +4735,12 @@ class FarmActivity : AppCompatActivity() {
             .filter { it.role.compatibleWith(TradeType.SALE) }
             .sortedWith(compareBy<Party> { recentCustomerIds.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
         if (customers.isEmpty()) return showToast(R.string.quick_sale_no_customers)
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(8), dp(24), 0)
+            setPadding(dp(20), dp(12), dp(20), dp(12))
         }
+        scrollView.addView(content)
         val customerSpinner = Spinner(this)
         customerSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, customers.map { it.name })
             .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
@@ -4608,10 +4757,25 @@ class FarmActivity : AppCompatActivity() {
             text = string(R.string.received_money_full_amount)
             minHeight = dp(48)
         }
+
+        var paymentOccurredAt = OffsetDateTime.now(deviceZone)
+        val dateTimeButton = Button(this).apply {
+            text = string(R.string.record_change_date_time)
+            minHeight = dp(44)
+            setOnClickListener {
+                showRecordDateTimePicker(paymentOccurredAt) { selected ->
+                    paymentOccurredAt = selected
+                    text = timePresentation.displayDateTime(presentationLocale, deviceZone, selected)
+                }
+            }
+        }
+
         content.addView(customerSpinner)
         content.addView(balanceText)
         content.addView(amountInput)
         content.addView(fullAmountButton)
+        content.addView(dateTimeButton)
+
         fun selectedOutstanding(): Long = service.partyLedgerSummary(
             farmId,
             customers[customerSpinner.selectedItemPosition].id
@@ -4630,7 +4794,7 @@ class FarmActivity : AppCompatActivity() {
         customerSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshBalance() }
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.received_money_title)
-            .setView(content)
+            .setView(scrollView)
             .setPositiveButton(R.string.received_money_save, null)
             .setNegativeButton(R.string.action_cancel, null)
             .create()
@@ -4643,7 +4807,7 @@ class FarmActivity : AppCompatActivity() {
                         farmId = farmId,
                         partyId = customers[customerSpinner.selectedItemPosition].id,
                         amountMinor = amount.amountMinor,
-                        occurredAt = OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                        occurredAt = paymentOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                     )
                     dialog.dismiss()
                     render()
@@ -4659,6 +4823,7 @@ class FarmActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+        scaleDialogContent(dialog)
         refreshBalance()
     }
 
