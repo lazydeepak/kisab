@@ -1,6 +1,6 @@
 name: RC sign
 
-# Builds and signs a production-signed Kisab APK from the frozen v0.2.0
+# Builds and signs a production-signed Kisab APK from the frozen v0.2.1
 # release-candidate commit (no release tag, no GitHub Release).
 #
 # Trigger:
@@ -11,9 +11,9 @@ name: RC sign
 #     any further processing.
 #
 # Frozen candidate: FROZEN_CANDIDATE_SHA (see the `env` block below) is the
-# authoritative v0.2.0 RC-01 commit. Only that exact commit may be signed by
+# authoritative v0.2.1 RC-03 commit. Only that exact commit may be signed by
 # this workflow. A typo, stale SHA, or another `main` commit that merely
-# reports versionName 0.2.0 / versionCode 3 is rejected, even though it would
+# reports versionName 0.2.1 / versionCode 4 is rejected, even though it would
 # satisfy the commit-exists and contained-in-origin/main checks.
 #
 # Trust anchor: for a `repository_dispatch` run GitHub sources this workflow
@@ -42,8 +42,8 @@ name: RC sign
 #     candidate code. It asserts that the dispatched payload equals the frozen
 #     candidate SHA, that the SHA is a full 40-hex commit, that the commit
 #     exists and is contained in origin/main, that the exact commit defines
-#     appVersionName 0.2.0 / appVersionCode 3 (read via `git show`, not
-#     executed), and that the v0.2.0 release notes exist in that exact commit
+#     appVersionName 0.2.1 / appVersionCode 4 (read via `git show`, not
+#     executed), and that the v0.2.1 release notes exist in that exact commit
 #     (checked via Git object inspection). Emits the validated IMMUTABLE commit
 #     SHA as a job output; the SHA is never re-derived from the client payload
 #     afterwards.
@@ -94,12 +94,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Assert dispatched candidate is the frozen v0.2.0 candidate
+      - name: Assert dispatched candidate is the frozen v0.2.1 candidate
         env:
           CANDIDATE_SHA: ${{ github.event.client_payload.candidate_sha }}
         run: |
           if [ "$CANDIDATE_SHA" != "$FROZEN_CANDIDATE_SHA" ]; then
-            echo "::error::Dispatched candidate_sha '$CANDIDATE_SHA' is not the frozen v0.2.0 candidate $FROZEN_CANDIDATE_SHA; refusing to sign."
+            echo "::error::Dispatched candidate_sha '$CANDIDATE_SHA' is not the frozen v0.2.1 candidate $FROZEN_CANDIDATE_SHA; refusing to sign."
             exit 1
           fi
 
@@ -153,8 +153,8 @@ jobs:
             echo "::error::Could not read appVersionName/appVersionCode from app/build.gradle.kts in the candidate."
             exit 1
           fi
-          if [ "$VERSION_NAME" != "0.2.0" ] || [ "$VERSION_CODE" != "3" ]; then
-            echo "::error::Candidate does not define the frozen v0.2.0 metadata (appVersionName=${VERSION_NAME} appVersionCode=${VERSION_CODE}); refusing to sign."
+          if [ "$VERSION_NAME" != "0.2.1" ] || [ "$VERSION_CODE" != "4" ]; then
+            echo "::error::Candidate does not define the frozen v0.2.1 metadata (appVersionName=${VERSION_NAME} appVersionCode=${VERSION_CODE}); refusing to sign."
             exit 1
           fi
           {
@@ -162,12 +162,12 @@ jobs:
             echo "version_code=${VERSION_CODE}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Verify v0.2.0 release notes exist in candidate (Git object inspection)
+      - name: Verify v0.2.1 release notes exist in candidate (Git object inspection)
         env:
           CANDIDATE_SHA: ${{ steps.sha.outputs.candidate_sha }}
         run: |
-          if ! git cat-file -e "$CANDIDATE_SHA:docs/release/RELEASE_NOTES_0.2.0.md"; then
-            echo "::error::Required release notes missing at docs/release/RELEASE_NOTES_0.2.0.md in candidate $CANDIDATE_SHA."
+          if ! git cat-file -e "$CANDIDATE_SHA:docs/release/RELEASE_NOTES_0.2.1.md"; then
+            echo "::error::Required release notes missing at docs/release/RELEASE_NOTES_0.2.1.md in candidate $CANDIDATE_SHA."
             exit 1
           fi
 
@@ -316,7 +316,7 @@ jobs:
             --arg signerCertificateSha256 "$CERT_SHA256" \
             --arg verificationStatus "PASS" \
             --arg workflowRunId "$RUN_ID" \
-            --arg purpose "kisab-v0.2.0-rc-sign" \
+            --arg purpose "kisab-v0.2.1-rc-sign" \
             '{schemaVersion:1, purpose:$purpose, candidateSha:$candidateSha, versionName:$versionName, versionCode:$versionCode, apkFileName:$apkFileName, apkSizeBytes:$apkSizeBytes, apkSha256:$apkSha256, signerCertificateSha256:$signerCertificateSha256, verificationStatus:$verificationStatus, workflowRunId:$workflowRunId}' \
             > evidence.json
           cat evidence.json
@@ -324,7 +324,7 @@ jobs:
       - name: Upload signed APK, checksum, and evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kisab-v0.2.0-rc-${{ needs.validate.outputs.candidate_short_sha }}-signed-apk
+          name: kisab-v0.2.1-rc-${{ needs.validate.outputs.candidate_short_sha }}-signed-apk
           path: |
             app/build/outputs/apk/release/*-release.apk
             app/build/outputs/apk/release/*.sha256
