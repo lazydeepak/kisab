@@ -10,6 +10,9 @@ enum class ProductUnit {
     BAG,
     PACKET,
     BOTTLE,
+    MANA,
+    PATHI,
+    MURI,
     CUSTOM
 }
 

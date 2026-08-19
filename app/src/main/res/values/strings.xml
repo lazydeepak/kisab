@@ -113,6 +113,9 @@ Used: %2$s</string>
     <string name="supply_unit_bag">bag</string>
     <string name="supply_unit_packet">packet</string>
     <string name="supply_unit_bottle">bottle</string>
+    <string name="supply_unit_mana">mana</string>
+    <string name="supply_unit_pathi">pathi</string>
+    <string name="supply_unit_muri">muri</string>
     <string name="production_action">Production</string>
     <string name="production_title">Production</string>
     <string name="production_today_title">Today production</string>
@@ -166,6 +169,9 @@ Unexplained: %4$s %5$s</string>
     <string name="product_unit_bag">bag</string>
     <string name="product_unit_packet">packet</string>
     <string name="product_unit_bottle">bottle</string>
+    <string name="product_unit_mana">mana</string>
+    <string name="product_unit_pathi">pathi</string>
+    <string name="product_unit_muri">muri</string>
     <string name="khata_product_sale_detail_format">%1$s · %2$s %3$s × %4$s</string>
 
     <string name="entry_kind_livestock">Livestock</string>
@@ -565,6 +571,13 @@ Unexplained: %4$s %5$s</string>
     <string name="land_unit_bigha">Bigha</string>
     <string name="land_unit_kattha">Kattha</string>
     <string name="land_unit_dhur">Dhur</string>
+    <string name="grain_converter_title">Traditional grain converter</string>
+    <string name="grain_converter_body">Convert between Nepali grain measures: 8 mana = 1 pathi and 20 pathi = 1 muri.</string>
+    <string name="grain_quantity_value_hint">Quantity</string>
+    <string name="grain_result_format">%1$s %2$s = %3$s %4$s</string>
+    <string name="grain_unit_mana">Mana</string>
+    <string name="grain_unit_pathi">Pathi</string>
+    <string name="grain_unit_muri">Muri</string>
     <string name="calculator_input_error">Enter a valid non-negative number.</string>
     <string name="calculator_number_error">Enter a valid number.</string>
     <string name="calculator_divide_zero_error">Cannot divide by zero.</string>

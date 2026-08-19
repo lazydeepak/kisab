@@ -61,6 +61,13 @@ object KisanCalculators {
         return squareMetres.divide(to.squareMetres, mathContext).normalized()
     }
 
+    fun convertGrain(value: BigDecimal, from: TraditionalGrainUnit, to: TraditionalGrainUnit): BigDecimal {
+        require(value.signum() >= 0) { "GRAIN_VALUE_NEGATIVE" }
+        if (from == to) return value.normalized()
+        val inMana = value.multiply(from.manaPerUnit, mathContext)
+        return inMana.divide(to.manaPerUnit, mathContext).normalized()
+    }
+
     fun seedQuantityAndCost(
         area: BigDecimal,
         seedKgPerLandUnit: BigDecimal,
@@ -186,6 +193,12 @@ enum class LandUnit(val squareMetres: BigDecimal) {
     BIGHA(BigDecimal("6772.631616")),
     KATTHA(BigDecimal("338.6315808")),
     DHUR(BigDecimal("16.93157904"))
+}
+
+enum class TraditionalGrainUnit(val manaPerUnit: BigDecimal) {
+    MANA(BigDecimal.ONE),
+    PATHI(BigDecimal("8")),
+    MURI(BigDecimal("160"))
 }
 
 enum class FarmPlanningCalculator {

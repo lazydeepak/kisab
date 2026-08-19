@@ -12,6 +12,7 @@ import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.TradeType
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
+import com.susankhya.kisab.domain.TraditionalGrainUnit
 
 /**
  * Stable enum-to-resource mappings for user-visible labels.
@@ -84,6 +85,12 @@ object FarmLabels {
         LandUnit.DHUR -> R.string.land_unit_dhur
     }
 
+    fun grainUnitRes(unit: TraditionalGrainUnit): Int = when (unit) {
+        TraditionalGrainUnit.MANA -> R.string.grain_unit_mana
+        TraditionalGrainUnit.PATHI -> R.string.grain_unit_pathi
+        TraditionalGrainUnit.MURI -> R.string.grain_unit_muri
+    }
+
     fun farmPlanningCalculatorRes(calculator: FarmPlanningCalculator): Int = when (calculator) {
         FarmPlanningCalculator.SEED -> R.string.farm_planning_calculator_seed
         FarmPlanningCalculator.FERTILIZER -> R.string.farm_planning_calculator_fertilizer
@@ -112,6 +119,8 @@ object FarmLabels {
         context.getString(arithmeticOperationRes(operation))
 
     fun landUnit(context: Context, unit: LandUnit): String = context.getString(landUnitRes(unit))
+
+    fun grainUnit(context: Context, unit: TraditionalGrainUnit): String = context.getString(grainUnitRes(unit))
 
     fun farmPlanningCalculator(context: Context, calculator: FarmPlanningCalculator): String =
         context.getString(farmPlanningCalculatorRes(calculator))
