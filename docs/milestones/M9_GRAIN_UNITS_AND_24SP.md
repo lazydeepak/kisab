@@ -2,7 +2,11 @@
 
 ## Status
 
+**M9 FINAL DISPOSITION: PASS_WITH_FOLLOWUPS**
+
 Implemented on `feat/nepali-units-and-24sp`, based on `main` at `f247bfb` (post-M7 pilot hardening). This record is the authority for the M9 scope: adding governed Mana/Pathi/Muri units everywhere the existing unit system applies, and moving the NORMAL text-size default to 24sp while preserving explicitly saved user preferences.
+
+The outstanding physical-device checks (Nepali walkthrough, dark mode, landscape, explicit saved-size relaunch, protected-farm physical recheck, complete Mana/Pathi/Muri workflow walkthrough) are **follow-up validation debt, not release blockers**. No evidence of a new defect, data-safety problem, accounting corruption, migration failure, or release/update-channel regression was found. Farmer pilot testing is approved to proceed.
 
 ## Scope
 
@@ -51,6 +55,8 @@ const val MAX_SP = 36
 
 The Activity applies text size as a proportional scale: `scale = load() / BASE_SP`. Because `BASE_SP` (the divisor) is unchanged at 16 and `DEFAULT_SP` moved to 24, a fresh/default install renders text at 24/16 = **1.5×** the authored sizes. A user who previously saved 16 (or any value) loads that exact stored value and divides by the same 16, so their rendering is byte-for-byte identical to before the upgrade. Only the *unset* default changed.
 
+The Settings label presents the value in **sp** (scaled pixels): "Text size: 24 sp". An earlier build used "px", which was corrected to accurately reflect the governed Android unit.
+
 All four scale-application sites in `FarmActivity` divide by `BASE_SP`.
 
 #### Overflow handling
@@ -82,8 +88,9 @@ Device tests (API-36 physical device):
 
 ## Manual/device validation (Moto Edge 60 Fusion, API 36)
 
-- Fresh install → Settings shows **Text size: 24 px**; all primary screens render large with no clipped text.
+- Fresh install → Settings shows **Text size: 24 sp**; all primary screens render large with no clipped text.
 - Bottom nav "Farm Work" wraps to two lines at 24sp; no truncation.
 - Supply unit picker shows all 9 units including mana/pathi/muri; a supply created with mana persisted in the farm store.
 - Grain converter: 1 Muri = 160 Mana rendered correctly at 24sp.
-- Nepali rendering, dark mode, landscape, and protected-farm restore verification were interrupted by a device disconnection; see the M9 validation record for final status.
+
+The physical device disconnected mid-validation. The following are **post-merge/pilot follow-up validation debt** (not blockers, absent evidence of a defect): Nepali locale walkthrough, dark-mode walkthrough, landscape walkthrough, explicit saved-text-size relaunch via UI, protected-farm physical recheck, and a complete physical Mana/Pathi/Muri workflow walkthrough. See `docs/validation/M9_GRAIN_UNITS_24SP_VALIDATION.md` for the precise disposition.
