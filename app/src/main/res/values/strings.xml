@@ -664,7 +664,7 @@ Unexplained: %4$s %5$s</string>
     <string name="settings_about_section">About</string>
 
     <string name="settings_text_size_label">Text size</string>
-    <string name="text_size_value_format">Text size: %1$d px</string>
+    <string name="text_size_value_format">Text size: %1$d sp</string>
     <string name="text_size_slider_note">Move the slider to make Kisab text smaller or larger.</string>
 
     <string name="settings_currency_display_label">Currency Symbol</string>

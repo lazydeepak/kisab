@@ -659,7 +659,7 @@
     <string name="settings_about_section">बारेमा</string>
 
     <string name="settings_text_size_label">अक्षरको आकार</string>
-    <string name="text_size_value_format">अक्षरको आकार: %1$d px</string>
+    <string name="text_size_value_format">अक्षरको आकार: %1$d sp</string>
     <string name="text_size_slider_note">किसाबको अक्षर सानो वा ठूलो बनाउन स्लाइडर सार्नुहोस्।</string>
 
     <string name="settings_currency_display_label">मुद्रा प्रतीक</string>
