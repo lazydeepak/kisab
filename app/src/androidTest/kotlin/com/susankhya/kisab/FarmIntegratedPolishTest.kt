@@ -105,7 +105,7 @@ class FarmIntegratedPolishTest {
             onView(withId(R.id.partyKhataHeadlineText)).check(matches(withText(containsString("2,000"))))
 
             // 8. Tap Received Money shortcut inside Ram Dai's Khata
-            onView(withId(R.id.khataContextualReceiveButton)).perform(click())
+            onView(withId(R.id.khataContextualReceiveButton)).perform(scrollTo(), click())
             onView(withText(R.string.received_money_full_amount)).inRoot(isDialog()).perform(click())
             onView(withText(R.string.received_money_save)).inRoot(isDialog()).perform(click())
 
