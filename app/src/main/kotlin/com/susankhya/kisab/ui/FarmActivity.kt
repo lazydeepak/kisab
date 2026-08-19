@@ -97,6 +97,7 @@ import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeDraft
 import com.susankhya.kisab.domain.TradeType
+import com.susankhya.kisab.domain.TraditionalGrainUnit
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.domain.Settlement
@@ -229,6 +230,11 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var landToUnitSpinner: Spinner
     private lateinit var convertLandButton: Button
     private lateinit var landResultText: TextView
+    private lateinit var grainValueInput: EditText
+    private lateinit var grainFromUnitSpinner: Spinner
+    private lateinit var grainToUnitSpinner: Spinner
+    private lateinit var convertGrainButton: Button
+    private lateinit var grainResultText: TextView
 
     // Farm Planning
     private lateinit var farmPlanningCalculatorSpinner: Spinner
@@ -865,6 +871,11 @@ class FarmActivity : AppCompatActivity() {
         landToUnitSpinner = findViewById(R.id.landToUnitSpinner)
         convertLandButton = findViewById(R.id.convertLandButton)
         landResultText = findViewById(R.id.landResultText)
+        grainValueInput = findViewById(R.id.grainValueInput)
+        grainFromUnitSpinner = findViewById(R.id.grainFromUnitSpinner)
+        grainToUnitSpinner = findViewById(R.id.grainToUnitSpinner)
+        convertGrainButton = findViewById(R.id.convertGrainButton)
+        grainResultText = findViewById(R.id.grainResultText)
 
         // Farm Planning
         farmPlanningCalculatorSpinner = findViewById(R.id.farmPlanningCalculatorSpinner)
@@ -921,6 +932,18 @@ class FarmActivity : AppCompatActivity() {
             landLabels
         ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         landToUnitSpinner.setSelection(LandUnit.values().indexOf(LandUnit.SQUARE_METRE))
+        val grainLabels = TraditionalGrainUnit.values().map { FarmLabels.grainUnit(this, it) }
+        grainFromUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            grainLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        grainToUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            grainLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        grainToUnitSpinner.setSelection(TraditionalGrainUnit.values().indexOf(TraditionalGrainUnit.MANA))
 
         // Farm Planning spinners
         val calculatorLabels = FarmOrdering.farmPlanningCalculators.map { FarmLabels.farmPlanningCalculator(this, it) }
@@ -1414,6 +1437,7 @@ class FarmActivity : AppCompatActivity() {
         calculateProfitButton.setOnClickListener { calculateProfit() }
         calculateInterestButton.setOnClickListener { calculateInterest() }
         convertLandButton.setOnClickListener { convertLand() }
+        convertGrainButton.setOnClickListener { convertGrain() }
         calculateSeedButton.setOnClickListener { calculateSeed() }
         calculateFertilizerButton.setOnClickListener { calculateFertilizer() }
         calculateFeedButton.setOnClickListener { calculateFeed() }
@@ -1655,7 +1679,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun applyMenuTextScale(menu: android.view.Menu) {
-        val scale = textSizePreferences.load().toFloat() / AppTextSize.DEFAULT_SP
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.BASE_SP
         for (index in 0 until menu.size()) {
             val item = menu.getItem(index)
             val title = item.title ?: continue
@@ -1707,7 +1731,7 @@ class FarmActivity : AppCompatActivity() {
         }
         dialog.findViewById<Button>(R.id.recordSheetCancelButton).setOnClickListener { dialog.dismiss() }
         dialog.show()
-        val scale = textSizePreferences.load().toFloat() / AppTextSize.DEFAULT_SP
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.BASE_SP
         dialog.window?.decorView?.let { applyTextScale(it, scale) }
     }
 
@@ -1777,6 +1801,24 @@ class FarmActivity : AppCompatActivity() {
                 FarmLabels.landUnit(this, from),
                 formatCalculatorValue(result),
                 FarmLabels.landUnit(this, to)
+            )
+        )
+    }
+
+    private fun convertGrain() {
+        val value = calculatorValue(grainValueInput) ?: return
+        val units = TraditionalGrainUnit.values()
+        val from = units.getOrNull(grainFromUnitSpinner.selectedItemPosition) ?: return
+        val to = units.getOrNull(grainToUnitSpinner.selectedItemPosition) ?: return
+        val result = KisanCalculators.convertGrain(value, from, to)
+        showCalculatorResult(
+            grainResultText,
+            string(
+                R.string.grain_result_format,
+                formatCalculatorValue(value),
+                FarmLabels.grainUnit(this, from),
+                formatCalculatorValue(result),
+                FarmLabels.grainUnit(this, to)
             )
         )
     }
@@ -4172,7 +4214,7 @@ class FarmActivity : AppCompatActivity() {
     private fun showSupplyCreationDialog(afterSave: (FarmSupply) -> Unit) {
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
         val nameInput = EditText(this).apply { hint = string(R.string.supply_name_hint) }
-        val units = listOf(ProductUnit.KILOGRAM, ProductUnit.LITRE, ProductUnit.BAG, ProductUnit.PACKET, ProductUnit.BOTTLE, ProductUnit.PIECE)
+        val units = listOf(ProductUnit.KILOGRAM, ProductUnit.LITRE, ProductUnit.BAG, ProductUnit.PACKET, ProductUnit.BOTTLE, ProductUnit.PIECE, ProductUnit.MANA, ProductUnit.PATHI, ProductUnit.MURI)
         val unitSpinner = Spinner(this)
         unitSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, units.map { supplyUnitLabel(it, "") }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         content.addView(nameInput); content.addView(unitSpinner)
@@ -4469,6 +4511,9 @@ class FarmActivity : AppCompatActivity() {
         ProductUnit.BAG -> string(R.string.supply_unit_bag)
         ProductUnit.PACKET -> string(R.string.supply_unit_packet)
         ProductUnit.BOTTLE -> string(R.string.supply_unit_bottle)
+        ProductUnit.MANA -> string(R.string.supply_unit_mana)
+        ProductUnit.PATHI -> string(R.string.supply_unit_pathi)
+        ProductUnit.MURI -> string(R.string.supply_unit_muri)
         ProductUnit.CUSTOM -> customLabel
     }
 
@@ -4704,7 +4749,7 @@ class FarmActivity : AppCompatActivity() {
         scrollView.addView(content)
         val nameInput = EditText(this).apply { hint = string(R.string.quick_sale_product_name) }
         val unitSpinner = Spinner(this)
-        val units = listOf(ProductUnit.LITRE, ProductUnit.KILOGRAM, ProductUnit.PIECE, ProductUnit.BAG, ProductUnit.PACKET, ProductUnit.BOTTLE)
+        val units = listOf(ProductUnit.LITRE, ProductUnit.KILOGRAM, ProductUnit.PIECE, ProductUnit.BAG, ProductUnit.PACKET, ProductUnit.BOTTLE, ProductUnit.MANA, ProductUnit.PATHI, ProductUnit.MURI)
         unitSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, units.map { productUnitLabel(it, "") })
             .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         content.addView(nameInput)
@@ -4854,6 +4899,9 @@ class FarmActivity : AppCompatActivity() {
         ProductUnit.BAG -> string(R.string.product_unit_bag)
         ProductUnit.PACKET -> string(R.string.product_unit_packet)
         ProductUnit.BOTTLE -> string(R.string.product_unit_bottle)
+        ProductUnit.MANA -> string(R.string.product_unit_mana)
+        ProductUnit.PATHI -> string(R.string.product_unit_pathi)
+        ProductUnit.MURI -> string(R.string.product_unit_muri)
         ProductUnit.CUSTOM -> customLabel
     }
 
@@ -6008,14 +6056,14 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun applyAppTextSize() {
-        val scale = textSizePreferences.load().toFloat() / AppTextSize.DEFAULT_SP
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.BASE_SP
         applyTextScale(shellRoot, scale)
     }
 
     /** Dialog windows sit outside [shellRoot]; scale their content with the same app text size. */
     private fun scaleDialogContent(dialog: AlertDialog) {
         val root = dialog.window?.decorView ?: return
-        val scale = textSizePreferences.load().toFloat() / AppTextSize.DEFAULT_SP
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.BASE_SP
         applyTextScale(root, scale)
     }
 

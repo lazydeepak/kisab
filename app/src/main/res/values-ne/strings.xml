@@ -112,6 +112,9 @@
     <string name="supply_unit_bag">बोरा</string>
     <string name="supply_unit_packet">प्याकेट</string>
     <string name="supply_unit_bottle">बोतल</string>
+    <string name="supply_unit_mana">माना</string>
+    <string name="supply_unit_pathi">पाथी</string>
+    <string name="supply_unit_muri">मुरी</string>
     <string name="production_action">उत्पादन</string>
     <string name="production_title">उत्पादन</string>
     <string name="production_today_title">आजको उत्पादन</string>
@@ -165,6 +168,9 @@
     <string name="product_unit_bag">बोरा</string>
     <string name="product_unit_packet">प्याकेट</string>
     <string name="product_unit_bottle">बोतल</string>
+    <string name="product_unit_mana">माना</string>
+    <string name="product_unit_pathi">पाथी</string>
+    <string name="product_unit_muri">मुरी</string>
     <string name="khata_product_sale_detail_format">%1$s · %2$s %3$s × %4$s</string>
 
     <string name="entry_kind_livestock">पशुधन</string>
@@ -560,6 +566,13 @@
     <string name="land_unit_bigha">बिघा</string>
     <string name="land_unit_kattha">कट्ठा</string>
     <string name="land_unit_dhur">धुर</string>
+    <string name="grain_converter_title">परम्परागत अन्न रूपान्तरण</string>
+    <string name="grain_converter_body">नेपाली अन्न परिमाण रूपान्तरण: ८ माना = १ पाथी र २० पाथी = १ मुरी।</string>
+    <string name="grain_quantity_value_hint">परिमाण</string>
+    <string name="grain_result_format">%1$s %2$s = %3$s %4$s</string>
+    <string name="grain_unit_mana">माना</string>
+    <string name="grain_unit_pathi">पाथी</string>
+    <string name="grain_unit_muri">मुरी</string>
     <string name="calculator_input_error">मान्य शून्य वा धनात्मक संख्या लेख्नुहोस्।</string>
     <string name="calculator_number_error">मान्य संख्या लेख्नुहोस्।</string>
     <string name="calculator_divide_zero_error">शून्यले भाग गर्न मिल्दैन।</string>
@@ -646,7 +659,7 @@
     <string name="settings_about_section">बारेमा</string>
 
     <string name="settings_text_size_label">अक्षरको आकार</string>
-    <string name="text_size_value_format">अक्षरको आकार: %1$d px</string>
+    <string name="text_size_value_format">अक्षरको आकार: %1$d sp</string>
     <string name="text_size_slider_note">किसाबको अक्षर सानो वा ठूलो बनाउन स्लाइडर सार्नुहोस्।</string>
 
     <string name="settings_currency_display_label">मुद्रा प्रतीक</string>

@@ -209,6 +209,39 @@ class KisanToolboxDeviceBatteryTest {
         }
     }
 
+    @Test
+    fun grainConversionsUseCanonicalRelationshipsAndRejectNegativeQuantity() {
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            onView(withId(R.id.navMoreItem)).perform(click())
+            onView(withId(R.id.moreHisabButton)).perform(click())
+            waitForIdle()
+
+            // 1 Pathi -> Mana = 8 (pathi index 1, mana index 0)
+            convertGrain("1", 1, 0)
+            assertResult(R.id.grainResultText, "8")
+
+            // 1 Muri -> Pathi = 20 (muri index 2, pathi index 1)
+            convertGrain("1", 2, 1)
+            assertResult(R.id.grainResultText, "20")
+
+            // 1 Muri -> Mana = 160
+            convertGrain("1", 2, 0)
+            assertResult(R.id.grainResultText, "160")
+
+            // Negative quantity rejected with an inline error.
+            onView(withId(R.id.grainValueInput)).perform(scrollTo(), replaceText("-1"), closeSoftKeyboard())
+            onView(withId(R.id.convertGrainButton)).perform(scrollTo(), click())
+            waitForIdle()
+            scenario.onActivity { activity ->
+                val error = activity.findViewById<android.widget.EditText>(R.id.grainValueInput).error
+                assertTrue("negative quantity must set an inline error, got [$error]", error != null)
+            }
+        } finally {
+            scenario.close()
+        }
+    }
+
     private fun assertResult(viewId: Int, expected: String) {
         onView(withId(viewId))
             .check(matches(allOf(
@@ -241,6 +274,16 @@ class KisanToolboxDeviceBatteryTest {
         onView(withId(R.id.landToUnitSpinner)).perform(scrollTo(), click())
         androidx.test.espresso.Espresso.onData(org.hamcrest.Matchers.anything()).atPosition(toIndex).perform(click())
         onView(withId(R.id.convertLandButton)).perform(scrollTo(), click())
+        waitForIdle()
+    }
+
+    private fun convertGrain(value: String, fromIndex: Int, toIndex: Int) {
+        onView(withId(R.id.grainValueInput)).perform(scrollTo(), replaceText(value), closeSoftKeyboard())
+        onView(withId(R.id.grainFromUnitSpinner)).perform(scrollTo(), click())
+        androidx.test.espresso.Espresso.onData(org.hamcrest.Matchers.anything()).atPosition(fromIndex).perform(click())
+        onView(withId(R.id.grainToUnitSpinner)).perform(scrollTo(), click())
+        androidx.test.espresso.Espresso.onData(org.hamcrest.Matchers.anything()).atPosition(toIndex).perform(click())
+        onView(withId(R.id.convertGrainButton)).perform(scrollTo(), click())
         waitForIdle()
     }
 
