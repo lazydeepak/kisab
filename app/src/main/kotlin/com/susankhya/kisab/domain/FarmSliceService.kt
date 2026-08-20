@@ -51,14 +51,75 @@ class InMemoryFarmStore : FarmStore {
 }
 
 class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
-    fun createFarm(name: String, currencyCode: String = FarmState.DEFAULT_CURRENCY_CODE): FarmState {
+    fun createFarm(
+        name: String,
+        currencyCode: String = FarmState.DEFAULT_CURRENCY_CODE,
+        activities: List<FarmActivityType> = emptyList()
+    ): FarmState {
         require(name.isNotBlank()) { "Farm name is required" }
         require(currencyCode.matches(CURRENCY_CODE_PATTERN)) { "Farm currency must be a 3-letter ISO code" }
-        val farm = FarmState(id = "farm-${UUID.randomUUID()}", name = name, currencyCode = currencyCode.uppercase())
+        val orderedActivities = FarmActivityCatalog.displayOrder.filter { it in activities }
+        require(orderedActivities.size == activities.distinct().size) { "Unknown farm activity requested" }
+        val farm = FarmState(
+            id = "farm-${UUID.randomUUID()}",
+            name = name,
+            currencyCode = currencyCode.uppercase(),
+            activities = orderedActivities.toMutableList()
+        )
         store.saveFarm(farm)
         store.setCurrentFarmId(farm.id)
         return farm
     }
+
+    /**
+     * M10 activity configuration for a farm. The new [enabled] set becomes the
+     * farm's running activities, ordered by [FarmActivityCatalog.displayOrder].
+     *
+     * Activities removed from the set are **disabled, not deleted**: any with
+     * historical transaction records move to [FarmState.disabledActivities] so
+     * their history remains readable and their totals remain correct; those
+     * with no records are dropped cleanly. Disabled activities can be
+     * re-enabled later. Historical data is never erased by this call.
+     */
+    fun setFarmActivities(farmId: String, enabled: Set<FarmActivityType>) {
+        val farm = getFarm(farmId)
+        val enabledOrdered = FarmActivityCatalog.displayOrder.filter { it in enabled }
+        val removed = farm.activities.filter { it !in enabled }
+        val referenced = farm.transactions.mapNotNull { it.activity }.toSet()
+        val newlyDisabled = removed.filter { it in referenced }
+        val disabled = (
+            farm.disabledActivities.filter { it !in enabledOrdered } + newlyDisabled
+            ).distinct().toMutableList()
+        val updated = farm.copy(
+            activities = enabledOrdered.toMutableList(),
+            disabledActivities = disabled
+        )
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
+    }
+
+    fun addFarmActivity(farmId: String, activity: FarmActivityType) {
+        val farm = getFarm(farmId)
+        setFarmActivities(farmId, farm.activities.toSet() + activity)
+    }
+
+    fun disableFarmActivity(farmId: String, activity: FarmActivityType) {
+        val farm = getFarm(farmId)
+        setFarmActivities(farmId, farm.activities.toSet() - activity)
+    }
+
+    fun reEnableFarmActivity(farmId: String, activity: FarmActivityType) {
+        val farm = getFarm(farmId)
+        setFarmActivities(farmId, farm.activities.toSet() + activity)
+    }
+
+    /** Currently running activities, in [FarmActivityCatalog.displayOrder]. */
+    fun farmActivities(farmId: String): List<FarmActivityType> =
+        getFarm(farmId).activities
+
+    /** M10 activity-level accounting breakdown for the whole farm. */
+    fun farmActivityBreakdown(farmId: String): List<FarmActivityTotals> =
+        farmActivityBreakdown(getFarm(farmId).transactions)
     fun loadFarm(farmId: String): FarmState? = store.loadFarm(farmId)
 
     fun currentFarmId(): String? = store.currentFarmId()
@@ -760,6 +821,14 @@ data class FarmState(
     val supplyUsages: MutableList<SupplyUsage> = mutableListOf(),
     val productionRecords: MutableList<ProductionRecord> = mutableListOf(),
     val productionAllocations: MutableList<ProductionAllocation> = mutableListOf(),
+    /** Activities currently running on the farm, in [FarmActivityCatalog.displayOrder]. */
+    val activities: MutableList<FarmActivityType> = mutableListOf(),
+    /**
+     * Activities that were configured before but are now disabled. Records and
+     * totals that reference them are preserved; disabling never deletes
+     * history. Only populated for activities with historical records.
+     */
+    val disabledActivities: MutableList<FarmActivityType> = mutableListOf(),
     val schemaVersion: Int = CURRENT_FARM_SCHEMA_VERSION
 ) {
     /**
@@ -772,7 +841,7 @@ data class FarmState(
 
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 12
+        const val CURRENT_FARM_SCHEMA_VERSION = 13
     }
 }
 
@@ -832,7 +901,9 @@ data class FarmTransactionDraft(
     val category: TransactionCategory,
     val amountMinor: Long,
     val description: String,
-    val occurredAt: String
+    val occurredAt: String,
+    /** Optional activity association; `null` is a general/farm-wide transaction. */
+    val activity: FarmActivityType? = null
 ) {
     fun toTransaction(id: String): FarmTransaction = try {
         FarmTransaction(
@@ -842,7 +913,8 @@ data class FarmTransactionDraft(
             amountMinor = amountMinor,
             description = description.trim(),
             occurredAt = OffsetDateTime.parse(occurredAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                .withOffsetSameInstant(ZoneOffset.UTC)
+                .withOffsetSameInstant(ZoneOffset.UTC),
+            activity = activity
         )
     } catch (exception: RuntimeException) {
         throw IllegalArgumentException("Transaction date/time must be a valid ISO-8601 value", exception)
@@ -855,7 +927,9 @@ data class FarmTransaction(
     val category: TransactionCategory,
     val amountMinor: Long,
     val description: String,
-    val occurredAt: OffsetDateTime
+    val occurredAt: OffsetDateTime,
+    /** Optional activity association; `null` is a general/farm-wide transaction. */
+    val activity: FarmActivityType? = null
 )
 
 data class FarmSummary(

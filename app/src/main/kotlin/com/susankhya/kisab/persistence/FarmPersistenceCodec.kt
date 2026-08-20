@@ -2,6 +2,7 @@ package com.susankhya.kisab.persistence
 
 import com.susankhya.kisab.domain.FarmEntry
 import com.susankhya.kisab.domain.FarmEntryKind
+import com.susankhya.kisab.domain.FarmActivityType
 import com.susankhya.kisab.domain.FarmState
 import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.FarmProduct
@@ -38,6 +39,13 @@ import java.util.UUID
  * `paidMinor` (payment becomes derived state) and a settlements list is
  * appended. Schema 7 appends farm-local products and product-sale details.
  *
+ * Schema 13 appends the farm's activity configuration ([FarmState.activities]
+ * and [FarmState.disabledActivities]) and adds an optional activity association
+ * to each transaction record. Transaction records stay backward-compatible:
+ * the activity is a trailing 7th field, so schema-13 decode accepts both 6-part
+ * (pre-M10) and 7-part records, and pre-M10 payloads decode with a `null`
+ * activity (a general/farm-wide transaction) and an empty activity set.
+ *
  * Migration v5 -> v6 preserves the historical `paidMinor` by recording **one
  * deterministic opening settlement** per v5 trade that had `paidMinor > 0`,
  * dated at the trade's own [Trade.occurredAt] (the exact historical payment
@@ -51,7 +59,7 @@ import java.util.UUID
  * payload, so settlements and older schemas flow through existing backups.
  */
 object FarmPersistenceCodec {
-    const val CURRENT_SCHEMA_VERSION = 12
+    const val CURRENT_SCHEMA_VERSION = 13
 
     private const val FIELD_SEPARATOR = "\u001F"
     private const val RECORD_SEPARATOR = "\u001E"
@@ -83,7 +91,8 @@ object FarmPersistenceCodec {
             transaction.category.name,
             transaction.amountMinor.toString(),
             transaction.description,
-            transaction.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            transaction.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+            transaction.activity?.name.orEmpty()
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
         append(FIELD_SEPARATOR)
         append(farm.parties.joinToString(RECORD_SEPARATOR) { party -> listOf(
@@ -172,6 +181,10 @@ object FarmPersistenceCodec {
             allocation.type.name,
             allocation.note
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
+        append(FIELD_SEPARATOR)
+        append(farm.activities.joinToString(RECORD_SEPARATOR) { it.name })
+        append(FIELD_SEPARATOR)
+        append(farm.disabledActivities.joinToString(RECORD_SEPARATOR) { it.name })
     }
 
     fun decode(encoded: String): FarmState = decodeOrNull(encoded)
@@ -180,7 +193,7 @@ object FarmPersistenceCodec {
     fun decodeOrNull(encoded: String): FarmState? {
         return try {
             val legacyParts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex())
-            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8") && !legacyParts[0].startsWith("9") && !legacyParts[0].startsWith("10") && !legacyParts[0].startsWith("11") && !legacyParts[0].startsWith("12")) {
+            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8") && !legacyParts[0].startsWith("9") && !legacyParts[0].startsWith("10") && !legacyParts[0].startsWith("11") && !legacyParts[0].startsWith("12") && !legacyParts[0].startsWith("13")) {
                 decodeLegacy(legacyParts)
             } else {
                 val fields = encoded.split(FIELD_SEPARATOR)
@@ -201,6 +214,7 @@ object FarmPersistenceCodec {
                     10 -> decodeSchema10(fields)
                     11 -> decodeSchema11(fields)
                     12 -> decodeSchema12(fields)
+                    13 -> decodeSchema13(fields)
                     else -> null
                 }
             }
@@ -340,6 +354,26 @@ object FarmPersistenceCodec {
             schemaVersion = CURRENT_SCHEMA_VERSION
         )
     }
+
+    private fun decodeSchema13(fields: List<String>): FarmState {
+        require(fields.size >= 18) { "Invalid persisted farm data" }
+        val baseFields = fields.take(16).toMutableList()
+        // Schema-13 transactions carry an optional trailing activity field; the
+        // back-compat decode only accepts the legacy 6-part form, so transactions
+        // are fully re-decoded below and kept out of the intermediate pass.
+        baseFields[5] = ""
+        return decodeSchema12(baseFields).copy(
+            transactions = decodeSchema13Transactions(fields[5]),
+            activities = decodeActivities(fields[16]),
+            disabledActivities = decodeActivities(fields[17]),
+            schemaVersion = CURRENT_SCHEMA_VERSION
+        )
+    }
+
+    private fun decodeActivities(encoded: String): MutableList<FarmActivityType> =
+        encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->
+            FarmActivityType.valueOf(value)
+        }?.toMutableList() ?: mutableListOf()
 
     private fun decodeProductionAllocations(encoded: String): MutableList<ProductionAllocation> =
         encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->
@@ -528,16 +562,20 @@ object FarmPersistenceCodec {
     private fun decodeSchema3Transactions(encoded: String): MutableList<FarmTransaction> =
         encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { transaction ->
             val parts = transaction.split(TRANSACTION_FIELD_SEPARATOR)
-            require(parts.size == 6) { "Invalid transaction payload" }
+            require(parts.size == 6 || parts.size == 7) { "Invalid transaction payload" }
             parseTransaction(
                 id = parts[0],
                 type = parts[1],
                 category = parts[2],
                 amountMinor = parts[3],
                 description = parts[4],
-                occurredAt = parts[5]
+                occurredAt = parts[5],
+                activity = parts.getOrNull(6)?.takeIf { it.isNotBlank() }?.let { FarmActivityType.valueOf(it) }
             )
         }?.toMutableList() ?: mutableListOf()
+
+    private fun decodeSchema13Transactions(encoded: String): MutableList<FarmTransaction> =
+        decodeSchema3Transactions(encoded)
 
     private fun decodeSchema2(fields: List<String>): FarmState {
         require(fields.size >= 5) { "schema 2 persisted farm data" }
@@ -574,7 +612,8 @@ object FarmPersistenceCodec {
         category: String,
         amountMinor: String,
         description: String,
-        occurredAt: String
+        occurredAt: String,
+        activity: FarmActivityType? = null
     ): FarmTransaction {
         val parsed = FarmTransaction(
             id = id,
@@ -582,7 +621,8 @@ object FarmPersistenceCodec {
             category = TransactionCategory.valueOf(category),
             amountMinor = amountMinor.toLong(),
             description = description,
-            occurredAt = OffsetDateTime.parse(occurredAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            occurredAt = OffsetDateTime.parse(occurredAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+            activity = activity
         )
         require(parsed.id.isNotBlank()) { "Invalid transaction payload" }
         require(parsed.description.isNotBlank()) { "Invalid transaction payload" }

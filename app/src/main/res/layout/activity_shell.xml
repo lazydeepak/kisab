@@ -123,13 +123,36 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp" />
 
-            <Button
+                        <Button
                 android:id="@+id/changeCreateFarmCurrencyButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:minHeight="48dp"
                 android:text="@string/change_currency_action" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/farm_activities_prompt"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/createFarmActivitiesText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:lineSpacingMultiplier="1.15"
+                android:textColor="@color/textSecondary" />
+
+            <Button
+                android:id="@+id/createFarmChooseActivitiesButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="48dp"
+                android:text="@string/farm_activities_choose_action" />
 
             <Button
                 android:id="@+id/createFarmButton"
@@ -633,11 +656,25 @@
                     android:imeOptions="actionNext"
                     android:inputType="numberDecimal" />
 
-                <Spinner
+                                <Spinner
                     android:id="@+id/transactionCategorySpinner"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:id="@+id/transactionActivityLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/transaction_activity_label"
+                    android:textStyle="bold" />
+
+                <Spinner
+                    android:id="@+id/transactionActivitySpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp" />
 
                 <EditText
                     android:id="@+id/transactionDescriptionInput"
@@ -2359,6 +2396,60 @@
                     android:text="@string/switch_to_farm_action"
                     android:visibility="gone" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/farm_activities_section"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/farmDetailsActivitiesEmptyText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/farm_activities_empty_text"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/farmDetailsActivitiesContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <Button
+                    android:id="@+id/farmDetailsChangeActivitiesButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/farm_activities_change_action" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/farm_activities_disabled_note"
+                    android:textColor="@color/textSecondary" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/farm_activity_breakdown_section"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/farmDetailsBreakdownContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
@@ -2466,13 +2557,36 @@
                     android:lineSpacingMultiplier="1.1"
                     android:textColor="@color/textSecondary" />
 
-                <Button
+                                <Button
                     android:id="@+id/addFarmChangeCurrencyButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:minHeight="52dp"
                     android:text="@string/change_currency_action" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/farm_activities_prompt"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/addFarmActivitiesText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:textColor="@color/textSecondary" />
+
+                <Button
+                    android:id="@+id/addFarmChooseActivitiesButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/farm_activities_choose_action" />
 
                 <Button
                     android:id="@+id/addFarmCreateButton"

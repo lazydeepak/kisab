@@ -87,6 +87,14 @@ object FarmStateValidator {
         }
         val allocationIds = farm.productionAllocations.map { it.id }
         require(allocationIds.size == allocationIds.toSet().size) { "Allocation IDs must be unique" }
+        require(farm.activities.size == farm.activities.toSet().size) { "Farm activities must be unique" }
+        require(farm.disabledActivities.size == farm.disabledActivities.toSet().size) {
+            "Disabled farm activities must be unique"
+        }
+        val activitySet = farm.activities.toSet()
+        require(farm.disabledActivities.none { it in activitySet }) {
+            "An activity cannot be enabled and disabled at the same time"
+        }
     }
 
     fun validateParty(party: Party) {
