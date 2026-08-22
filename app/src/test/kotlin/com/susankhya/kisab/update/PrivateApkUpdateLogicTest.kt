@@ -79,6 +79,39 @@ class PrivateApkUpdateLogicTest {
     }
 
     @Test
+    fun streamingCopyVerifiesMatchingDigestAndWritesEveryByte() {
+        val payload = ("kisab-update-payload ").repeat(4096).toByteArray()
+        val expected = java.security.MessageDigest.getInstance("SHA-256").digest(payload)
+            .joinToString("") { "%02x".format(it) }
+        val output = java.io.ByteArrayOutputStream()
+        val copied = UpdateIntegrityVerifier.copyVerifyingSha256(
+            payload.inputStream(),
+            output,
+            expected.uppercase()
+        )
+        assertTrue(copied)
+        assertTrue(output.toByteArray().contentEquals(payload))
+    }
+
+    @Test
+    fun streamingCopyRejectsMismatchedDigestAndInvalidHex() {
+        val payload = "apk bytes".toByteArray()
+        val wrongDigest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest("other bytes".toByteArray())
+            .joinToString("") { "%02x".format(it) }
+
+        assertFalse(
+            UpdateIntegrityVerifier.copyVerifyingSha256(payload.inputStream(), java.io.ByteArrayOutputStream(), wrongDigest)
+        )
+        assertFalse(
+            UpdateIntegrityVerifier.copyVerifyingSha256(payload.inputStream(), java.io.ByteArrayOutputStream(), null)
+        )
+        assertFalse(
+            UpdateIntegrityVerifier.copyVerifyingSha256(payload.inputStream(), java.io.ByteArrayOutputStream(), "xyz".repeat(22))
+        )
+    }
+
+    @Test
     fun expiredBuildStillAllowsCheckWithoutMutatingState() {
         val current = VersionInfo(versionCode = 10, versionName = "0.2.0")
         val remote = UpdateInfo(

@@ -41,7 +41,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -89,15 +89,20 @@ class FarmBackupIntegrationTest {
             scenario.onActivity { activity ->
                 activity.handleImportedBackupContent(backupContent!!)
             }
-            clickDialogAction(R.string.action_replace_farm)
+            // M10+ import flow: the local store was cleared, so the backup is
+            // offered as a new farm ("Add farm"), not a replacement.
+            clickDialogAction(R.string.action_add_imported_farm)
 
             var expectedSummary: String? = null
             scenario.onActivity { activity ->
+                val service = FarmSliceService(SharedPreferencesFarmStore(activity.applicationContext))
+                val imported = service.loadFarm(service.currentFarmId()!!)!!
+                assertEquals("Demo Farm", imported.name)
                 expectedSummary = activity.getString(
                         R.string.farm_tools_summary_format,
                         "Demo Farm",
-                        activity.formatCount(0),
-                        activity.formattedBalance(null, 0L)
+                        activity.formatCount(imported.entries.size),
+                        activity.formattedBalance(imported.currencyCode, 0L)
                 )
             }
             onView(withId(R.id.summaryText)).check(matches(withText(expectedSummary!!)))
@@ -119,11 +124,13 @@ class FarmBackupIntegrationTest {
 
             var expectedSummary: String? = null
             scenario.onActivity { activity ->
+                val service = FarmSliceService(SharedPreferencesFarmStore(activity.applicationContext))
+                val farm = service.loadFarm(service.currentFarmId()!!)!!
                 expectedSummary = activity.getString(
                     R.string.farm_tools_summary_format,
                     "Original Farm",
-                    activity.formatCount(0),
-                    activity.formattedBalance(null, 0L)
+                    activity.formatCount(farm.entries.size),
+                    activity.formattedBalance(farm.currencyCode, 0L)
                 )
             }
             onView(withId(R.id.summaryText)).check(matches(withText(expectedSummary!!)))
@@ -151,11 +158,13 @@ class FarmBackupIntegrationTest {
 
             var expectedSummary: String? = null
             scenario.onActivity { activity ->
+                val service = FarmSliceService(SharedPreferencesFarmStore(activity.applicationContext))
+                val farm = service.loadFarm(service.currentFarmId()!!)!!
                 expectedSummary = activity.getString(
                     R.string.farm_tools_summary_format,
                     "Original Farm",
-                    activity.formatCount(0),
-                    activity.formattedBalance(null, 0L)
+                    activity.formatCount(farm.entries.size),
+                    activity.formattedBalance(farm.currencyCode, 0L)
                 )
             }
             onView(withId(R.id.summaryText)).check(matches(withText(expectedSummary!!)))
@@ -189,11 +198,13 @@ class FarmBackupIntegrationTest {
             val expectedSummary = run {
                 var value: String? = null
                 scenario.onActivity { activity ->
+                    val service = FarmSliceService(SharedPreferencesFarmStore(activity.applicationContext))
+                    val farm = service.loadFarm(service.currentFarmId()!!)!!
                     value = activity.getString(
                         R.string.farm_tools_summary_format,
                         "Original Farm",
-                        activity.formatCount(0),
-                        activity.formattedBalance(null, 0L)
+                        activity.formatCount(farm.entries.size),
+                        activity.formattedBalance(farm.currencyCode, 0L)
                     )
                 }
                 value!!
@@ -242,17 +253,20 @@ class FarmBackupIntegrationTest {
             scenario.onActivity { activity ->
                 activity.handleImportedBackupContent(backupContent!!)
             }
-            clickDialogAction(R.string.action_replace_farm)
+            clickDialogAction(R.string.action_add_imported_farm)
 
             scenario.recreate()
 
             var expectedSummary: String? = null
             scenario.onActivity { activity ->
+                val service = FarmSliceService(SharedPreferencesFarmStore(activity.applicationContext))
+                val restored = service.loadFarm(service.currentFarmId()!!)!!
+                assertEquals("Restore Farm", restored.name)
                 expectedSummary = activity.getString(
                         R.string.farm_tools_summary_format,
                         "Restore Farm",
-                        activity.formatCount(0),
-                        activity.formattedBalance("NPR", -1500L)
+                        activity.formatCount(restored.entries.size),
+                        activity.formattedBalance(restored.currencyCode, -1500L)
                 )
             }
             onView(withId(R.id.summaryText)).check(matches(withText(expectedSummary!!)))
@@ -263,9 +277,9 @@ class FarmBackupIntegrationTest {
 
     @Test
     fun dirtyEditorKeepEditingPreservesFarmAndDraft() {
+        seedOriginalFarm("Anchor feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Original Farm")
             openExpenseEditor()
             fillEditor(description = "Unsaved draft", amount = "75")
             onView(withId(R.id.transactionEditorContainer)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
@@ -279,7 +293,7 @@ class FarmBackupIntegrationTest {
             scenario.onActivity { activity ->
                 activity.handleImportedBackupContent(backupContent)
             }
-            clickDialogAction(R.string.action_replace_farm)
+            clickDialogAction(R.string.action_add_imported_farm)
             clickDialogAction(R.string.action_keep_editing)
 
             onView(withId(R.id.transactionEditorContainer)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
@@ -291,11 +305,12 @@ class FarmBackupIntegrationTest {
                 val store = SharedPreferencesFarmStore(activity.applicationContext)
                 val service = FarmSliceService(store)
                 assertEquals(originalFarmId, service.currentFarmId())
-                val original = service.loadFarm(originalFarmId!!)
-                assertNotNull(original)
-                assertTrue("no transaction may be created by keep-editing", original!!.transactions.isEmpty())
+                val original = service.loadFarm(originalFarmId!!)!!
                 assertTrue("replacement farm must not be saved", service.loadFarm("farm-restored") == null)
                 assertEquals(FarmCurrencies.defaultFor(Locale.getDefault()), original.currencyCode)
+                val stored = original.transactions.single()
+                assertEquals("keep-editing must not save the unsaved draft", "Anchor feed", stored.description)
+                assertEquals(1000L, stored.amountMinor)
                 val spinner = activity.findViewById<android.widget.Spinner>(R.id.transactionCategorySpinner)
                 assertEquals("category must stay FEED", 0, spinner.selectedItemPosition)
             }
@@ -306,13 +321,9 @@ class FarmBackupIntegrationTest {
 
     @Test
     fun dirtyEditorDiscardAndReplaceFarmClearsStaleDraft() {
+        seedOriginalFarm("Original Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Original Farm")
-            openExpenseEditor()
-            fillEditor(description = "Original Feed", amount = "10.00")
-            clickSave(scenario)
-
             var originalFarmId: String? = null
             var originalTransactionId: String? = null
             scenario.onActivity { activity ->
@@ -330,14 +341,16 @@ class FarmBackupIntegrationTest {
             scenario.onActivity { activity ->
                 activity.handleImportedBackupContent(backupContent)
             }
-            clickDialogAction(R.string.action_replace_farm)
+            clickDialogAction(R.string.action_add_imported_farm)
             clickDialogAction(R.string.action_discard)
 
             scenario.onActivity { activity ->
                 val store = SharedPreferencesFarmStore(activity.applicationContext)
                 val service = FarmSliceService(store)
                 assertEquals("farm-restored", service.currentFarmId())
-                assertNull("old farm must no longer be active", service.loadFarm(originalFarmId!!))
+                // Multi-farm import never wipes other local farms; the old
+                // farm must remain stored, just no longer current.
+                assertNotNull("original farm must survive an add-import", service.loadFarm(originalFarmId!!))
                 val restored = service.loadFarm("farm-restored")
                 assertNotNull(restored)
                 assertEquals(1, restored!!.transactions.size)
@@ -389,9 +402,9 @@ class FarmBackupIntegrationTest {
 
     @Test
     fun cleanEditorReplaceFarmSkipsDiscardDialog() {
+        seedOriginalFarm("Original Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Original Farm")
             openExpenseEditor()
             onView(withId(R.id.transactionEditorContainer)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
@@ -404,7 +417,7 @@ class FarmBackupIntegrationTest {
             scenario.onActivity { activity ->
                 activity.handleImportedBackupContent(backupContent)
             }
-            clickDialogAction(R.string.action_replace_farm)
+            clickDialogAction(R.string.action_add_imported_farm)
 
             onView(withId(R.id.transactionEditorContainer)).check(matches(withEffectiveVisibility(Visibility.GONE)))
             var expectedSummary: String? = null
@@ -412,7 +425,8 @@ class FarmBackupIntegrationTest {
                 val store = SharedPreferencesFarmStore(activity.applicationContext)
                 val service = FarmSliceService(store)
                 assertEquals("farm-restored", service.currentFarmId())
-                assertNull("old farm must no longer be active", service.loadFarm(originalFarmId!!))
+                // Multi-farm import never wipes other local farms.
+                assertNotNull("original farm must survive an add-import", service.loadFarm(originalFarmId!!))
                 val restored = service.loadFarm("farm-restored")
                 assertNotNull(restored)
                 assertEquals("no blank transaction may be created", 1, restored!!.transactions.size)
@@ -429,13 +443,10 @@ class FarmBackupIntegrationTest {
         }
     }
 
-    private fun createFarm(name: String) {
-        onView(withId(R.id.farmNameInput)).perform(typeText(name), closeSoftKeyboard())
-        onView(withId(R.id.createFarmButton)).perform(click())
-    }
-
     private fun openExpenseEditor() {
-        onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+        // M7+ shell: create-mode cash editors were retired; the transaction
+        // editor opens in edit mode from a recent-transaction row.
+        onView(withId(R.id.recentTransactionRow)).perform(scrollTo(), click())
     }
 
     private fun fillEditor(description: String, amount: String) {
@@ -472,6 +483,30 @@ class FarmBackupIntegrationTest {
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 
+    /**
+     * Seeds the original farm and its single expense entirely before
+     * [FarmActivity] launches. Seeding through the service after a UI-created
+     * farm does not re-render home, so recent rows would be missing.
+     */
+    private fun seedOriginalFarm(description: String) {
+        val store = SharedPreferencesFarmStore(context)
+        val service = FarmSliceService(store)
+        val farm = service.createFarm(
+            "Original Farm",
+            currencyCode = FarmCurrencies.defaultFor(Locale.getDefault())
+        )
+        service.createTransaction(
+            farm.id,
+            FarmTransactionDraft(
+                type = TransactionType.EXPENSE,
+                category = TransactionCategory.FEED,
+                amountMinor = 1000,
+                description = description,
+                occurredAt = "2024-01-01T12:00:00Z"
+            )
+        )
+    }
+
     private fun backupForRestoredFarm(): String {
         val farm = FarmState(
             id = "farm-restored",
@@ -492,36 +527,32 @@ class FarmBackupIntegrationTest {
 
     @Test
     fun postUpgradeNewTransactionAppearsInBackupExport() {
-        // Phase 1: Create v0.1.0-like farm with pre-existing transactions
+        // Phase 1: seed v0.1.0-style legacy data through the domain layer —
+        // the create-mode cash editor retired in M7+ no longer exists.
+        run {
+            val store = SharedPreferencesFarmStore(context)
+            val service = FarmSliceService(store)
+            val farm = service.createFarm("MotoUpgradeFarm")
+            listOf(
+                Triple(TransactionType.INCOME, "Milk sale", 120050L),
+                Triple(TransactionType.EXPENSE, "Feed purchase", 45000L),
+                Triple(TransactionType.INCOME, "Egg sale", 8000L)
+            ).forEach { (type, description, amountMinor) ->
+                service.createTransaction(
+                    farm.id,
+                    FarmTransactionDraft(
+                        type = type,
+                        category = if (type == TransactionType.INCOME) TransactionCategory.SALES else TransactionCategory.FEED,
+                        amountMinor = amountMinor,
+                        description = description,
+                        occurredAt = "2024-08-05T12:00:00Z"
+                    )
+                )
+            }
+            service.addEntry(farm.id, com.susankhya.kisab.domain.FarmEntry(com.susankhya.kisab.domain.FarmEntryKind.LIVESTOCK, "Cow", 3))
+        }
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.farmNameInput)).perform(typeText("MotoUpgradeFarm"), closeSoftKeyboard())
-            onView(withId(R.id.createFarmButton)).perform(click())
-
-            // Add entry (Cow x3)
-            onView(withId(R.id.farmToolsToggleButton)).perform(scrollTo(), click())
-            onView(withId(R.id.entryLabelInput)).perform(scrollTo(), typeText("Cow"), closeSoftKeyboard())
-            onView(withId(R.id.entryQuantityInput)).perform(scrollTo(), typeText("3"), closeSoftKeyboard())
-            onView(withId(R.id.addEntryButton)).perform(scrollTo(), click())
-
-            // Add 3 pre-existing transactions (like v0.1.0 data)
-            // Transaction 1: Milk sale (Income, SALES, 120050, USD, Aug 5)
-            onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
-            fillEditor(description = "Milk sale", amount = "120050")
-            acceptDefaultDateTime()
-            onView(withId(R.id.saveTransactionButton)).perform(click())
-
-            // Transaction 2: Feed purchase (Expense, FEED, 45000, USD, Aug 1)
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
-            fillEditor(description = "Feed purchase", amount = "45000")
-            acceptDefaultDateTime()
-            onView(withId(R.id.saveTransactionButton)).perform(click())
-
-            // Transaction 3: Egg sale (Income, SALES, 8000, USD, Aug 7)
-            onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
-            fillEditor(description = "Egg sale", amount = "8000")
-            acceptDefaultDateTime()
-            onView(withId(R.id.saveTransactionButton)).perform(click())
 
             // Verify initial state: 3 transactions, 1 entry
             var backupContent: String? = null
@@ -546,15 +577,29 @@ class FarmBackupIntegrationTest {
             assertEquals(3, envelope.farm.transactions.size)
             assertEquals(1, envelope.farm.entries.size)
 
-            // Phase 3: Create a NEW transaction after "upgrade"
-            // Post-upgrade milk sale (Income, SALES, 15000, USD)
-            onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
-            onView(withId(R.id.transactionAmountInput)).perform(replaceText("15000"), closeSoftKeyboard())
-            onView(withId(R.id.transactionDescriptionInput)).perform(replaceText("Post-upgrade milk sale"), closeSoftKeyboard())
+            // Phase 3: Perform a NEW mutation after "upgrade" through the
+            // current UI: edit the Milk sale transaction in place.
+            onView(allOf(withId(R.id.recentTransactionRow), withText(containsString("Milk sale"))))
+                .perform(scrollTo(), click())
+            fillEditor(description = "Post-upgrade milk sale", amount = "15000")
             acceptDefaultDateTime()
-            onView(withId(R.id.saveTransactionButton)).perform(click())
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            onView(withId(R.id.saveTransactionButton)).perform(scrollTo(), click())
 
-            // Phase 4: Export backup and verify it contains ALL 4 transactions
+            // The edited row must render with its new identity (row order is
+            // sort-dependent, so scan every recent row).
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            var renderedEditedRow = false
+            scenario.onActivity { activity ->
+                val container = activity.findViewById<android.widget.LinearLayout>(R.id.recentTransactionsContainer)
+                for (index in 0 until container.childCount) {
+                    val row = container.getChildAt(index) as android.widget.TextView
+                    if ("Post-upgrade milk sale" in row.text.toString()) renderedEditedRow = true
+                }
+            }
+            assertTrue("Edited transaction must render post-upgrade", renderedEditedRow)
+
+            // Phase 4: Export backup and verify it contains ALL mutations
             backupContent = null
             scenario.onActivity { activity ->
                 backupContent = activity.createBackupContentForCurrentFarm()
@@ -562,10 +607,11 @@ class FarmBackupIntegrationTest {
             assertNotNull(backupContent)
             envelope = FarmBackupCodec.decode(backupContent!!)
 
-            // The critical assertion: backup must contain all 4 transactions
-            assertEquals(4, envelope.farm.transactions.size)
+            // The critical assertion: backup must contain all 3 transactions
+            // including the post-upgrade edit
+            assertEquals(3, envelope.farm.transactions.size)
             assertTrue("Backup must contain the post-upgrade transaction", envelope.farm.transactions.any { it.description == "Post-upgrade milk sale" })
-            assertTrue("Backup must contain Milk sale", envelope.farm.transactions.any { it.description == "Milk sale" })
+            assertTrue("Post-upgrade amount edit must persist", envelope.farm.transactions.first { it.description == "Post-upgrade milk sale" }.amountMinor != 120050L)
             assertTrue("Backup must contain Feed purchase", envelope.farm.transactions.any { it.description == "Feed purchase" })
             assertTrue("Backup must contain Egg sale", envelope.farm.transactions.any { it.description == "Egg sale" })
             assertEquals(1, envelope.farm.entries.size)

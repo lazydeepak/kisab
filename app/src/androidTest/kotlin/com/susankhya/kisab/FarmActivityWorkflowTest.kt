@@ -37,8 +37,6 @@ import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.FarmActivity
 import com.susankhya.kisab.ui.FarmCurrencies
 import com.susankhya.kisab.ui.FarmOrdering
-import java.time.Duration
-import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -88,10 +86,10 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun transportExpenseCategorySelectableAndPersisted() {
+        seedFarm("Transport Farm", SeedTransaction("Van hire", 150000, "NPR"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Transport Farm")
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            openEditorForTransaction("Van hire")
             onView(withId(R.id.transactionTypeExpenseRadio)).check(matches(isChecked()))
 
             scenario.onActivity { activity ->
@@ -102,9 +100,7 @@ class FarmActivityWorkflowTest {
                 assertEquals(TransactionCategory.TRANSPORT, FarmOrdering.categoriesFor(TransactionType.EXPENSE)[spinner.selectedItemPosition])
             }
 
-            fillEditor(description = "Van hire", amount = "1500.00")
-            onView(withId(R.id.saveTransactionButton)).perform(scrollTo(), click())
-            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            clickSave(scenario)
             scenario.onActivity { activity ->
                 val farm = farmFor(activity)
                 assertEquals(1, farm.transactions.size)
@@ -119,71 +115,19 @@ class FarmActivityWorkflowTest {
         }
     }
 
-    @Test
-    fun firstIncomeQuickActionRecordsWithoutCurrencyInput() {
-        val scenario = ActivityScenario.launch(FarmActivity::class.java)
-        try {
-            createFarm("Workflow Farm")
-            onView(withId(R.id.firstActionPrompt)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-
-            onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
-            scenario.onActivity { activity ->
-                assertTrue("Amount field must receive initial focus", activity.findViewById<EditText>(R.id.transactionAmountInput).hasFocus())
-            }
-            onView(withId(R.id.saveTransactionButton)).check(matches(withText(R.string.save_income_action)))
-
-            PickerTestHelpers.pickDateTime(2024, 0, 1, 17, 45)
-            fillEditor(description = "Milk sale", amount = "1500")
-            clickSave(scenario)
-
-            scenario.onActivity { activity ->
-                val farm = farmFor(activity)
-                assertEquals(1, farm.transactions.size)
-                val transaction = farm.transactions.single()
-                assertEquals(TransactionType.INCOME, transaction.type)
-                assertEquals(150000, transaction.amountMinor)
-                assertEquals(FarmCurrencies.defaultFor(Locale.getDefault()), farm.currencyCode)
-                assertEquals(expectedInstant(2024, 1, 1, 17, 45), transaction.occurredAt.toInstant().toString())
-            }
-
-            var income: String? = null
-            scenario.onActivity { activity ->
-                income = activity.formatMoney(FarmCurrencies.defaultFor(Locale.getDefault()), 150000)
-            }
-            onView(withId(R.id.balanceText)).check(matches(withText(containsString(income))))
-            onView(withId(R.id.incomeText)).check(matches(withText(containsString(income))))
-
-            assertTrue("Expected saved transaction in recent rows", recentRowText(scenario).contains("Milk sale"))
-            onView(withId(R.id.firstActionPrompt)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-        } finally {
-            scenario.close()
-        }
-    }
-
-    @Test
-    fun repeatedExpenseDerivesCurrencyAndSuppliesCurrentTime() {
-        seedFarm("Currency Farm", SeedTransaction("Feed", 1000, "USD"))
-        val scenario = ActivityScenario.launch(FarmActivity::class.java)
-        try {
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
-            onView(withId(R.id.saveTransactionButton)).check(matches(withText(R.string.save_expense_action)))
-
-            scenario.onActivity { activity ->
-                val iso = activity.editorOccurredAtIsoForTest()
-                val elapsed = Duration.between(OffsetDateTime.parse(iso).toInstant(), Instant.now()).toMillis()
-                assertTrue("Expected default-now timestamp, was $iso", elapsed in 0..120_000)
-            }
-
-            fillEditor(description = "More feed", amount = "2500")
-            clickSave(scenario)
-
-            var expenses: String? = null
-            scenario.onActivity { activity -> expenses = activity.formatMoney("USD", 251000) }
-            onView(withId(R.id.expensesText)).check(matches(withText(containsString(expenses))))
-        } finally {
-            scenario.close()
-        }
-    }
+    // M12 removals (see docs/validation/M12_INSTRUMENTATION_BASELINE_REPAIR_VALIDATION.md):
+    //
+    // - firstIncomeQuickActionRecordsWithoutCurrencyInput: the first-run quick
+    //   income action and its legacy surfaces (firstActionPrompt/balanceText/
+    //   incomeText) were retired by the M7 shell redesign. Surviving behaviors
+    //   (no currency control in the editor, derived currency, recent-row
+    //   rendering) are covered by transactionEditorExposesNoCurrencyControl,
+    //   FarmActivityPresentationTest derivation cases, and editPreservesId.
+    //
+    // - repeatedExpenseDerivesCurrencyAndSuppliesCurrentTime: the create-mode
+    //   editor that supplied a default-now timestamp no longer exists; the
+    //   current record dialogs supply current time (covered by the M7+ record
+    //   flow redesign tests).
 
     @Test
     fun editPreservesIdAndRecalculatesTotals() {
@@ -246,10 +190,10 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun recreationPreservesEditorDraft() {
+        seedFarm("Recreate Farm", SeedTransaction("Feed", 1000, "NPR"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Recreate Farm")
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            openEditorForTransaction("Feed")
             fillEditor(description = "Partial", amount = "50")
 
             scenario.recreate()
@@ -258,7 +202,7 @@ class FarmActivityWorkflowTest {
             onView(withId(R.id.transactionAmountInput)).check(matches(withText("50")))
             onView(withId(R.id.transactionDescriptionInput)).check(matches(withText("Partial")))
             scenario.onActivity { activity ->
-                assertEquals(0, farmFor(activity).transactions.size)
+                assertEquals(1, farmFor(activity).transactions.size)
             }
         } finally {
             scenario.close()
@@ -267,19 +211,22 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun dirtyCancelAndBackRequireDiscardConfirmation() {
+        seedFarm("Discard Farm", SeedTransaction("Feed", 1000, "NPR"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Discard Farm")
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            openEditorForTransaction("Feed")
             fillEditor(description = "Change me", amount = "10")
 
             onView(withId(R.id.cancelTransactionButton)).perform(scrollTo(), click())
             onView(withText(R.string.discard_changes_title)).inRoot(isDialog()).check(matches(isDisplayed()))
             clickDialogAction(R.string.action_discard)
             onView(withId(R.id.transactionEditorContainer)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            scenario.onActivity { activity -> assertEquals(0, farmFor(activity).transactions.size) }
+            scenario.onActivity { activity ->
+                assertEquals(1000L, farmFor(activity).transactions.single().amountMinor)
+                assertEquals("Feed", farmFor(activity).transactions.single().description)
+            }
 
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            openEditorForTransaction("Feed")
             fillEditor(description = "Change me", amount = "20")
             Espresso.pressBack()
             onView(withText(R.string.discard_changes_title)).inRoot(isDialog()).check(matches(isDisplayed()))
@@ -292,43 +239,38 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun switchingWhileDirtyConfirmsBeforeOpeningAnotherTransaction() {
-        seedFarm("Switch Farm", SeedTransaction("Feed", 1000, "NPR"))
+        // Descriptions deliberately avoid words that appear in category labels
+        // ("Feed", "Seeds", ...) so recent-row matchers stay unambiguous.
+        seedFarm(
+            "Switch Farm",
+            SeedTransaction("Pump repair", 1000, "NPR"),
+            SeedTransaction("Tool purchase", 2000, "NPR", occurredAt = "2024-01-02T12:00:00Z")
+        )
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            openEditorForTransaction("Pump repair")
             fillEditor(description = "Unsaved", amount = "10")
 
-            openEditorForTransaction("Feed")
+            openEditorForTransaction("Tool purchase")
             onView(withText(R.string.discard_changes_title)).inRoot(isDialog()).check(matches(isDisplayed()))
             clickDialogAction(R.string.action_discard)
 
             onView(withId(R.id.transactionEditorTitle)).check(matches(withText(R.string.transaction_editor_edit_section)))
             scenario.onActivity { activity ->
                 val amountField = activity.findViewById<EditText>(R.id.transactionAmountInput)
-                assertEquals(activity.editFieldAmount("NPR", 1000), amountField.text.toString())
-                assertEquals("Feed", activity.findViewById<EditText>(R.id.transactionDescriptionInput).text.toString())
+                assertEquals(activity.editFieldAmount("NPR", 2000), amountField.text.toString())
+                assertEquals("Tool purchase", activity.findViewById<EditText>(R.id.transactionDescriptionInput).text.toString())
             }
         } finally {
             scenario.close()
         }
     }
 
-    @Test
-    fun recordButtonWhileDirtyConfirmsDiscard() {
-        val scenario = ActivityScenario.launch(FarmActivity::class.java)
-        try {
-            createFarm("Switch Farm")
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
-            fillEditor(description = "Unsaved", amount = "10")
-
-            onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
-            onView(withText(R.string.discard_changes_title)).inRoot(isDialog()).check(matches(isDisplayed()))
-            clickDialogAction(R.string.action_keep_editing)
-            onView(withId(R.id.transactionAmountInput)).check(matches(withText("10")))
-        } finally {
-            scenario.close()
-        }
-    }
+    // M12 removal: recordButtonWhileDirtyConfirmsDiscard targeted the retired
+    // home record buttons. The dirty-editor discard guard now lives on
+    // destination navigation and recent-row switching, both covered by
+    // switchingAwayWhileDirtyPromptsDiscardConfirmation and
+    // switchingWhileDirtyConfirmsBeforeOpeningAnotherTransaction.
 
     @Test
     fun emptyFarmUsesSuggestedCurrencyAndAllowsChoice() {
@@ -343,16 +285,8 @@ class FarmActivityWorkflowTest {
             changeFarmCurrency("USD")
             onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("USD", Locale.getDefault()))))
 
-            onView(withId(R.id.navTodayItem)).perform(click())
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
-            PickerTestHelpers.pickDateTime(2024, 0, 1, 17, 45)
-            fillEditor(description = "Sale", amount = "100")
-            clickSave(scenario)
             scenario.onActivity { activity ->
-                val farm = farmFor(activity)
-                assertEquals("USD", farm.currencyCode)
-                assertEquals(1, farm.transactions.size)
-                assertEquals(TransactionCategory.FEED, farm.transactions.single().category)
+                assertEquals("USD", farmFor(activity).currencyCode)
             }
         } finally {
             scenario.close()
@@ -455,17 +389,22 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun saveLabelFollowsSelectedTransactionType() {
+        seedFarm("Label Farm", SeedTransaction("Feed", 1000, "NPR"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Label Farm")
-            onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
-            onView(withId(R.id.saveTransactionButton)).check(matches(withText(R.string.save_income_action)))
-
-            onView(withId(R.id.transactionTypeExpenseRadio)).perform(scrollTo(), click())
-            onView(withId(R.id.saveTransactionButton)).check(matches(withText(R.string.save_expense_action)))
+            openEditorForTransaction("Feed")
+            onView(withId(R.id.transactionTypeExpenseRadio)).check(matches(isChecked()))
+            onView(withId(R.id.saveTransactionButton)).check(matches(withText(R.string.update_transaction_action)))
 
             onView(withId(R.id.transactionTypeIncomeRadio)).perform(scrollTo(), click())
-            onView(withId(R.id.saveTransactionButton)).check(matches(withText(R.string.save_income_action)))
+            onView(withId(R.id.saveTransactionButton)).check(matches(withText(R.string.update_transaction_action)))
+
+            onView(withId(R.id.transactionTypeExpenseRadio)).perform(scrollTo(), click())
+            onView(withId(R.id.saveTransactionButton)).check(matches(withText(R.string.update_transaction_action)))
+            scenario.onActivity { activity ->
+                // Nothing may be persisted by merely toggling type radios.
+                assertEquals(1000L, farmFor(activity).transactions.single().amountMinor)
+            }
         } finally {
             scenario.close()
         }
@@ -480,8 +419,12 @@ class FarmActivityWorkflowTest {
             val current = FarmCurrencies.label(FarmCurrencies.defaultFor(Locale.getDefault()), Locale.getDefault())
 
             onView(withId(R.id.farmDetailsChangeCurrencyButton)).perform(scrollTo(), click())
-            onView(withText(containsString("(NPR)"))).inRoot(isDialog()).check(matches(isDisplayed()))
-            onView(withText(containsString("(USD)"))).inRoot(isDialog()).check(matches(isDisplayed()))
+            // The chooser is an adapter-backed dialog; assert its options via data.
+            FarmCurrencies.SUPPORTED.forEach { code ->
+                onData(equalTo(FarmCurrencies.label(code, Locale.getDefault())))
+                    .inRoot(isDialog())
+                    .check(matches(isDisplayed()))
+            }
             clickDialogAction(R.string.action_cancel)
             onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(current)))
         } finally {
@@ -491,10 +434,10 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun recreationPreservesDirtyBaselineForDiscardProtection() {
+        seedFarm("Recreate Farm", SeedTransaction("Feed", 1000, "NPR"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Recreate Farm")
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            openEditorForTransaction("Feed")
             fillEditor(description = "Partial", amount = "50")
 
             scenario.recreate()
@@ -516,17 +459,19 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun recreationPreservesCleanBaselineSoUnchangedEditorClosesSilently() {
+        seedFarm("Recreate Farm", SeedTransaction("Feed", 1000, "NPR"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Recreate Farm")
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            openEditorForTransaction("Feed")
 
             scenario.recreate()
 
             onView(withId(R.id.transactionEditorContainer)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
             Espresso.pressBack()
             onView(withId(R.id.transactionEditorContainer)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            scenario.onActivity { activity -> assertEquals(0, farmFor(activity).transactions.size) }
+            scenario.onActivity { activity ->
+                assertEquals(1000L, farmFor(activity).transactions.single().amountMinor)
+            }
         } finally {
             scenario.close()
         }
@@ -551,22 +496,12 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun firstTransactionCurrencyChoiceAppliesIsoFractionDigits() {
+        // JPY uses zero fraction digits: a 1500-minor amount must present as
+        // whole major units in the editor.
+        seedFarm("JPY Farm", SeedTransaction("Rice", 1500, "JPY"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("JPY Farm")
-            openFarmDetails("JPY Farm")
-            changeFarmCurrency("JPY")
-            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("JPY", Locale.getDefault()))))
-            onView(withId(R.id.navTodayItem)).perform(click())
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
-            fillEditor(description = "Rice", amount = "1500")
-            clickSave(scenario)
-            scenario.onActivity { activity ->
-                assertEquals("JPY", farmFor(activity).currencyCode)
-                assertEquals(1500, farmFor(activity).transactions.single().amountMinor)
-            }
-
-            openEditorForTransaction("Rice")
+            awaitEditorForTransaction("Rice")
             onView(withId(R.id.transactionAmountInput)).check(matches(withText("1500")))
             clickSave(scenario)
             scenario.onActivity { activity ->
@@ -580,14 +515,12 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun firstTransactionInKwdUsesThreeFractionDigits() {
+        // KWD uses three fraction digits: 1.500 KWD == 1500 minor.
+        seedFarm("KWD Farm", SeedTransaction("Feed", 1500, "KWD"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("KWD Farm")
-            openFarmDetails("KWD Farm")
-            changeFarmCurrency("KWD")
-            onView(withId(R.id.navTodayItem)).perform(click())
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
-            fillEditor(description = "Feed", amount = "1.500")
+            awaitEditorForTransaction("Feed")
+            onView(withId(R.id.transactionAmountInput)).check(matches(withText("1.500")))
             clickSave(scenario)
             scenario.onActivity { activity ->
                 assertEquals("KWD", farmFor(activity).currencyCode)
@@ -848,10 +781,10 @@ class FarmActivityWorkflowTest {
 
     @Test
     fun switchingAwayWhileDirtyPromptsDiscardConfirmation() {
+        seedFarm("Switch Shell Farm", SeedTransaction("Feed", 1000, "NPR"))
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Switch Shell Farm")
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+            openEditorForTransaction("Feed")
             fillEditor(description = "Unsaved", amount = "10")
 
             openSettings()
@@ -907,6 +840,27 @@ class FarmActivityWorkflowTest {
     private fun openEditorForTransaction(description: String) {
         onView(allOf(withId(R.id.recentTransactionRow), withText(containsString(description))))
             .perform(scrollTo(), click())
+    }
+
+    /**
+     * Opens a recent-row editor, retrying until the row is laid out and
+     * displayed. Home re-renders asynchronously after [ActivityScenario.recreate],
+     * so the row can exist in the hierarchy without bounds for a few frames.
+     */
+    private fun awaitEditorForTransaction(description: String) {
+        val matcher = allOf(withId(R.id.recentTransactionRow), withText(containsString(description)))
+        val deadline = android.os.SystemClock.elapsedRealtime() + 5_000L
+        var lastFailure: Throwable? = null
+        while (android.os.SystemClock.elapsedRealtime() < deadline) {
+            try {
+                onView(matcher).perform(scrollTo(), click())
+                return
+            } catch (failure: Throwable) {
+                lastFailure = failure
+                Thread.sleep(100)
+            }
+        }
+        throw IllegalStateException("Recent row '$description' never became interactive", lastFailure)
     }
 
     private fun openSettings() {

@@ -1,13 +1,10 @@
 package com.susankhya.kisab
 
 import android.content.Context
-import android.os.Build
 import android.widget.DatePicker
 import android.widget.TimePicker
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -28,8 +25,6 @@ import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.FarmActivity
-import java.time.Duration
-import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -75,27 +70,10 @@ class D002DateTimePickerEvaluationTest {
 
     @Test
     fun changeTodayTransactionToPreviousDatePersistsAndDisplaysLocally() {
+        val nowIso = OffsetDateTime.now().toString()
+        seedFarmWithDescription("D002 Farm", "Today feed", nowIso)
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("D002 Farm")
-            onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
-
-            var createdIso: String? = null
-            scenario.onActivity { activity ->
-                val iso = activity.editorOccurredAtIsoForTest()
-                createdIso = iso
-                val elapsed = Duration.between(OffsetDateTime.parse(iso).toInstant(), Instant.now()).toMillis()
-                assertTrue("Expected default-now timestamp, was $iso", elapsed in 0..120_000)
-            }
-
-            fillEditor(description = "Today feed", amount = "500")
-            clickSave(scenario)
-
-            val createdInstant = createdIso!!.let { OffsetDateTime.parse(it).toInstant().toString() }
-            scenario.onActivity { activity ->
-                assertEquals(createdInstant, farmFor(activity).transactions.single().occurredAt.toInstant().toString())
-            }
-
             openEditorForTransaction("Today feed")
             PickerTestHelpers.pickDateTime(2024, 0, 5, 9, 30)
             clickSave(scenario)
@@ -209,11 +187,6 @@ class D002DateTimePickerEvaluationTest {
         return text
     }
 
-    private fun createFarm(name: String) {
-        onView(withId(R.id.farmNameInput)).perform(replaceText(name), closeSoftKeyboard())
-        onView(withId(R.id.createFarmButton)).perform(click())
-    }
-
     private fun fillEditor(description: String, amount: String) {
         onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText(amount), closeSoftKeyboard())
         onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
@@ -233,6 +206,10 @@ class D002DateTimePickerEvaluationTest {
     }
 
     private fun seedFarm(name: String, occurredAt: String) {
+        seedFarmWithDescription(name, "old feed", occurredAt)
+    }
+
+    private fun seedFarmWithDescription(name: String, description: String, occurredAt: String) {
         val store = SharedPreferencesFarmStore(context)
         val service = FarmSliceService(store)
         val farm = service.createFarm(name)
@@ -242,7 +219,7 @@ class D002DateTimePickerEvaluationTest {
                 type = TransactionType.EXPENSE,
                 category = TransactionCategory.FEED,
                 amountMinor = 1000,
-                description = "old feed",
+                description = description,
                 occurredAt = occurredAt
             )
         )
@@ -260,22 +237,10 @@ class D002DateTimePickerEvaluationTest {
     }
 
     private fun setAppLocale(locale: String) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.getSystemService(android.app.LocaleManager::class.java)
-                .applicationLocales = android.os.LocaleList.forLanguageTags(locale)
-        } else {
-            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(locale))
-        }
-        Espresso.onIdle()
+        setApplicationLocalesAndWait(listOf(locale))
     }
 
     private fun resetAppLocale() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.getSystemService(android.app.LocaleManager::class.java)
-                .applicationLocales = android.os.LocaleList.getEmptyLocaleList()
-        } else {
-            AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
-        }
-        Espresso.onIdle()
+        resetApplicationLocalesAndWait()
     }
 }
