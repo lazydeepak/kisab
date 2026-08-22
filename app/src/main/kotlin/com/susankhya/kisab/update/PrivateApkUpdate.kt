@@ -156,6 +156,35 @@ object UpdateIntegrityVerifier {
 
     fun sha256Matches(file: File, expectedHex: String?): Boolean =
         sha256Matches(file.readBytes(), expectedHex)
+
+    /**
+     * Streams [input] into [output] while computing the SHA-256 digest in a
+     * single pass, then compares it against [expectedHex]. Returns true only
+     * when every byte was copied and the digest matches. Avoids loading the
+     * whole APK into memory for verification.
+     */
+    fun copyVerifyingSha256(input: java.io.InputStream, output: java.io.OutputStream, expectedHex: String?): Boolean {
+        if (!isValidSha256(expectedHex)) return false
+        val digest = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(DEFAULT_COPY_BUFFER_BYTES)
+        try {
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                if (read > 0) {
+                    digest.update(buffer, 0, read)
+                    output.write(buffer, 0, read)
+                }
+            }
+            output.flush()
+        } catch (_: Throwable) {
+            return false
+        }
+        val computed = digest.digest().joinToString("") { "%02x".format(it) }
+        return computed.equals(expectedHex!!.trim(), ignoreCase = true)
+    }
+
+    private const val DEFAULT_COPY_BUFFER_BYTES = 64 * 1024
 }
 
 class ApkDownloadResult(
@@ -176,8 +205,8 @@ class ApkDownloader(
         return try {
             val file = File(context.cacheDir, cacheName)
             file.delete()
-            var keepFile = false
             val connection = URL(url).openConnection() as? HttpURLConnection ?: return ApkDownloadResult(null, "download unavailable")
+            var keepFile = false
             try {
                 connection.connectTimeout = UPDATE_MANIFEST_TIMEOUT_MS
                 connection.readTimeout = UPDATE_MANIFEST_TIMEOUT_MS
@@ -187,15 +216,13 @@ class ApkDownloader(
                 if (statusCode !in 200..299) {
                     return ApkDownloadResult(null, "download failed: $statusCode")
                 }
-                val bytes = connection.inputStream.use { input ->
-                    val output = FileOutputStream(file)
-                    output.use { out ->
-                        input.copyTo(out)
+                // Single pass: stream to disk while verifying the manifest
+                // digest. The file is only kept when the checksum matched.
+                val checksumVerified = connection.inputStream.use { input ->
+                    FileOutputStream(file).use { output ->
+                        UpdateIntegrityVerifier.copyVerifyingSha256(input, output, expectedSha256)
                     }
-                    file.readBytes()
                 }
-                if (bytes.isEmpty()) return ApkDownloadResult(null, "empty apk")
-                val checksumVerified = UpdateIntegrityVerifier.sha256Matches(bytes, expectedSha256)
                 if (!checksumVerified) return ApkDownloadResult(null, "checksum mismatch")
                 keepFile = true
                 ApkDownloadResult(file, checksumVerified = true)
