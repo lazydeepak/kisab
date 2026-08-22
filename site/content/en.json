@@ -1,0 +1,337 @@
+{
+  "common": {
+    "lang": "en",
+    "lang_switch_label": "नेपाली",
+    "lang_switch_title": "Switch to Nepali",
+    "logo_alt": "Kisab logo",
+    "skip_to_content": "Skip to content",
+    "nav_aria": "Main navigation",
+    "menu_label": "Menu",
+    "theme_toggle_label": "Switch between light and dark appearance",
+    "nav": [
+      { "href": "/", "label": "Home" },
+      { "href": "/features/", "label": "Features" },
+      { "href": "/download/", "label": "Download" },
+      { "href": "/releases/", "label": "Releases" },
+      { "href": "/help/", "label": "Help" },
+      { "href": "/privacy/", "label": "Privacy" },
+      { "href": "/support/", "label": "Support" }
+    ],
+    "footer_note": "Kisab is an offline, farmer-first farm ledger app from the Susankhya ecosystem. Farm data stays on your device.",
+    "footer_pilot": "Pilot software. Signed APKs are distributed through GitHub Releases.",
+    "footer_links": "Legal and technical information:",
+    "footer_link_privacy": "Privacy",
+    "footer_link_support": "Support",
+    "footer_link_releases": "Release history",
+    "theme_light_label": "Light",
+    "theme_dark_label": "Dark"
+  },
+  "meta": {
+    "home": {
+      "title": "Kisab — farm accounts and farm work, offline",
+      "description": "Kisab is a simple, offline Android app for farmers to record sales, purchases, khata, production, and farm work in Nepali and English."
+    },
+    "features": {
+      "title": "Features — Kisab",
+      "description": "What Kisab does today: Today dashboard, Khata, record flows, farm work, hisab and calculators, multi-farm, backup, offline use, Nepali/English."
+    },
+    "download": {
+      "title": "Download Kisab pilot APK",
+      "description": "Download the current Kisab pilot build (v0.2.1) as a signed APK from GitHub Releases, with install guidance and checksums."
+    },
+    "releases": {
+      "title": "Kisab releases",
+      "description": "Kisab release history: v0.2.1, v0.2.0, v0.1.0 with version codes, dates, checksums, and signed APK links from GitHub Releases."
+    },
+    "help": {
+      "title": "Help and FAQ — Kisab",
+      "description": "Practical answers about installing and updating Kisab, offline use, backup and restore, language, text size, multiple farms, and update problems."
+    },
+    "privacy": {
+      "title": "Privacy — Kisab",
+      "description": "How Kisab handles farm data: everything is stored on your device; no cloud, no account, no analytics."
+    },
+    "support": {
+      "title": "Support — Kisab",
+      "description": "Where to get help with Kisab during the farmer pilot."
+    }
+  },
+  "home": {
+    "hero_kicker": "Farmer-first farm ledger",
+    "hero_title": "Your farm's accounts and daily work, on your phone.",
+    "hero_lead": "Kisab is a simple, offline Android app for recording what happens on your farm — sales, purchases, who owes you, what you produced, and what you still have. No internet needed for daily work.",
+    "hero_cta_download": "Download the pilot APK",
+    "hero_cta_features": "See what it does",
+    "pilot_badge": "Pilot · v0.2.1",
+    "pilot_note": "Kisab is in a farmer pilot. Current builds are signed APKs distributed through GitHub Releases.",
+    "phone_section_label": "Illustrative preview — the app as it looks today",
+    "phone_caption_today": "Today (आज) — the day's money and work at a glance",
+    "phone_caption_khata": "Khata (खाता) — who owes you, who you owe",
+    "phone_caption_farmwork": "Farm Work (फार्मको काम) — production and supplies",
+    "phone_caption_record": "Record (लेख्नुहोस्) — what happened?",
+    "features_heading": "Built for the way farms actually run",
+    "features_lead": "Plain farmer language, big readable text (24sp default), and Nepali + English throughout.",
+    "feature_items": [
+      {
+        "title": "Today dashboard",
+        "tag": "आज",
+        "text": "Start the day with a clear picture — today's sales, money received, expenses, what is still to receive and to pay, production, and recent activity."
+      },
+      {
+        "title": "Khata",
+        "tag": "खाता",
+        "text": "Know who owes you and who you owe. A simple per-party ledger with running balance and one-tap payment shortcuts."
+      },
+      {
+        "title": "Plain record flows",
+        "tag": "लेख्नुहोस्",
+        "text": "Record in farmer words: बेचेँ (sold), किनेँ (bought), पैसा पाएँ (received money), पैसा तिरेँ (paid money), प्रयोग गरेँ (used), उत्पादन (production)."
+      },
+      {
+        "title": "Farm Work",
+        "tag": "फार्मको काम",
+        "text": "Track production by session (morning and evening), see where it went, and keep a simple stock of supplies with usage tracking."
+      },
+      {
+        "title": "Offline and local-first",
+        "tag": "अफलाइन",
+        "text": "Everything is stored on your device. Daily work needs no internet, no account, and no cloud. Backup is an export file you keep yourself."
+      },
+      {
+        "title": "Hisab and calculators",
+        "tag": "हिसाब",
+        "text": "Party Hisab reconciliation plus offline calculators for money arithmetic, profit and loss, simple interest, Nepali land and grain units, and farm planning."
+      }
+    ],
+    "offline_heading": "Works without internet",
+    "offline_text": "Kisab keeps your farm data on this device. Daily recording, khata, and hisab work fully offline. When you want a safety copy, you export a backup file and keep it yourself.",
+    "offline_points": [
+      "No account, no sign-in, no cloud",
+      "Data stays on your phone",
+      "Backup is a file you export and keep"
+    ],
+    "status_heading": "Where Kisab stands today",
+    "status_lead": "Honest and current — no overclaiming.",
+    "status_items": [
+      { "title": "Farmer pilot in progress", "text": "A small group of farmers is testing Kisab on real farms and in real field conditions." },
+      { "title": "Private APK distribution", "text": "Signed builds are published on GitHub Releases. There is no Play Store listing yet." },
+      { "title": "OTA updates", "text": "Pilot builds can update themselves through a private HTTPS channel with checksum verification." },
+      { "title": "No cloud yet", "text": "No account, no login, no cross-device sync. Data lives on the phone and in backups you export." }
+    ],
+    "cta_heading": "Ready to try Kisab?",
+    "cta_text": "The current pilot build is v0.2.1 — signed, verified, and published through GitHub Releases.",
+    "cta_button": "Download v0.2.1",
+    "cta_secondary": "Release history"
+  },
+  "features": {
+    "page_heading": "What Kisab does today",
+    "page_lead": "Every item below exists in the current app. Kisab does not yet have cloud sync, accounts, or cross-device features — and it does not pretend otherwise.",
+    "groups": [
+      {
+        "title": "Daily recording and operations",
+        "intro": "Fast, farmer-language entry for what happened on the farm.",
+        "items": [
+          { "title": "Today dashboard (आज)", "text": "Today's sales, money received, expenses, credit sales, outstanding to receive and to pay, today's production, and a recent activity timeline." },
+          { "title": "Record flows (लेख्नुहोस्)", "text": "Six quick flows in farmer words: production (उत्पादन), sold (बेचेँ), received money (पैसा पाएँ), bought (किनेँ), used (प्रयोग गरेँ), and paid money (पैसा तिरेँ). Live arithmetic shows the total as you type." },
+          { "title": "Farm Work (फार्मको काम)", "text": "Production by morning and evening session, a production reconciliation (produced = sold + used + remaining), and simple supply stock with usage tracking and overuse guards." }
+        ]
+      },
+      {
+        "title": "Money, parties, and hisab",
+        "intro": "Simple bookkeeping that matches how farmers actually deal.",
+        "items": [
+          { "title": "Khata (खाता)", "text": "A per-party ledger for customers and suppliers, with running balance, search, filters, and one-tap payment shortcuts. Clear direction: लिन बाँकी (to receive) and तिर्न बाँकी (to pay)." },
+          { "title": "Financial overview", "text": "Farm-wide summaries by period: cash activity, trade and payments, current receivable and payable position, and a monthly trend." },
+          { "title": "Hisab (हिसाब)", "text": "Party Hisab reconciliation for a selected party and period, and an offline calculator toolbox: money arithmetic, profit/loss, simple interest, Nepali land converter, traditional grain converter, and farm planning calculators." }
+        ]
+      },
+      {
+        "title": "Farms and data",
+        "intro": "Your records, under your control.",
+        "items": [
+          { "title": "Multi-farm management", "text": "Create and switch between several farms with full data isolation. Each farm keeps its own currency and records." },
+          { "title": "Backup and restore", "text": "Export a versioned backup file entirely offline using Android's document picker, and restore or update a farm from it. Destructive actions require a recent backup." },
+          { "title": "Offline-first storage", "text": "All farm data is stored locally on the device in the app's private storage. There is no server copy and no account." }
+        ]
+      },
+      {
+        "title": "Language, units, and readability",
+        "intro": "Made for Nepali farm households first.",
+        "items": [
+          { "title": "Nepali + English", "text": "Complete Nepali and English support, chosen in Settings or following the device language. No Hindi is used." },
+          { "title": "Large, readable text", "text": "24sp is the normal default text size, and it scales from 14sp to 36sp without clipping. Comfortable Devanagari line spacing." },
+          { "title": "Traditional units", "text": "Mana, Pathi, and Muri grain units for produce and supplies, plus Nepali land units (Ropani/Aana, Bigha/Kattha) with converters." }
+        ]
+      },
+      {
+        "title": "Delivery",
+        "intro": "How the current pilot builds reach devices.",
+        "items": [
+          { "title": "Signed APKs on GitHub Releases", "text": "Official downloads are signed APK files hosted on GitHub Releases — the single source of truth for Kisab builds." },
+          { "title": "Private OTA updates", "text": "Pilot builds can check a private HTTPS update channel, verify the SHA-256 of the download, and install an in-place signed upgrade without losing data." }
+        ]
+      }
+    ],
+    "no_claims_note": "Things Kisab does not have today: cloud sync, account login, cross-device sync, Google or Apple sign-in, premium tiers, ads, or online server backup."
+  },
+  "download": {
+    "page_heading": "Download Kisab",
+    "page_lead": "Current pilot build, signed and verified. Downloads are hosted on GitHub Releases — the single official source for Kisab APKs.",
+    "distribution_note": "Distribution status: this is a private, pilot distribution. There is no Play Store listing yet. Install only from this page or the official GitHub Releases of the Kisab project.",
+    "current_heading": "Current pilot release",
+    "version_label": "Version",
+    "version_value": "v0.2.1",
+    "versioncode_label": "Version code",
+    "versioncode_value": "4",
+    "published_label": "Published",
+    "published_value": "18 August 2026",
+    "channel_label": "Channel",
+    "channel_value": "Pilot (OTA update channel active)",
+    "size_label": "Size",
+    "size_value": "≈ 3.1 MB",
+    "sha256_label": "SHA-256",
+    "sha256_value": "443e6582b3766348b60c3e608daedd5dfbea0b40f601bb9c661fe88961e417b7",
+    "download_button": "Download signed APK",
+    "download_note_suffix": "hosted on GitHub Releases",
+    "gh_release_link": "View the v0.2.1 release on GitHub",
+    "what_is_apk_heading": "What is this file?",
+    "what_is_apk_text": "This is the official Kisab Android application, signed with the production release key. It is delivered as an APK because Kisab is not on the Play Store yet. GitHub Releases is the source of truth for the signed file; you can verify the SHA-256 checksum after download.",
+    "install_heading": "How to install on Android",
+    "install_steps": [
+      { "title": "Download the APK", "text": "Tap the download button above and wait for the file to finish downloading." },
+      { "title": "Open the file", "text": "Open the downloaded kisab-v0.2.1-rc-signed.apk file from your Downloads or file manager." },
+      { "title": "Allow this one install", "text": "Android will ask for permission to install from unknown sources for this app. Allow it only for Kisab downloads, then keep the setting off for everything else. You can also use the options Android offers for a single install." },
+      { "title": "Install and open", "text": "Complete the install and open Kisab. Create your first farm to start recording." }
+    ],
+    "play_protect_heading": "About Play Protect",
+    "play_protect_text": "Android Play Protect checks apps even when they are not from the Play Store. A warning about an unknown app is normal for a direct APK. Install only the official Kisab APK from this page or from GitHub Releases, and do not permanently disable Play Protect. If you are unsure, verify the SHA-256 checksum of the downloaded file.",
+    "upgrade_heading": "Updating to a newer pilot build",
+    "upgrade_text": "Pilot builds with the update channel enabled can check for and install updates inside the app (More → About → Check for updates). You can also install a newer APK over the older one — the signed upgrade preserves your farm data. Make a backup before updating if you have important records.",
+    "backup_heading": "Back up first",
+    "backup_text": "Your farm data lives only on your device. Before you install, update, or hand a phone to anyone, export a backup (More → Backup / Restore → Export backup) and keep that file somewhere safe.",
+    "older_note": "Older pilot and stable builds (v0.2.0, v0.1.0) are listed on the release history page. New users should install the latest pilot build."
+  },
+  "releases": {
+    "page_heading": "Kisab release history",
+    "page_lead": "GitHub Releases is the authoritative source for signed Kisab APKs. This page reflects the published releases — nothing is invented.",
+    "current_callout_title": "Current release",
+    "current_callout_text": "v0.2.1 (version code 4) is the current pilot build and the live OTA update target. Install it if you are joining the pilot now.",
+    "table_version": "Version",
+    "table_code": "Code",
+    "table_published": "Published",
+    "table_channel": "Channel",
+    "table_sha256": "SHA-256",
+    "table_apk": "Signed APK",
+    "table_release": "Release",
+    "apk_label": "APK",
+    "current_label": "Current",
+    "releases_note": "Older builds remain listed for reference. For a fresh pilot install, use the latest version."
+  },
+  "help": {
+    "page_heading": "Help and FAQ",
+    "page_lead": "Short, practical answers. If your question is not here, see the support page.",
+    "faq": [
+      {
+        "q": "How do I install Kisab?",
+        "a": "Download the signed APK from the Download page, open the file, and allow Android to install from unknown sources for this one app. Kisab is not on the Play Store yet, so the APK is the official way to install."
+      },
+      {
+        "q": "How do I update Kisab?",
+        "a": "If your build has the private update channel enabled, open More → About → Check for updates and follow the prompts. You can also install a newer APK over the old one; a signed upgrade keeps your farm data. Make a backup before updating."
+      },
+      {
+        "q": "Does Kisab need internet?",
+        "a": "No. Daily work — recording, khata, hisab, calculators — runs fully offline. Internet is only used if you choose to check for updates, and only for the HTTPS update channel and the verified APK download."
+      },
+      {
+        "q": "Does my farm data work offline?",
+        "a": "Yes. All farm data is stored on your device in the app's private storage. There is no server copy, no account, and no cloud dependency."
+      },
+      {
+        "q": "How do I back up and restore?",
+        "a": "Open More → Backup / Restore → Export backup to save a versioned backup file through Android's document picker. To restore, choose Import/Restore and select that file. Keep backups somewhere safe, off the phone too."
+      },
+      {
+        "q": "How do I change the language?",
+        "a": "Open More → Settings → Language and choose Nepali or English, or follow the device language. The app is fully translated in both."
+      },
+      {
+        "q": "How do I change the text size?",
+        "a": "Open More → Settings → Appearance → Text size. The normal default is 24sp and it scales from 14sp to 36sp for comfortable large text."
+      },
+      {
+        "q": "Can I use more than one farm?",
+        "a": "Yes. Use the farm switcher in the app bar or More → Farms to create, switch, rename, and manage multiple farms. Each farm keeps its own data and currency."
+      },
+      {
+        "q": "Play Protect warns about this app. Is it safe?",
+        "a": "Kisab is signed with the production release key and distributed directly, which is why Play Protect treats it as an unknown app. Install only the official APK from this site or GitHub Releases, keep Play Protect on, and optionally verify the SHA-256 checksum. Do not disable Play Protect permanently."
+      },
+      {
+        "q": "Why do I need 'install from unknown sources'?",
+        "a": "Android requires this permission for any app installed outside the Play Store. Allow it only for the Kisab file you are installing, then keep it off for everything else."
+      },
+      {
+        "q": "An update failed. What do I do?",
+        "a": "Download the latest signed APK from this site and install it over the existing Kisab. Your farm data is preserved by a signed in-place install. If install is blocked, check that install-from-unknown-sources is allowed for this app and that you are not trying to downgrade to an older version."
+      },
+      {
+        "q": "What happens when a pilot build expires?",
+        "a": "Pilot builds may carry a time limit. When one expires, Kisab lets you keep viewing and backing up your data, but asks you to install a newer version before recording more. Your farm data stays on the device through the update."
+      }
+    ],
+    "more_help_note": "Did not find your answer?",
+    "more_help_link": "Contact support"
+  },
+  "privacy": {
+    "page_heading": "Privacy",
+    "page_lead": "Kisab is an offline, local-first app. This page describes honestly how it handles your data today.",
+    "sections": [
+      {
+        "title": "Where your data lives",
+        "body": "All farm data — farms, entries, transactions, parties, sales, purchases, payments, production, supplies, and settings — is stored locally on your device in the app's private storage. It is not stored on a server."
+      },
+      {
+        "title": "Backup and export",
+        "body": "Backup is a deliberate action you take. Kisab exports a versioned backup file through Android's document picker, so you choose where it is saved (your phone, a drive, a computer). Restoring or importing a backup replaces or adds a farm on the device. Backup files you export belong to you; keep them safe because they contain your farm records."
+      },
+      {
+        "title": "Network access and updates",
+        "body": "Kisab has no ads, no analytics, and no tracking. The only network activity is the optional private update check: builds with the pilot update channel enabled may check a public HTTPS manifest, download a verified APK, and verify its SHA-256 before install. Without an update channel configured, Kisab makes no network requests."
+      },
+      {
+        "title": "Accounts and cloud",
+        "body": "Today Kisab has no accounts, no sign-in, no cloud sync, and no cross-device sync. Farm data never leaves your device except through a backup file that you export yourself."
+      },
+      {
+        "title": "Permissions",
+        "body": "Kisab asks only for what it needs: access to the document picker to choose where backups are saved, notification permission for on-device update and backup reminders (optional), and install permission only when you choose to update from a direct APK. It does not collect contacts, location, or media."
+      },
+      {
+        "title": "Changes",
+        "body": "If Kisab later adds online features, this page will be updated to describe them before they are turned on."
+      }
+    ],
+    "last_updated": "Last updated: August 2026"
+  },
+  "support": {
+    "page_heading": "Support",
+    "page_lead": "Kisab is in a farmer pilot. Help is practical and direct.",
+    "first_title": "First, check the FAQ",
+    "first_text": "Most questions — installing, updating, offline use, backup, language, text size — are answered on the Help page.",
+    "bugs_title": "Report a problem",
+    "bugs_text": "Use the public Kisab issue tracker on GitHub. Include your app version (see More → About), your Android version, and what you were doing when the problem happened.",
+    "bugs_link": "Open the Kisab issue tracker",
+    "email_title": "Contact the pilot team",
+    "email_text_placeholder": "A dedicated support address for the pilot is being set up. Until it is published, please use the GitHub issue tracker for anything you need.",
+    "email_value": "",
+    "email_label": "Support email",
+    "repo_note": "Official repository: github.com/lazydeepak/kisab — this is also where every release, release note, and the update channel are published."
+  },
+  "notfound": {
+    "title": "Page not found",
+    "heading": "Page not found",
+    "text": "The page you are looking for does not exist. Start again from the Kisab home page.",
+    "button": "Back to home"
+  }
+}

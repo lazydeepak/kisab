@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <meta name="description" content="{{description}}">
+  <link rel="canonical" href="{{canonical}}">
+  <link rel="alternate" hreflang="en" href="{{hreflang_en}}">
+  <link rel="alternate" hreflang="ne" href="{{hreflang_ne}}">
+  <link rel="alternate" hreflang="x-default" href="{{hreflang_en}}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Kisab">
+  <meta property="og:title" content="{{og_title}}">
+  <meta property="og:description" content="{{og_description}}">
+  <meta property="og:url" content="{{canonical}}">
+  <meta property="og:image" content="{{og_image}}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{og_title}}">
+  <meta name="twitter:description" content="{{og_description}}">
+  <meta name="twitter:image" content="{{og_image}}">
+  <meta name="theme-color" content="#1B5E20">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/css/site.css">
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem('kisab-theme');
+        if (stored === 'dark' || (!stored && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">{{skip_to_content}}</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="{{path_home}}" aria-label="Kisab">
+        <img class="brand-mark" src="/brand/kisab-logo.svg" alt="{{logo_alt}}" width="40" height="40">
+        <span class="brand-name">Kisab</span>
+      </a>
+      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav-list">
+        <span class="nav-toggle-line" aria-hidden="true"></span>
+        <span class="nav-toggle-line" aria-hidden="true"></span>
+        <span class="nav-toggle-line" aria-hidden="true"></span>
+        <span class="visually-hidden">{{menu_label}}</span>
+      </button>
+      <nav class="site-nav" aria-label="{{nav_aria}}">
+        <ul id="site-nav-list" class="site-nav-list">
+          {{#nav}}<li><a href="{{href}}">{{label}}</a></li>{{/nav}}
+        </ul>
+      </nav>
+      <div class="header-actions">
+        <a class="lang-switch" href="{{lang_switch_href}}" lang="{{lang_switch_lang}}" hreflang="{{lang_switch_lang}}" title="{{lang_switch_title}}">{{lang_switch_label}}</a>
+        <button class="theme-toggle" type="button" data-theme-toggle-btn aria-label="{{theme_toggle_label}}" title="{{theme_toggle_label}}">
+          <span class="theme-toggle-sun" aria-hidden="true">☀</span>
+          <span class="theme-toggle-moon" aria-hidden="true">☾</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <main id="main">
+    {{slot}}
+  </main>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p class="footer-note">{{footer_note}}</p>
+      <p class="footer-meta">{{footer_pilot}}</p>
+      <nav class="footer-nav" aria-label="{{nav_aria}}">
+        <a href="{{path_privacy}}">{{footer_link_privacy}}</a>
+        <span aria-hidden="true">·</span>
+        <a href="{{path_support}}">{{footer_link_support}}</a>
+        <span aria-hidden="true">·</span>
+        <a href="{{path_releases}}">{{footer_link_releases}}</a>
+      </nav>
+      <p class="footer-copy">© {{year}} Susankhya. Kisab.</p>
+    </div>
+  </footer>
+  <script src="/js/site.js" defer></script>
+</body>
+</html>

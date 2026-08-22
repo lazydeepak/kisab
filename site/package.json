@@ -1,0 +1,12 @@
+{
+  "name": "kisab-public-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kisab public landing site source. Builds a fully static site into dist/web/.",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

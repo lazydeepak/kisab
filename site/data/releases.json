@@ -1,0 +1,52 @@
+{
+  "_comment": "Kisab release metadata for the public site. Source of truth: GitHub Releases for lazydeepak/kisab (verified 2026-08-19). Update this file when a new GitHub Release is published; the site build renders it as-is.",
+  "channel": "pilot",
+  "current": "v0.2.1",
+  "releases": [
+    {
+      "tag": "v0.2.1",
+      "name": "Kisab 0.2.1",
+      "versionName": "0.2.1",
+      "versionCode": 4,
+      "publishedAt": "2026-08-18T15:42:38Z",
+      "channel": "pilot",
+      "status": "current",
+      "summary": "First pilot OTA target: active HTTPS update channel, signed in-place upgrade with data preservation.",
+      "summaryNe": "पहिलो पाइलट ओटीए संस्करण: सक्रिय HTTPS अपडेट च्यानल, डेटा सुरक्षित राखेर हस्ताक्षरित स्थानीय अपग्रेड।",
+      "apkAsset": "kisab-v0.2.1-rc-signed.apk",
+      "apkUrl": "https://github.com/lazydeepak/kisab/releases/download/v0.2.1/kisab-v0.2.1-rc-signed.apk",
+      "sha256": "443e6582b3766348b60c3e608daedd5dfbea0b40f601bb9c661fe88961e417b7",
+      "releasePage": "https://github.com/lazydeepak/kisab/releases/tag/v0.2.1"
+    },
+    {
+      "tag": "v0.2.0",
+      "name": "Kisab 0.2.0",
+      "versionName": "0.2.0",
+      "versionCode": 3,
+      "publishedAt": "2026-08-18T14:55:39Z",
+      "channel": "pilot",
+      "status": "previous",
+      "summary": "Farmer pilot candidate: 5-part navigation shell, Today dashboard, Khata ledger, six record flows, Farm Work, multi-farm management, offline calculator toolbox, versioned backup.",
+      "summaryNe": "किसान पाइलट संस्करण: ५-तत्व नेभिगेसन, आज ड्यासबोर्ड, खाता, छवटा अभिलेख प्रवाह, फार्मको काम, बहु-फार्म व्यवस्थापन, अफलाइन गणना उपकरण, संस्करणयुक्त ब्याकअप।",
+      "apkAsset": "kisab-v0.2.0-rc-signed.apk",
+      "apkUrl": "https://github.com/lazydeepak/kisab/releases/download/v0.2.0/kisab-v0.2.0-rc-signed.apk",
+      "sha256": "55d218baff602b7e904ca97c87bab20c8355d9f8a016e7c1372e5800ab0db0a0",
+      "releasePage": "https://github.com/lazydeepak/kisab/releases/tag/v0.2.0"
+    },
+    {
+      "tag": "v0.1.0",
+      "name": "Kisab v0.1.0",
+      "versionName": "0.1.0",
+      "versionCode": 1,
+      "publishedAt": "2026-08-05T04:46:15Z",
+      "channel": "stable",
+      "status": "previous",
+      "summary": "First published production release: a single offline farm, livestock/crop entries, transaction history, and versioned backup/restore.",
+      "summaryNe": "पहिलो प्रकाशित संस्करण: एउटा अफलाइन फार्म, पशुधन/बाली प्रविष्टिहरू, लेनदेन इतिहास, र संस्करणयुक्त ब्याकअप/पुनर्स्थापना।",
+      "apkAsset": "app-release.apk",
+      "apkUrl": "https://github.com/lazydeepak/kisab/releases/download/v0.1.0/app-release.apk",
+      "sha256": "990c100980c469c9411fb7dc66747d0286a3c8020f7d0c8acca949b7e43bd7bc",
+      "releasePage": "https://github.com/lazydeepak/kisab/releases/tag/v0.1.0"
+    }
+  ]
+}

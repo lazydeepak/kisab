@@ -1,0 +1,22 @@
+<section class="section page-head">
+  <div class="container">
+    <h1 class="page-title">{{page_heading}}</h1>
+    <p class="page-lead">{{page_lead}}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container container-narrow">
+    <div class="faq-list">
+      {{#faq}}
+      <details class="faq-item card">
+        <summary class="faq-q">{{q}}</summary>
+        <div class="faq-a">
+          <p>{{a}}</p>
+        </div>
+      </details>
+      {{/faq}}
+    </div>
+    <p class="more-help">{{more_help_note}} <a class="link" href="{{path_support}}">{{more_help_link}}</a></p>
+  </div>
+</section>
