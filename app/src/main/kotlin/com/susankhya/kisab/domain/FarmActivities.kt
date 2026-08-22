@@ -179,37 +179,94 @@ object FarmActivityCatalog {
 
 /**
  * Per-activity accounting projection. [activity] of `null` means the
- * general/farm-wide transaction (no activity association).
+ * general/farm-wide bucket.
+ *
+ * Cash figures ([incomeMinor]/[expenseMinor]/[balanceMinor]) partition the
+ * money-in/out ledger ([FarmTransaction]) and sum to [FarmTotals]. Trade
+ * figures ([grossSalesMinor]/[grossPurchasesMinor]/[paymentsReceivedMinor]/
+ * [paymentsMadeMinor]) partition the Hisab-Kitab trade graph and sum to the
+ * trade-domain totals ([FarmFinancialOverview].tradeTotals at ALL_TIME).
+ *
+ * Cash and trade projections are kept separate and are never combined, exactly
+ * as the M5-05 overview keeps Home cash and Hisab-Kitab flows separate.
+ * Receivable/payable creation is obligation, not cash movement: gross figures
+ * carry the trade's own amount, payment figures carry settled amounts only.
  */
 data class FarmActivityTotals(
     val activity: FarmActivityType?,
     val incomeMinor: Long,
     val expenseMinor: Long,
-    val balanceMinor: Long
+    val balanceMinor: Long,
+    val grossSalesMinor: Long,
+    val grossPurchasesMinor: Long,
+    val paymentsReceivedMinor: Long,
+    val paymentsMadeMinor: Long
 )
 
 /**
- * Pure activity-level income/expense/balance over the farm's transactions.
+ * Pure activity-level accounting projection over the farm's monetary facts
+ * (transactions + trades + settlements).
  *
- * Sums exactly the whole-farm totals partitioned by activity: every
- * transaction belongs to exactly one bucket (`null` = general), so the buckets
- * never double-count and always reconcile with [FarmTotals]. Uses exact
- * `Long` minor-unit arithmetic via [Math.addExact]/[Math.subtractExact].
+ * Every fact belongs to exactly one bucket ([activity] = `null` means general),
+ * so the buckets never double-count and always reconcile with the canonical
+ * totals they represent:
+ *   - cash income/expense/balance sum to [FarmTotals];
+ *   - gross sales/purchases and payments received/made sum to the trade-domain
+ *     totals derived from the same [Trade]/[Settlement] facts.
+ *
+ * Settlements carry no activity of their own: each derives from the trade it
+ * settles, so a later payment is always attributed to the trade's activity
+ * (even one disabled later). Uses exact `Long` minor-unit arithmetic via
+ * [Math.addExact]/[Math.subtractExact].
  *
  * Known activities are ordered by [FarmActivityCatalog.displayOrder]; the
- * general bucket is last. A disabled activity's historical transactions stay
- * in their bucket — disabling never removes history.
+ * general bucket is last. A disabled activity's historical facts stay in their
+ * bucket — disabling never removes history.
  */
-fun farmActivityBreakdown(transactions: List<FarmTransaction>): List<FarmActivityTotals> {
-    data class Accumulator(var income: Long = 0L, var expense: Long = 0L)
+fun farmActivityBreakdown(
+    transactions: List<FarmTransaction>,
+    trades: List<Trade> = emptyList(),
+    settlements: List<Settlement> = emptyList()
+): List<FarmActivityTotals> {
+    data class Accumulator(
+        var income: Long = 0L,
+        var expense: Long = 0L,
+        var grossSales: Long = 0L,
+        var grossPurchases: Long = 0L,
+        var paymentsReceived: Long = 0L,
+        var paymentsMade: Long = 0L
+    )
 
     val buckets = linkedMapOf<FarmActivityType?, Accumulator>()
+    fun bucketFor(activity: FarmActivityType?): Accumulator =
+        buckets.getOrPut(activity) { Accumulator() }
+
     for (transaction in transactions) {
-        val bucket = buckets.getOrPut(transaction.activity) { Accumulator() }
+        val bucket = bucketFor(transaction.activity)
         if (transaction.type == TransactionType.INCOME) {
             bucket.income = Math.addExact(bucket.income, transaction.amountMinor)
         } else {
             bucket.expense = Math.addExact(bucket.expense, transaction.amountMinor)
+        }
+    }
+
+    val tradeById = trades.associateBy { it.id }
+    for (trade in trades) {
+        val bucket = bucketFor(trade.activity)
+        if (trade.type == TradeType.SALE) {
+            bucket.grossSales = Math.addExact(bucket.grossSales, trade.totalMinor)
+        } else {
+            bucket.grossPurchases = Math.addExact(bucket.grossPurchases, trade.totalMinor)
+        }
+    }
+
+    for (settlement in settlements) {
+        val trade = tradeById[settlement.tradeId] ?: continue
+        val bucket = bucketFor(trade.activity)
+        if (trade.type == TradeType.SALE) {
+            bucket.paymentsReceived = Math.addExact(bucket.paymentsReceived, settlement.amountMinor)
+        } else {
+            bucket.paymentsMade = Math.addExact(bucket.paymentsMade, settlement.amountMinor)
         }
     }
 
@@ -225,7 +282,11 @@ fun farmActivityBreakdown(transactions: List<FarmTransaction>): List<FarmActivit
             activity = activity,
             incomeMinor = accumulator.income,
             expenseMinor = accumulator.expense,
-            balanceMinor = Math.subtractExact(accumulator.income, accumulator.expense)
+            balanceMinor = Math.subtractExact(accumulator.income, accumulator.expense),
+            grossSalesMinor = accumulator.grossSales,
+            grossPurchasesMinor = accumulator.grossPurchases,
+            paymentsReceivedMinor = accumulator.paymentsReceived,
+            paymentsMadeMinor = accumulator.paymentsMade
         )
     }
 }

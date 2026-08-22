@@ -674,6 +674,7 @@
     <string name="farm_activity_breakdown_section">क्रियाकलाप अनुसार आम्दानी र खर्च</string>
     <string name="farm_activity_breakdown_empty_text">अहिलेसम्म कुनै क्रियाकलापसँग जोडिएका अभिलेख छैनन्। आफ्नो रकम हेर्न लेनदेनलाई क्रियाकलापसँग जोड्नुहोस्।</string>
     <string name="farm_activity_breakdown_row_format">%1$s\nआम्दानी: %2$s   खर्च: %3$s   बाँकी: %4$s</string>
+    <string name="farm_activity_breakdown_trade_row_format">बिक्री: %1$s   किनेको: %2$s   प्राप्त: %3$s   तिरेको: %4$s</string>
     <string name="transaction_activity_label">क्रियाकलाप</string>
     <string name="transaction_activity_general_option">सामान्य (पूरै फार्म)</string>
     <string name="transaction_row_with_activity_format">- %1$s | %2$s | %3$s | %4$s | %5$s | %6$s</string>

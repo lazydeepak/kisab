@@ -337,6 +337,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var tradeEditorContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var tradeEditorTitle: TextView
     private lateinit var tradePartySpinner: Spinner
+    private lateinit var tradeActivityLabel: TextView
+    private lateinit var tradeActivitySpinner: Spinner
     private lateinit var tradeTotalInput: EditText
     private lateinit var tradeStatusPaidRadio: RadioButton
     private lateinit var tradeStatusPartialRadio: RadioButton
@@ -1249,6 +1251,8 @@ class FarmActivity : AppCompatActivity() {
         tradeEditorContainer = findViewById(R.id.tradeEditorContainer)
         tradeEditorTitle = findViewById(R.id.tradeEditorTitle)
         tradePartySpinner = findViewById(R.id.tradePartySpinner)
+        tradeActivityLabel = findViewById(R.id.tradeActivityLabel)
+        tradeActivitySpinner = findViewById(R.id.tradeActivitySpinner)
         tradeTotalInput = findViewById(R.id.tradeTotalInput)
         tradeStatusPaidRadio = findViewById(R.id.tradeStatusPaidRadio)
         tradeStatusPartialRadio = findViewById(R.id.tradeStatusPartialRadio)
@@ -1537,6 +1541,13 @@ class FarmActivity : AppCompatActivity() {
         saveTradeButton.setOnClickListener { saveTrade() }
         cancelTradeButton.setOnClickListener { cancelTradeEditing() }
         deleteTradeButton.setOnClickListener { confirmDeleteTrade() }
+        tradeActivitySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                onTradeActivityChanged()
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
         changeTradeDateTimeButton.setOnClickListener { showTradeDateTimePickers() }
         tradeStatusPaidRadio.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) onTradePaymentStatusChanged(PaymentStatus.PAID)
@@ -2340,13 +2351,23 @@ class FarmActivity : AppCompatActivity() {
             } else {
                 string(R.string.trade_row_status_due_format, formatMoney(currency, summary.outstandingMinor))
             }
-            row.text = string(
-                R.string.trade_row_format,
-                FarmLabels.tradeType(this, trade.type),
-                displayTradeCounterparty(trade),
-                formatMoney(currency, trade.totalMinor),
-                string(R.string.trade_row_time_format, statusText, displayTradeTime(trade))
-            )
+            row.text = if (trade.activity == null) {
+                string(
+                    R.string.trade_row_format,
+                    FarmLabels.tradeType(this, trade.type),
+                    displayTradeCounterparty(trade),
+                    formatMoney(currency, trade.totalMinor),
+                    string(R.string.trade_row_time_format, statusText, displayTradeTime(trade))
+                )
+            } else {
+                "${activityDisplayName(trade.activity)} | " + string(
+                    R.string.trade_row_format,
+                    FarmLabels.tradeType(this, trade.type),
+                    displayTradeCounterparty(trade),
+                    formatMoney(currency, trade.totalMinor),
+                    string(R.string.trade_row_time_format, statusText, displayTradeTime(trade))
+                )
+            }
             row.contentDescription = row.text
             row.setOnClickListener {
                 confirmDiscardPartyIfNeeded { openTradeEditorForTrade(trade) }
@@ -2387,7 +2408,8 @@ class FarmActivity : AppCompatActivity() {
                     paidStatus = summary?.status ?: PaymentStatus.UNPAID,
                     paidText = "",
                     description = trade.description,
-                    occurredAt = trade.occurredAt
+                    occurredAt = trade.occurredAt,
+                    activity = trade.activity
                 )
                 applyTradeEditorState(state, baseline = state)
             }
@@ -2399,6 +2421,7 @@ class FarmActivity : AppCompatActivity() {
         tradeEditorBaseline = baseline
         tradeParties = buildTradePartyChoices(state.type)
         refreshTradePartySpinner(state.type, state.partyId)
+        refreshTradeActivityChoices(state.activity)
         tradeEditorTitle.text = string(tradeEditorTitleRes(state))
         tradeTotalInput.setText(state.totalText)
         syncTradeStatusListener = true
@@ -2469,6 +2492,49 @@ class FarmActivity : AppCompatActivity() {
     private fun selectedTradePartyId(): String? =
         tradeParties.getOrNull(tradePartySpinner.selectedItemPosition)?.id
 
+    private fun tradeActivityChoices(): List<FarmActivityType?> {
+        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return listOf(null)
+        return FarmActivityCatalog.activityChoices(farm.activities.toSet(), tradeEditorState?.activity)
+    }
+
+    /** Activity choices for create-only dialogs (General + enabled activities only). */
+    private fun farmActivityChoicesForDialog(): List<FarmActivityType?> {
+        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return listOf(null)
+        return listOf(null) + FarmActivityCatalog.displayOrder.filter { it in farm.activities }
+    }
+
+    private fun selectedTradeActivity(): FarmActivityType? {
+        val choices = tradeActivityChoices()
+        val position = tradeActivitySpinner.selectedItemPosition.coerceIn(0, choices.size - 1)
+        return choices[position]
+    }
+
+    private fun refreshTradeActivityChoices(currentActivity: FarmActivityType?) {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        val hasEnabled = farm != null && farm.activities.isNotEmpty()
+        val show = hasEnabled || currentActivity != null
+        tradeActivityLabel.visibility = if (show) View.VISIBLE else View.GONE
+        tradeActivitySpinner.visibility = if (show) View.VISIBLE else View.GONE
+        val choices = if (farm == null) listOf<FarmActivityType?>(null)
+        else FarmActivityCatalog.activityChoices(farm.activities.toSet(), currentActivity)
+        tradeActivitySpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            choices.map { activity ->
+                if (activity == null) string(R.string.transaction_activity_general_option)
+                else activityDisplayName(activity)
+            }
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        tradeActivitySpinner.setSelection(choices.indexOf(currentActivity).coerceAtLeast(0))
+    }
+
+    private fun onTradeActivityChanged() {
+        val state = tradeEditorState ?: return
+        tradeEditorState = state.copy(activity = selectedTradeActivity())
+    }
+
     private fun onTradePaymentStatusChanged(status: PaymentStatus) {
         if (syncTradeStatusListener) return
         val state = tradeEditorState ?: return
@@ -2502,7 +2568,8 @@ class FarmActivity : AppCompatActivity() {
             totalText = tradeTotalInput.text?.toString().orEmpty(),
             paidStatus = if (editMode) state.paidStatus else selectedTradePaymentStatus(),
             paidText = if (editMode) state.paidText else tradePaidInput.text?.toString().orEmpty(),
-            description = tradeDescriptionInput.text?.toString().orEmpty()
+            description = tradeDescriptionInput.text?.toString().orEmpty(),
+            activity = selectedTradeActivity()
         )
     }
 
@@ -2602,7 +2669,8 @@ class FarmActivity : AppCompatActivity() {
             partyId = partyId,
             totalMinor = total,
             description = state.description,
-            occurredAt = occurredAt
+            occurredAt = occurredAt,
+            activity = state.activity
         )
         try {
             if (state.mode == TradeEditorMode.CREATE) {
@@ -2731,6 +2799,7 @@ class FarmActivity : AppCompatActivity() {
         bundle.putString(prefix + STATE_TRADE_EDITOR_PAID, state.paidText)
         bundle.putString(prefix + STATE_TRADE_EDITOR_DESCRIPTION, state.description)
         bundle.putString(prefix + STATE_TRADE_EDITOR_OCCURRED_AT, state.occurredAt.toInstant().toString())
+        bundle.putString(prefix + STATE_TRADE_EDITOR_ACTIVITY, state.activity?.name)
     }
 
     private fun readTradeEditorState(bundle: Bundle, prefix: String): TradeEditorState? {
@@ -2746,6 +2815,9 @@ class FarmActivity : AppCompatActivity() {
         val occurredAt = bundle.getString(prefix + STATE_TRADE_EDITOR_OCCURRED_AT)?.let {
             runCatching { OffsetDateTime.parse(it) }.getOrNull()
         } ?: return null
+        val activity = bundle.getString(prefix + STATE_TRADE_EDITOR_ACTIVITY)?.let {
+            runCatching { FarmActivityType.valueOf(it) }.getOrNull()
+        }
         return TradeEditorState(
             mode = mode,
             tradeId = bundle.getString(prefix + STATE_TRADE_EDITOR_TRADE_ID),
@@ -2755,7 +2827,8 @@ class FarmActivity : AppCompatActivity() {
             paidStatus = paidStatus,
             paidText = bundle.getString(prefix + STATE_TRADE_EDITOR_PAID).orEmpty(),
             description = bundle.getString(prefix + STATE_TRADE_EDITOR_DESCRIPTION).orEmpty(),
-            occurredAt = occurredAt
+            occurredAt = occurredAt,
+            activity = activity
         )
     }
 
@@ -3819,6 +3892,19 @@ class FarmActivity : AppCompatActivity() {
             "${product.name} · ${productUnitLabel(product.defaultUnit, product.customUnitLabel)}"
         }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
 
+        val saleActivityChoices = farmActivityChoicesForDialog()
+        val saleActivitySpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@FarmActivity,
+                android.R.layout.simple_spinner_item,
+                saleActivityChoices.map { activity ->
+                    if (activity == null) string(R.string.transaction_activity_general_option)
+                    else activityDisplayName(activity)
+                }
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            visibility = if (saleActivityChoices.size > 1) View.VISIBLE else View.GONE
+        }
+
         val customerBalanceText = TextView(this).apply {
             textSize = 13f
             setTextColor(getColor(R.color.receivableText))
@@ -3887,6 +3973,8 @@ class FarmActivity : AppCompatActivity() {
         content.addView(customerBalanceText)
         content.addView(labelText(R.string.quick_sale_product))
         content.addView(productSpinner)
+        content.addView(labelText(R.string.transaction_activity_label))
+        content.addView(saleActivitySpinner)
         content.addView(quantityInput)
         content.addView(unitText)
         content.addView(rateInput)
@@ -4035,7 +4123,8 @@ class FarmActivity : AppCompatActivity() {
                         quantity = quantity,
                         rateMinor = rate.amountMinor,
                         initialPaymentMinor = paid,
-                        occurredAt = saleOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                        occurredAt = saleOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                        activity = saleActivityChoices.getOrNull(saleActivitySpinner.selectedItemPosition)
                     )
                     dialog.dismiss()
                     render()
@@ -4157,6 +4246,18 @@ class FarmActivity : AppCompatActivity() {
             val idx = supplies.indexOfFirst { it.id == targetSupplyId }
             if (idx >= 0) supplySpinner.setSelection(idx)
         }
+        val purchaseActivityChoices = farmActivityChoicesForDialog()
+        val purchaseActivitySpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@FarmActivity,
+                android.R.layout.simple_spinner_item,
+                purchaseActivityChoices.map { activity ->
+                    if (activity == null) string(R.string.transaction_activity_general_option)
+                    else activityDisplayName(activity)
+                }
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            visibility = if (purchaseActivityChoices.size > 1) View.VISIBLE else View.GONE
+        }
         val quantityInput = EditText(this).apply { hint = string(R.string.supply_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
         val costInput = EditText(this).apply { hint = string(R.string.supply_cost); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
         val paidInput = EditText(this).apply { hint = string(R.string.supplier_payment_now); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL; visibility = View.GONE }
@@ -4166,7 +4267,7 @@ class FarmActivity : AppCompatActivity() {
         val partial = RadioButton(this).apply { text = string(R.string.supplier_payment_state_partial) }
         stateGroup.addView(paid); stateGroup.addView(credit); stateGroup.addView(partial); paid.isChecked = true
         val summary = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
-        content.addView(supplierSpinner); content.addView(supplySpinner); content.addView(quantityInput); content.addView(costInput); content.addView(stateGroup); content.addView(paidInput); content.addView(summary)
+        content.addView(supplierSpinner); content.addView(supplySpinner); content.addView(labelText(R.string.transaction_activity_label)); content.addView(purchaseActivitySpinner); content.addView(quantityInput); content.addView(costInput); content.addView(stateGroup); content.addView(paidInput); content.addView(summary)
         fun refreshSummary() {
             val cost = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), costInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return
             val paidNow = if (paid.isChecked) cost else if (credit.isChecked) 0L else (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), paidInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: 0L
@@ -4182,7 +4283,7 @@ class FarmActivity : AppCompatActivity() {
                 val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.supply_quantity_invalid)
                 val cost = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), costInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return@setOnClickListener showToast(R.string.supply_cost_invalid)
                 val paidNow = if (paid.isChecked) cost else if (credit.isChecked) 0L else (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), paidInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return@setOnClickListener showToast(R.string.supply_cost_invalid)
-                try { service.addSupplierPurchase(farmId, suppliers[supplierSpinner.selectedItemPosition].id, supply.id, quantity, supply.unit, cost, paidNow, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), supply.name); dialog.dismiss(); render(); showToast(R.string.supply_saved) } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
+                try { service.addSupplierPurchase(farmId, suppliers[supplierSpinner.selectedItemPosition].id, supply.id, quantity, supply.unit, cost, paidNow, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), supply.name, purchaseActivityChoices.getOrNull(purchaseActivitySpinner.selectedItemPosition)); dialog.dismiss(); render(); showToast(R.string.supply_saved) } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
             }
         }
         dialog.show()
@@ -6183,15 +6284,24 @@ class FarmActivity : AppCompatActivity() {
             return
         }
         breakdown.forEach { total ->
-            val text = string(
+            val cashLine = string(
                 R.string.farm_activity_breakdown_row_format,
                 if (total.activity == null) string(R.string.activity_general) else activityDisplayName(total.activity),
                 formatMoney(farm.currencyCode, total.incomeMinor),
                 formatMoney(farm.currencyCode, total.expenseMinor),
                 formatMoney(farm.currencyCode, total.balanceMinor)
             )
+            val tradeLine = string(
+                R.string.farm_activity_breakdown_trade_row_format,
+                formatMoney(farm.currencyCode, total.grossSalesMinor),
+                formatMoney(farm.currencyCode, total.grossPurchasesMinor),
+                formatMoney(farm.currencyCode, total.paymentsReceivedMinor),
+                formatMoney(farm.currencyCode, total.paymentsMadeMinor)
+            )
+            val hasTrade = total.grossSalesMinor != 0L || total.grossPurchasesMinor != 0L ||
+                total.paymentsReceivedMinor != 0L || total.paymentsMadeMinor != 0L
             val row = TextView(this).apply {
-                this.text = text
+                this.text = if (hasTrade) "$cashLine\n$tradeLine" else cashLine
                 setTextColor(secondaryColor)
                 setLineSpacing(0f, 1.1f)
                 setPadding(0, dp(4), 0, dp(4))
@@ -6967,6 +7077,7 @@ class FarmActivity : AppCompatActivity() {
         const val STATE_TRADE_EDITOR_PAID = "Paid"
         const val STATE_TRADE_EDITOR_DESCRIPTION = "Description"
         const val STATE_TRADE_EDITOR_OCCURRED_AT = "OccurredAt"
+        const val STATE_TRADE_EDITOR_ACTIVITY = "Activity"
         const val STATE_SETTLEMENT_TARGET_TRADE_ID = "settlementTargetTradeId"
         const val STATE_KHATA_PARTY_ID = "khataPartyId"
         const val STATE_KHATA_FILTER = "khataFilter"

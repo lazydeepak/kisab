@@ -85,7 +85,9 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         val farm = getFarm(farmId)
         val enabledOrdered = FarmActivityCatalog.displayOrder.filter { it in enabled }
         val removed = farm.activities.filter { it !in enabled }
-        val referenced = farm.transactions.mapNotNull { it.activity }.toSet()
+        val referenced = (
+            farm.transactions.mapNotNull { it.activity } + farm.trades.mapNotNull { it.activity }
+            ).toSet()
         val newlyDisabled = removed.filter { it in referenced }
         val disabled = (
             farm.disabledActivities.filter { it !in enabledOrdered } + newlyDisabled
@@ -117,9 +119,11 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
     fun farmActivities(farmId: String): List<FarmActivityType> =
         getFarm(farmId).activities
 
-    /** M10 activity-level accounting breakdown for the whole farm. */
-    fun farmActivityBreakdown(farmId: String): List<FarmActivityTotals> =
-        farmActivityBreakdown(getFarm(farmId).transactions)
+    /** M10/M11 activity-level accounting breakdown for the whole farm. */
+    fun farmActivityBreakdown(farmId: String): List<FarmActivityTotals> {
+        val farm = getFarm(farmId)
+        return farmActivityBreakdown(farm.transactions, farm.trades, farm.settlements)
+    }
     fun loadFarm(farmId: String): FarmState? = store.loadFarm(farmId)
 
     fun currentFarmId(): String? = store.currentFarmId()
@@ -249,7 +253,8 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         amountMinor: Long,
         initialPaymentMinor: Long?,
         occurredAt: String,
-        description: String
+        description: String,
+        activity: FarmActivityType? = null
     ): Trade {
         val farm = getFarm(farmId)
         val supplier = farm.parties.firstOrNull { it.id == supplierId }
@@ -260,7 +265,7 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         require(supply.unit == unit) { "Supply unit does not match" }
         require(amountMinor > 0) { "Purchase amount must be positive" }
         if (initialPaymentMinor != null) require(initialPaymentMinor in 0..amountMinor) { "Initial payment is out of range" }
-        val trade = TradeDraft(TradeType.PURCHASE, supplierId, amountMinor, description.ifBlank { supply.name }, occurredAt)
+        val trade = TradeDraft(TradeType.PURCHASE, supplierId, amountMinor, description.ifBlank { supply.name }, occurredAt, activity)
             .toTrade("trade-${UUID.randomUUID()}")
         val settlement = initialPaymentMinor?.takeIf { it > 0 }?.let { amount ->
             Settlement("settlement-${UUID.randomUUID()}", trade.id, amount, trade.occurredAt, "", true)
@@ -409,7 +414,8 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         quantity: BigDecimal,
         rateMinor: Long,
         initialPaymentMinor: Long?,
-        occurredAt: String
+        occurredAt: String,
+        activity: FarmActivityType? = null
     ): Trade {
         val farm = getFarm(farmId)
         val product = farm.products.firstOrNull { it.id == productId }
@@ -428,7 +434,8 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
             partyId = partyId,
             totalMinor = totalMinor,
             description = product.name,
-            occurredAt = occurredAt
+            occurredAt = occurredAt,
+            activity = activity
         ).toTrade("trade-${UUID.randomUUID()}")
         if (initialPaymentMinor != null && initialPaymentMinor < 0) {
             throw IllegalArgumentException("Initial payment cannot be negative")
@@ -841,7 +848,7 @@ data class FarmState(
 
     companion object {
         const val DEFAULT_CURRENCY_CODE = "NPR"
-        const val CURRENT_FARM_SCHEMA_VERSION = 13
+        const val CURRENT_FARM_SCHEMA_VERSION = 14
     }
 }
 

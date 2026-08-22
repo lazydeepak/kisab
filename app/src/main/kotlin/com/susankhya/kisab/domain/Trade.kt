@@ -40,6 +40,12 @@ enum class TradeType {
  *  - the sum of the trade's settlements never exceeds [totalMinor]
  *  - outstanding > 0 requires a [partyId]
  *  - a linked party must exist and its role must be compatible with [type]
+ *
+ * [activity] is the optional M10/M11 farm-activity association (`null` =
+ * general/farm-wide). Activity ownership lives on the trade — the single
+ * financial authority for a trade flow — and is never duplicated: settlements
+ * and trade projections derive it from the trade (mirroring how settlements
+ * reach the party through the trade rather than repeating [partyId]).
  */
 data class Trade(
     val id: String,
@@ -47,7 +53,8 @@ data class Trade(
     val partyId: String?,
     val totalMinor: Long,
     val description: String,
-    val occurredAt: OffsetDateTime
+    val occurredAt: OffsetDateTime,
+    val activity: FarmActivityType? = null
 )
 
 /**
@@ -61,7 +68,9 @@ data class TradeDraft(
     val partyId: String?,
     val totalMinor: Long,
     val description: String = "",
-    val occurredAt: String
+    val occurredAt: String,
+    /** Optional activity association; `null` is a general/farm-wide trade. */
+    val activity: FarmActivityType? = null
 ) {
     fun toTrade(id: String): Trade = try {
         Trade(
@@ -71,7 +80,8 @@ data class TradeDraft(
             totalMinor = totalMinor,
             description = description.trim(),
             occurredAt = OffsetDateTime.parse(occurredAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-                .withOffsetSameInstant(ZoneOffset.UTC)
+                .withOffsetSameInstant(ZoneOffset.UTC),
+            activity = activity
         )
     } catch (exception: RuntimeException) {
         throw IllegalArgumentException("Trade date/time must be a valid ISO-8601 value", exception)

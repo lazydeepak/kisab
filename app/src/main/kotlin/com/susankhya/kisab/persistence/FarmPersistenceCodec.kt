@@ -46,6 +46,12 @@ import java.util.UUID
  * (pre-M10) and 7-part records, and pre-M10 payloads decode with a `null`
  * activity (a general/farm-wide transaction) and an empty activity set.
  *
+ * Schema 14 adds the same optional activity association to each trade record
+ * ([Trade.activity]). Trade records stay backward-compatible exactly like
+ * transaction records: the activity is a trailing 7th field, so schema-14
+ * decode accepts both 6-part (pre-M11) and 7-part records, and pre-M11 trades
+ * decode with a `null` activity (a general/farm-wide trade).
+ *
  * Migration v5 -> v6 preserves the historical `paidMinor` by recording **one
  * deterministic opening settlement** per v5 trade that had `paidMinor > 0`,
  * dated at the trade's own [Trade.occurredAt] (the exact historical payment
@@ -59,7 +65,7 @@ import java.util.UUID
  * payload, so settlements and older schemas flow through existing backups.
  */
 object FarmPersistenceCodec {
-    const val CURRENT_SCHEMA_VERSION = 13
+    const val CURRENT_SCHEMA_VERSION = 14
 
     private const val FIELD_SEPARATOR = "\u001F"
     private const val RECORD_SEPARATOR = "\u001E"
@@ -109,7 +115,8 @@ object FarmPersistenceCodec {
             trade.partyId.orEmpty(),
             trade.totalMinor.toString(),
             trade.description,
-            trade.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            trade.occurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+            trade.activity?.name.orEmpty()
         ).joinToString(TRANSACTION_FIELD_SEPARATOR) })
         append(FIELD_SEPARATOR)
         append(farm.settlements.joinToString(RECORD_SEPARATOR) { settlement -> listOf(
@@ -193,7 +200,7 @@ object FarmPersistenceCodec {
     fun decodeOrNull(encoded: String): FarmState? {
         return try {
             val legacyParts = encoded.split(Regex.escape(LEGACY_FIELD_SEPARATOR).toRegex())
-            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8") && !legacyParts[0].startsWith("9") && !legacyParts[0].startsWith("10") && !legacyParts[0].startsWith("11") && !legacyParts[0].startsWith("12") && !legacyParts[0].startsWith("13")) {
+            if (legacyParts.size == 4 && !legacyParts[0].startsWith("2") && !legacyParts[0].startsWith("3") && !legacyParts[0].startsWith("4") && !legacyParts[0].startsWith("5") && !legacyParts[0].startsWith("6") && !legacyParts[0].startsWith("7") && !legacyParts[0].startsWith("8") && !legacyParts[0].startsWith("9") && !legacyParts[0].startsWith("10") && !legacyParts[0].startsWith("11") && !legacyParts[0].startsWith("12") && !legacyParts[0].startsWith("13") && !legacyParts[0].startsWith("14")) {
                 decodeLegacy(legacyParts)
             } else {
                 val fields = encoded.split(FIELD_SEPARATOR)
@@ -215,6 +222,7 @@ object FarmPersistenceCodec {
                     11 -> decodeSchema11(fields)
                     12 -> decodeSchema12(fields)
                     13 -> decodeSchema13(fields)
+                    14 -> decodeSchema14(fields)
                     else -> null
                 }
             }
@@ -369,6 +377,42 @@ object FarmPersistenceCodec {
             schemaVersion = CURRENT_SCHEMA_VERSION
         )
     }
+
+    private fun decodeSchema14(fields: List<String>): FarmState {
+        require(fields.size >= 18) { "Invalid persisted farm data" }
+        val baseFields = fields.take(16).toMutableList()
+        // Schema-14 transactions and trades carry an optional trailing activity
+        // field; the back-compat decode only accepts the legacy 6-part forms, so
+        // both are fully re-decoded below and kept out of the intermediate pass.
+        baseFields[5] = ""
+        baseFields[7] = ""
+        return decodeSchema12(baseFields).copy(
+            transactions = decodeSchema13Transactions(fields[5]),
+            trades = decodeSchema14Trades(fields[7]),
+            activities = decodeActivities(fields[16]),
+            disabledActivities = decodeActivities(fields[17]),
+            schemaVersion = CURRENT_SCHEMA_VERSION
+        )
+    }
+
+    private fun decodeSchema14Trades(encoded: String): MutableList<Trade> =
+        encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { trade ->
+            val parts = trade.split(TRANSACTION_FIELD_SEPARATOR)
+            require(parts.size == 6 || parts.size == 7) { "Invalid trade payload" }
+            val totalMinor = parts[3].toLong()
+            require(totalMinor > 0) { "Invalid trade payload" }
+            val parsed = Trade(
+                id = parts[0],
+                type = TradeType.valueOf(parts[1]),
+                partyId = parts[2].takeIf { it.isNotBlank() },
+                totalMinor = totalMinor,
+                description = parts[4],
+                occurredAt = OffsetDateTime.parse(parts[5], DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                activity = parts.getOrNull(6)?.takeIf { it.isNotBlank() }?.let { FarmActivityType.valueOf(it) }
+            )
+            require(parsed.id.isNotBlank()) { "Invalid trade payload" }
+            parsed
+        }?.toMutableList() ?: mutableListOf()
 
     private fun decodeActivities(encoded: String): MutableList<FarmActivityType> =
         encoded.takeIf { it.isNotBlank() }?.split(RECORD_SEPARATOR)?.filter { it.isNotBlank() }?.map { value ->

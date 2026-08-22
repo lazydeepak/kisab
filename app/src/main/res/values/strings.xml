@@ -679,6 +679,7 @@ Unexplained: %4$s %5$s</string>
     <string name="farm_activity_breakdown_section">Income &amp; expenses by activity</string>
     <string name="farm_activity_breakdown_empty_text">No activity-linked records yet. Link transactions to an activity to see its totals here.</string>
     <string name="farm_activity_breakdown_row_format">%1$s\nIncome: %2$s   Expense: %3$s   Balance: %4$s</string>
+    <string name="farm_activity_breakdown_trade_row_format">Sales: %1$s   Purchases: %2$s   Received: %3$s   Paid: %4$s</string>
     <string name="transaction_activity_label">Activity</string>
     <string name="transaction_activity_general_option">General (whole farm)</string>
     <string name="transaction_row_with_activity_format">- %1$s | %2$s | %3$s | %4$s | %5$s | %6$s</string>

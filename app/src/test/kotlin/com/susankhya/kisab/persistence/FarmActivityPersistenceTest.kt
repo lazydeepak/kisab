@@ -7,12 +7,15 @@ import com.susankhya.kisab.domain.FarmTransaction
 import com.susankhya.kisab.domain.InMemoryFarmStore
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
+import com.susankhya.kisab.domain.TradeType
+import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FarmActivityPersistenceTest {
@@ -188,12 +191,12 @@ class FarmActivityPersistenceTest {
     }
 
     @Test
-    fun migratedSchema12EncodesBackAsSchema13() {
+    fun migratedSchema12EncodesBackAsCurrentSchema() {
         val payload = "12${field}farm-s12b${field}Legacy Farm${field}${field}NPR${field}${field}${field}${field}${field}${field}${field}${field}${field}${field}${field}${field}"
         val decoded = FarmPersistenceCodec.decode(payload)
         val reEncoded = FarmPersistenceCodec.encode(decoded)
 
-        assert(reEncoded.startsWith("13${field}"))
+        assert(reEncoded.startsWith("${FarmPersistenceCodec.CURRENT_SCHEMA_VERSION}${field}"))
         val decodedAgain = FarmPersistenceCodec.decode(reEncoded)
         assertEquals(decoded.id, decodedAgain.id)
         assertEquals(decoded.name, decodedAgain.name)
@@ -261,5 +264,196 @@ class FarmActivityPersistenceTest {
         assertEquals(1, breakdown.size)
         assertEquals(FarmActivityType.CATTLE_BUFFALO_DAIRY, breakdown[0].activity)
         assertEquals(4000L, breakdown[0].incomeMinor)
+    }
+
+    @Test
+    fun schema14RoundTripPreservesTradeActivityAndSettlementAttribution() {
+        val service = FarmSliceService(InMemoryFarmStore())
+        val farm = service.createFarm(
+            "Poultry Farm",
+            activities = listOf(FarmActivityType.POULTRY, FarmActivityType.CROPS)
+        )
+        service.addParty(farm.id, com.susankhya.kisab.domain.PartyDraft(name = "Ram", role = com.susankhya.kisab.domain.PartyRole.CUSTOMER))
+        service.addProduct(farm.id, "Eggs", com.susankhya.kisab.domain.ProductUnit.PIECE)
+        service.addProductSale(
+            farm.id, service.parties(farm.id).single().id, service.products(farm.id).single().id,
+            quantity = BigDecimal("10"), rateMinor = 500,
+            initialPaymentMinor = 2000, occurredAt = "2024-06-01T12:00:00Z",
+            activity = FarmActivityType.POULTRY
+        )
+        service.recordCustomerPayment(farm.id, service.parties(farm.id).single().id, 1000, "2024-06-15T12:00:00Z")
+
+        val encoded = FarmPersistenceCodec.encode(service.loadFarm(farm.id)!!)
+        val decoded = FarmPersistenceCodec.decode(encoded)
+
+        assertEquals(14, decoded.schemaVersion)
+        val trade = decoded.trades.single()
+        assertEquals(FarmActivityType.POULTRY, trade.activity)
+        assertEquals(5000L, trade.totalMinor)
+
+        val breakdown = service.farmActivityBreakdown(decoded.id)
+        val poultry = breakdown.first { it.activity == FarmActivityType.POULTRY }
+        assertEquals(5000L, poultry.grossSalesMinor)
+        assertEquals(3000L, poultry.paymentsReceivedMinor)
+        assertEquals(1, breakdown.size)
+    }
+
+    @Test
+    fun schema13PayloadSixPartTradesDecodeAsGeneralAndReEncodeAsSchema14() {
+        val trade = listOf(
+            "t-1",
+            TradeType.SALE.name,
+            "party-1",
+            "5000",
+            "Legacy sale",
+            "2024-03-04T12:00:00Z"
+        ).joinToString(tsep)
+        val payload = listOf(
+            "13",
+            "farm-s13d",
+            "Legacy Farm",
+            "",
+            "NPR",
+            "",
+            "",
+            trade,
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+        ).joinToString(field)
+
+        val farm = FarmPersistenceCodec.decodeOrNull(payload)
+
+        assertNotNull("schema-13 payload with 6-part trades should decode", farm)
+        assertEquals(1, farm!!.trades.size)
+        assertEquals(5000L, farm.trades[0].totalMinor)
+        assertEquals(TradeType.SALE, farm.trades[0].type)
+        assertNull("legacy trade has no activity, so it is general", farm.trades[0].activity)
+
+        val reEncoded = FarmPersistenceCodec.encode(farm)
+        assertTrue("re-encode upgrades to schema 14", reEncoded.startsWith("14${field}"))
+        val reEncodedTrades = reEncoded.split(field)[7]
+        val reEncodedTradeParts = reEncodedTrades.split(record).single().split(tsep)
+        assertEquals("re-encode writes the trailing activity part", 7, reEncodedTradeParts.size)
+        assertEquals("legacy trade re-encodes with a blank activity (General)", "", reEncodedTradeParts[6])
+
+        val decodedAgain = FarmPersistenceCodec.decode(reEncoded)
+        assertNull(decodedAgain.trades[0].activity)
+        assertEquals(5000L, decodedAgain.trades[0].totalMinor)
+    }
+
+    @Test
+    fun schema14PayloadSevenPartTradeDecodesActivity() {
+        val trade = listOf(
+            "t-2",
+            TradeType.PURCHASE.name,
+            "party-2",
+            "3000",
+            "Feed",
+            "2024-06-10T12:00:00Z",
+            FarmActivityType.CROPS.name
+        ).joinToString(tsep)
+        val payload = listOf(
+            "14",
+            "farm-s14",
+            "Crops Farm",
+            "",
+            "NPR",
+            "",
+            "",
+            trade,
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+        ).joinToString(field)
+
+        val farm = FarmPersistenceCodec.decodeOrNull(payload)
+
+        assertNotNull("schema-14 payload should decode", farm)
+        assertEquals(14, farm!!.schemaVersion)
+        val decodedTrade = farm.trades.single()
+        assertEquals(FarmActivityType.CROPS, decodedTrade.activity)
+        assertEquals(3000L, decodedTrade.totalMinor)
+    }
+
+    @Test
+    fun schema14TradeWithUnknownActivityValueFailsDecode() {
+        val trade = listOf(
+            "t-3",
+            TradeType.SALE.name,
+            "party-3",
+            "1000",
+            "Sale",
+            "2024-06-11T12:00:00Z",
+            "NOT_A_REAL_ACTIVITY"
+        ).joinToString(tsep)
+        val payload = listOf(
+            "14",
+            "farm-s14b",
+            "Broken Farm",
+            "",
+            "NPR",
+            "",
+            "",
+            trade,
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+        ).joinToString(field)
+
+        assertNull(
+            "unknown trade activity value should fail decode, mirroring transaction categories",
+            FarmPersistenceCodec.decodeOrNull(payload)
+        )
+    }
+
+    @Test
+    fun backupRoundTripPreservesTradeActivity() {
+        val service = FarmSliceService(InMemoryFarmStore())
+        val farm = service.createFarm(
+            "Poultry Farm",
+            activities = listOf(FarmActivityType.POULTRY)
+        )
+        service.addParty(farm.id, com.susankhya.kisab.domain.PartyDraft(name = "Sita", role = com.susankhya.kisab.domain.PartyRole.SUPPLIER))
+        service.addSupply(farm.id, "Feed", com.susankhya.kisab.domain.ProductUnit.KILOGRAM)
+        service.addSupplierPurchase(
+            farm.id, service.parties(farm.id).single().id, service.supplies(farm.id).single().id,
+            quantity = BigDecimal("10"), unit = com.susankhya.kisab.domain.ProductUnit.KILOGRAM,
+            amountMinor = 3000, initialPaymentMinor = 1000,
+            occurredAt = "2024-06-20T12:00:00Z", description = "Feed",
+            activity = FarmActivityType.POULTRY
+        )
+
+        val encoded = FarmBackupCodec.encode(service.loadFarm(farm.id)!!, exportedAt = OffsetDateTime.parse("2024-07-01T00:00:00Z"))
+        val envelope = FarmBackupCodec.decode(encoded)
+
+        assertEquals(14, envelope.farm.schemaVersion)
+        val trade = envelope.farm.trades.single()
+        assertEquals(FarmActivityType.POULTRY, trade.activity)
+        assertEquals(3000L, trade.totalMinor)
+
+        val reEncoded = FarmBackupCodec.encode(envelope.farm, exportedAt = OffsetDateTime.parse("2024-07-01T00:00:00Z"))
+        assertEquals("backup round trip is byte-stable", encoded, reEncoded)
     }
 }
