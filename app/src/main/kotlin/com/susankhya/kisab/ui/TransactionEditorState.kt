@@ -1,5 +1,6 @@
 package com.susankhya.kisab.ui
 
+import com.susankhya.kisab.domain.FarmActivityType
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import java.time.OffsetDateTime
@@ -13,6 +14,7 @@ import java.time.OffsetDateTime
  * editor opened — never "any field is non-empty", because a freshly opened
  * editor already carries defaults (type, category, current time). Currency is
  * a farm-level setting (see [FarmState.currencyCode]); the editor never owns it.
+ * [activity] is an optional farm-activity association (`null` = general/farm-wide).
  */
 enum class TransactionEditorMode {
     CREATE,
@@ -24,6 +26,7 @@ data class TransactionEditorState(
     val transactionId: String?,
     val type: TransactionType,
     val category: TransactionCategory,
+    val activity: FarmActivityType?,
     val amountText: String,
     val description: String,
     val occurredAt: OffsetDateTime
@@ -35,6 +38,7 @@ data class TransactionEditorState(
                 transactionId = null,
                 type = type,
                 category = FarmOrdering.categoriesFor(type).first(),
+                activity = null,
                 amountText = "",
                 description = "",
                 occurredAt = occurredAt

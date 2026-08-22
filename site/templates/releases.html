@@ -1,0 +1,45 @@
+<section class="section page-head">
+  <div class="container">
+    <h1 class="page-title">{{page_heading}}</h1>
+    <p class="page-lead">{{page_lead}}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="callout card">
+      <p><strong>{{current_callout_title}}</strong> {{current_callout_text}}</p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="release-table">
+        <thead>
+          <tr>
+            <th scope="col">{{table_version}}</th>
+            <th scope="col">{{table_code}}</th>
+            <th scope="col">{{table_published}}</th>
+            <th scope="col">{{table_channel}}</th>
+            <th scope="col">{{table_sha256}}</th>
+            <th scope="col">{{table_apk}}</th>
+            <th scope="col">{{table_release}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#releases}}
+          <tr>
+            <th scope="row">{{versionName}}{{#is_current}} <span class="pill pill-small">{{current_label}}</span>{{/is_current}}</th>
+            <td>{{versionCode}}</td>
+            <td>{{published}}</td>
+            <td>{{channel}}</td>
+            <td><code class="sha sha-cell">{{sha256}}</code></td>
+            <td><a class="link" href="{{apkUrl}}" rel="noopener">{{apk_label}}</a></td>
+            <td><a class="link" href="{{releasePage}}" rel="noopener">GitHub</a></td>
+          </tr>
+          {{/releases}}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="no-claims-note">{{releases_note}}</p>
+  </div>
+</section>

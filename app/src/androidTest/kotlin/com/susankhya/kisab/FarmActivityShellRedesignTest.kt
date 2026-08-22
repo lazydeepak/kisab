@@ -7,6 +7,7 @@ import androidx.test.espresso.Espresso
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.closeSoftKeyboard
+import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
@@ -190,7 +191,9 @@ class FarmActivityShellRedesignTest {
             onView(withText(R.string.supply_usage_title)).inRoot(isDialog()).check(matches(isDisplayed()))
             onView(withText(R.string.action_cancel)).inRoot(isDialog()).perform(click())
 
-            onView(withId(R.id.farmWorkRemainingButton)).perform(click())
+            // M10/M11 added rows above the Work grid; scroll it into the
+            // 90%-visibility window before clicking.
+            onView(withId(R.id.farmWorkRemainingButton)).perform(scrollTo(), click())
             onView(withText(R.string.supply_stock_title)).inRoot(isDialog()).check(matches(isDisplayed()))
             onView(withText(R.string.action_done)).inRoot(isDialog()).perform(click())
         } finally {

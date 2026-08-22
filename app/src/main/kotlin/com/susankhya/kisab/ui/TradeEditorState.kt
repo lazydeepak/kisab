@@ -1,5 +1,6 @@
 package com.susankhya.kisab.ui
 
+import com.susankhya.kisab.domain.FarmActivityType
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.TradeType
 import java.time.OffsetDateTime
@@ -14,6 +15,7 @@ import java.time.OffsetDateTime
  * a user-facing [PaymentStatus] plus a free-text [paidText] for the PARTIAL
  * case, and converted to `paidMinor` only when the trade is saved. Trade type,
  * payment status and amounts never live in the view layer alone.
+ * [activity] is an optional farm-activity association (`null` = general/farm-wide).
  */
 enum class TradeEditorMode {
     CREATE,
@@ -29,7 +31,8 @@ data class TradeEditorState(
     val paidStatus: PaymentStatus,
     val paidText: String,
     val description: String,
-    val occurredAt: OffsetDateTime
+    val occurredAt: OffsetDateTime,
+    val activity: FarmActivityType? = null
 ) {
     companion object {
         fun create(type: TradeType, occurredAt: OffsetDateTime): TradeEditorState =

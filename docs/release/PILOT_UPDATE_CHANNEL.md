@@ -77,7 +77,7 @@ To configure a pilot build with an active update channel:
 
 ### Fallback Behavior:
 - If `kisab.privateUpdateManifestUrl` is omitted or blank (default), `BuildConfig.PRIVATE_UPDATE_MANIFEST_URL` is set to `""`.
-- The app gracefully reports `Unknown / Local build` in Settings -> About and avoids background network polling.
+- The app gracefully reports `Update status: checking is not configured yet.` in Settings -> About and avoids background network polling.
 
 ---
 

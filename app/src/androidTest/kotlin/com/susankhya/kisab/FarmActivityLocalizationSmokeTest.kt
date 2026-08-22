@@ -2,12 +2,9 @@ package com.susankhya.kisab
 
 import android.content.Context
 import android.content.res.Configuration
-import android.os.Build
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
@@ -59,13 +56,7 @@ class FarmActivityLocalizationSmokeTest {
     }
 
     private fun setAppLocale(locale: Locale) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.getSystemService(android.app.LocaleManager::class.java)
-                .applicationLocales = android.os.LocaleList.forLanguageTags(locale.toLanguageTag())
-        } else {
-            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(locale.toLanguageTag()))
-        }
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        setApplicationLocalesAndWait(listOf(locale.toLanguageTag()))
     }
 
     private fun stringFor(locale: Locale, resId: Int): String {
@@ -75,13 +66,7 @@ class FarmActivityLocalizationSmokeTest {
     }
 
     private fun resetAppLocale() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.getSystemService(android.app.LocaleManager::class.java)
-                .applicationLocales = android.os.LocaleList.getEmptyLocaleList()
-        } else {
-            AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
-        }
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        resetApplicationLocalesAndWait()
     }
 
     private fun seedFarm() {

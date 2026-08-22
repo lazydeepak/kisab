@@ -1,0 +1,18 @@
+<section class="section page-head">
+  <div class="container">
+    <h1 class="page-title">{{page_heading}}</h1>
+    <p class="page-lead">{{page_lead}}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container container-narrow">
+    {{#sections}}
+    <div class="privacy-section">
+      <h2 class="privacy-title">{{title}}</h2>
+      <p class="privacy-body">{{body}}</p>
+    </div>
+    {{/sections}}
+    <p class="privacy-updated"><em>{{last_updated}}</em></p>
+  </div>
+</section>

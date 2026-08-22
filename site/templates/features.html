@@ -1,0 +1,26 @@
+<section class="section page-head">
+  <div class="container">
+    <h1 class="page-title">{{page_heading}}</h1>
+    <p class="page-lead">{{page_lead}}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    {{#groups}}
+    <div class="feature-group">
+      <h2 class="group-title">{{title}}</h2>
+      <p class="group-intro">{{intro}}</p>
+      <div class="feature-grid">
+        {{#items}}
+        <article class="card feature-card">
+          <h3 class="feature-title">{{title}}</h3>
+          <p class="feature-text">{{text}}</p>
+        </article>
+        {{/items}}
+      </div>
+    </div>
+    {{/groups}}
+    <p class="no-claims-note">{{no_claims_note}}</p>
+  </div>
+</section>

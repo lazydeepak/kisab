@@ -2,6 +2,7 @@ package com.susankhya.kisab.ui
 
 import android.content.Context
 import com.susankhya.kisab.R
+import com.susankhya.kisab.domain.FarmActivityType
 import com.susankhya.kisab.domain.FarmEntryKind
 import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.domain.FinancialPeriodPreset
@@ -24,6 +25,18 @@ object FarmLabels {
     fun entryKindRes(kind: FarmEntryKind): Int = when (kind) {
         FarmEntryKind.LIVESTOCK -> R.string.entry_kind_livestock
         FarmEntryKind.CROP -> R.string.entry_kind_crop
+    }
+
+    fun activityTypeRes(activity: FarmActivityType): Int = when (activity) {
+        FarmActivityType.CROPS -> R.string.activity_crops
+        FarmActivityType.VEGETABLES -> R.string.activity_vegetables
+        FarmActivityType.FRUITS_ORCHARD -> R.string.activity_fruits_orchard
+        FarmActivityType.POULTRY -> R.string.activity_poultry
+        FarmActivityType.CATTLE_BUFFALO_DAIRY -> R.string.activity_cattle_dairy
+        FarmActivityType.GOAT_SHEEP -> R.string.activity_goat_sheep
+        FarmActivityType.PIG -> R.string.activity_pig
+        FarmActivityType.FISHERY -> R.string.activity_fishery
+        FarmActivityType.OTHER -> R.string.activity_other
     }
 
     fun transactionTypeRes(type: TransactionType): Int = when (type) {
@@ -100,6 +113,9 @@ object FarmLabels {
     }
 
     fun entryKind(context: Context, kind: FarmEntryKind): String = context.getString(entryKindRes(kind))
+
+    fun activityType(context: Context, activity: FarmActivityType): String =
+        context.getString(activityTypeRes(activity))
 
     fun transactionType(context: Context, type: TransactionType): String = context.getString(transactionTypeRes(type))
 
