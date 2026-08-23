@@ -1,24 +1,23 @@
 # PILOT-01 Session Record — P01 (v0.2.2)
 
-> **SCAFFOLD — no observations recorded yet.** All blank fields are filled by the facilitator during/after the live session. Nothing in this file may be pre-filled from rehearsal or assumption.
+> **STATUS: STAGED, SESSION NOT YET RUN.** Pre-session facts below were verified by the preparation pass on 2026-08-23. Every observation field remains intentionally blank — it is filled by the human facilitator during the live session and must never be pre-filled or inferred.
 
 ## 1. Profile & configuration
 
 | Field | Value |
 |---|---|
 | Participant | P01 |
-| Farming type | _(facilitator: dairy / poultry / vegetable-crop / mixed)_ |
+| Farming type | _(facilitator to record at start)_ |
 | Smartphone confidence | _(low / medium / high)_ |
-| Session language used for tasks | English (per matrix; switch only if participant prefers) |
-| Device & screen | Motorola Edge 60 Fusion, ~6.7" |
+| Session language used for tasks | English (per matrix) |
+| Device & screen | Motorola Edge 60 Fusion (`ZA22374XPC`), ~6.7" |
 | Android version | Android 16 (API 36) |
-| Build verified | **Kisab v0.2.2 (code 5)** — verified in Settings→About before start |
-| Starting state | first-run screen, zero farms — VERIFIED before handoff |
-| Reset method used | UI-delete of rehearsal farms + reinstall fallback (auto-restore resurrected old farm; deleted via UI) — see runbook hazard note |
+| Build verified | **Kisab v0.2.2 / versionCode 5, production-signed** (APK sha256 `6463fe8660b6c9eb59764ad864a2581285bcbf47c6517184c2587e64398a7a94`); About screen shows "Kisab 0.2.2" |
+| Starting state | **VERIFIED before handoff:** first-run screen ("Farm name" input visible), zero farms, factory defaults (text size 24 sp, appearance Follow-system, language follow-device → English). Auto-restore resurrected one legacy farm after reinstall; removed via the in-app DELETE FARM flow. Facilitator should re-confirm the first-run screen immediately before consent. |
 | Appearance mode during tasks | Follow-system |
 | Text size | factory default 24 sp |
-| Orientation notes | portrait throughout; landscape spot-check at end |
-| Consent | ☐ verbal script read; participant agreed *(mark when done)* |
+| Orientation notes | portrait throughout; **landscape spot-check assigned** at session end |
+| Consent | ☐ verbal script read; participant agreed *(facilitator marks)* |
 
 ## 2. Task log
 
@@ -26,10 +25,10 @@
 |---|---|---|---|---|---|
 | T1 create farm | | | | | |
 | T2 choose activities | | | | | |
-| T3 switch farm | n/a this session unless second farm created | | | | |
+| T3 switch farm | n/a unless second farm created during session | | | | |
 | T4 production (+unit) | | | | | |
 | T4b second-product / control-swap watch | | | | | |
-| T4N मन/पाथी/मुरी variant | | | | | |
+| T4N मन/पाथी/मुरी variant | **assigned to this session** | | | | |
 | T5 cash sale (customer creation reaction) | | | | | |
 | T6 credit sale partial | | | | | |
 | T7 final settlement | | | | | |
@@ -43,7 +42,7 @@
 | T15 misc cash income probe | | | | | |
 | T16 protect records (backup) | | | | | |
 
-**Consent:** ☐ agreed
+**Consent:** ☐ pending
 
 ## 3. Generic-cash probe detail (T14/T15) — mandatory
 
@@ -66,20 +65,21 @@
 | गतिविधि (Activity) | | | | |
 | उत्पादन / प्रयोग गरेँ | | | | |
 | ब्याकअप | | | | |
+| मन / पाथी / मुरी labels | | | | |
 | …add rows as encountered | | | | |
 
 ## 5. M9 debt checks performed this session
 
-- [ ] Nepali walkthrough (if assigned)
-- [ ] Dark mode walkthrough
-- [x] Landscape spot-check *(assigned P01)*
-- [ ] Saved text-size persists after relaunch
-- [x] मन/पाथी/मुरी workflow *(assigned P01)*
+- [ ] Nepali walkthrough (not assigned to P01)
+- [ ] Dark mode walkthrough (not assigned to P01)
+- [x] **Landscape spot-check — assigned**
+- [ ] Saved text-size persists after relaunch (not assigned to P01)
+- [x] **मन/पाथी/मुरी workflow — assigned**
 Notes/clipping/overlap observations:
 
 ## 6. Large-text block
 
-Not assigned to P01 (per matrix).
+Not assigned to P01 (per matrix; performed in P03/P04).
 
 ## 7. Defects & findings raised by this session
 
