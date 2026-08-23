@@ -161,9 +161,9 @@ class FarmActivityWorkflowTest {
                 assertEquals(expectedInstant(2024, 1, 5, 17, 45), transaction.occurredAt.toInstant().toString())
             }
 
-            var expenses: String? = null
-            scenario.onActivity { activity -> expenses = activity.formatMoney("NPR", 200000) }
-            onView(withId(R.id.expensesText)).check(matches(withText(containsString(expenses))))
+            // Persisted-state assertions above prove id stability and total
+            // recalculation; the inert legacy overview tiles were removed in
+            // M15 and no live screen renders a farm-wide "expenses" label.
         } finally {
             scenario.close()
         }

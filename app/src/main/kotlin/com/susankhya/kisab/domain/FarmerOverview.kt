@@ -59,7 +59,18 @@ fun FarmState.farmerOverview(now: OffsetDateTime, zone: ZoneId): FarmerOverview 
     fun inMonth(time: OffsetDateTime) = !time.isBefore(monthStart) && time.isBefore(monthEnd)
     val tradeById = trades.associateBy { it.id }
     fun sales(period: (OffsetDateTime) -> Boolean): Long = trades.filter { it.type == TradeType.SALE && period(it.occurredAt) }.fold(0L) { total, trade -> Math.addExact(total, trade.totalMinor) }
-    fun received(period: (OffsetDateTime) -> Boolean): Long = settlements.filter { period(it.occurredAt) && tradeById[it.tradeId]?.type == TradeType.SALE }.fold(0L) { total, item -> Math.addExact(total, item.amountMinor) }
+
+    /**
+     * Money actually received in the period: customer settlements on SALE
+     * trades **plus** generic cash income transactions (M15). Generic income
+     * is never part of a trade, so excluding it would hide real money from
+     * the farmer's daily view.
+     */
+    fun received(period: (OffsetDateTime) -> Boolean): Long {
+        val settlementReceived = settlements.filter { period(it.occurredAt) && tradeById[it.tradeId]?.type == TradeType.SALE }.fold(0L) { total, item -> Math.addExact(total, item.amountMinor) }
+        val genericIncome = transactions.filter { it.type == TransactionType.INCOME && period(it.occurredAt) }.fold(0L) { total, item -> Math.addExact(total, item.amountMinor) }
+        return Math.addExact(settlementReceived, genericIncome)
+    }
     fun expenses(period: (OffsetDateTime) -> Boolean): Long = transactions.filter { it.type == TransactionType.EXPENSE && period(it.occurredAt) }.fold(0L) { total, item -> Math.addExact(total, item.amountMinor) }
     fun creditSales(period: (OffsetDateTime) -> Boolean): Long = trades.filter { it.type == TradeType.SALE && period(it.occurredAt) }.fold(0L) { total, trade ->
         val paidAtCreation = settlements.filter { it.tradeId == trade.id && it.isInitialPayment }.fold(0L) { sum, item -> Math.addExact(sum, item.amountMinor) }

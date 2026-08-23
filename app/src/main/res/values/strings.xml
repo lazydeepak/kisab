@@ -69,6 +69,8 @@ Remaining: %2$s</string>
     <string name="received_money_overpayment">The received amount is greater than the customer outstanding balance.</string>
     <string name="supply_purchase_action">Bought</string>
     <string name="supplier_payment_action">Paid money</string>
+    <string name="other_income_action">Other income</string>
+    <string name="other_expense_action">Other expense</string>
     <string name="supplier_purchase_supplier">Supplier</string>
     <string name="supplier_add">Add supplier</string>
     <string name="supplier_payment_title">Paid money</string>
@@ -196,6 +198,8 @@ Unexplained: %4$s %5$s</string>
     <string name="transaction_row_format">- %1$s | %2$s | %3$s | %4$s | %5$s</string>
 
     <string name="transaction_editor_new_section">New transaction</string>
+    <string name="transaction_editor_new_other_income">Record other income</string>
+    <string name="transaction_editor_new_other_expense">Record other expense</string>
     <string name="transaction_editor_edit_section">Edit transaction</string>
     <string name="transaction_date_time_label">Date/time</string>
     <string name="change_date_time_action">Change date and time</string>

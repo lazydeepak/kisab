@@ -449,13 +449,6 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var createFarmButton: Button
     private lateinit var createFarmActivitiesText: TextView
     private lateinit var createFarmChooseActivitiesButton: Button
-    private lateinit var farmNameText: TextView
-    private lateinit var balanceText: TextView
-    private lateinit var incomeText: TextView
-    private lateinit var expensesText: TextView
-    private lateinit var firstActionPrompt: TextView
-    private lateinit var recordIncomeButton: Button
-    private lateinit var recordExpenseButton: Button
     private lateinit var transactionEditorContainer: LinearLayoutCompat
     private lateinit var transactionEditorTitle: TextView
     private lateinit var transactionTypeIncomeRadio: RadioButton
@@ -483,16 +476,6 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var addEntryButton: Button
     private lateinit var exportBackupButton: Button
     private lateinit var importBackupButton: Button
-    private lateinit var quickSaleButton: Button
-    private lateinit var receivedMoneyButton: Button
-    private lateinit var supplyPurchaseButton: Button
-    private lateinit var supplyUsageButton: Button
-    private lateinit var supplyStockButton: Button
-    private lateinit var supplierPaymentButton: Button
-    private lateinit var legacyAccountingActions: View
-    private lateinit var otherEntriesButton: Button
-    private lateinit var productionButton: Button
-    private lateinit var farmerOverviewTodayText: TextView
     private lateinit var farmerOverviewMonthButton: Button
     private lateinit var farmWorkProductionButton: Button
     private lateinit var farmWorkAllocationButton: Button
@@ -592,7 +575,6 @@ class FarmActivity : AppCompatActivity() {
     private var editorState: TransactionEditorState? = null
     private var editorBaseline: TransactionEditorState? = null
     private var toolsExpanded: Boolean = false
-    private var otherEntriesExpanded: Boolean = false
     private var syncTypeListenersSuppressed = false
     private var syncTradeStatusListener = false
     private var editingPartyId: String? = null
@@ -755,7 +737,6 @@ class FarmActivity : AppCompatActivity() {
         outState.putString(STATE_DESTINATION, currentDestination.name)
         outState.putString(STATE_LAST_PRIMARY_DESTINATION, lastPrimaryDestination.name)
         outState.putBoolean(STATE_TOOLS_EXPANDED, toolsExpanded)
-        outState.putBoolean(STATE_OTHER_ENTRIES_EXPANDED, otherEntriesExpanded)
         outState.putString(STATE_OVERVIEW_PERIOD_PRESET, overviewPeriodPreset.name)
         outState.putString(STATE_HISAB_PARTY_ID, hisabSelectedPartyId)
         outState.putString(STATE_HISAB_PERIOD_PRESET, hisabPeriodPreset.name)
@@ -1096,13 +1077,6 @@ class FarmActivity : AppCompatActivity() {
         createFarmButton = findViewById(R.id.createFarmButton)
         createFarmActivitiesText = findViewById(R.id.createFarmActivitiesText)
         createFarmChooseActivitiesButton = findViewById(R.id.createFarmChooseActivitiesButton)
-        farmNameText = findViewById(R.id.farmNameText)
-        balanceText = findViewById(R.id.balanceText)
-        incomeText = findViewById(R.id.incomeText)
-        expensesText = findViewById(R.id.expensesText)
-        firstActionPrompt = findViewById(R.id.firstActionPrompt)
-        recordIncomeButton = findViewById(R.id.recordIncomeButton)
-        recordExpenseButton = findViewById(R.id.recordExpenseButton)
         transactionEditorContainer = findViewById(R.id.transactionEditorContainer)
         transactionEditorTitle = findViewById(R.id.transactionEditorTitle)
         transactionTypeIncomeRadio = findViewById(R.id.transactionTypeIncomeRadio)
@@ -1130,16 +1104,6 @@ class FarmActivity : AppCompatActivity() {
         addEntryButton = findViewById(R.id.addEntryButton)
         exportBackupButton = findViewById(R.id.exportBackupButton)
         importBackupButton = findViewById(R.id.importBackupButton)
-        quickSaleButton = findViewById(R.id.quickSaleButton)
-        receivedMoneyButton = findViewById(R.id.receivedMoneyButton)
-        supplyPurchaseButton = findViewById(R.id.supplyPurchaseButton)
-        supplyUsageButton = findViewById(R.id.supplyUsageButton)
-        supplyStockButton = findViewById(R.id.supplyStockButton)
-        supplierPaymentButton = findViewById(R.id.supplierPaymentButton)
-        legacyAccountingActions = findViewById(R.id.legacyAccountingActions)
-        otherEntriesButton = findViewById(R.id.otherEntriesButton)
-        productionButton = findViewById(R.id.productionButton)
-        farmerOverviewTodayText = findViewById(R.id.farmerOverviewTodayText)
         farmerOverviewMonthButton = findViewById(R.id.farmerOverviewMonthButton)
         farmWorkProductionButton = findViewById(R.id.farmWorkProductionButton)
         farmWorkAllocationButton = findViewById(R.id.farmWorkAllocationButton)
@@ -1335,13 +1299,6 @@ class FarmActivity : AppCompatActivity() {
         addEntryButton.setOnClickListener { addEntry() }
         exportBackupButton.setOnClickListener { exportBackup() }
         importBackupButton.setOnClickListener { importBackup() }
-        quickSaleButton.setOnClickListener { showQuickSaleDialog() }
-        receivedMoneyButton.setOnClickListener { showReceivedMoneyDialog() }
-        supplyPurchaseButton.setOnClickListener { showSupplierPurchaseDialog() }
-        supplyUsageButton.setOnClickListener { showSupplyUsageDialog() }
-        supplyStockButton.setOnClickListener { showSupplyStockDialog() }
-        supplierPaymentButton.setOnClickListener { showSupplierPaymentDialog() }
-        otherEntriesButton.setOnClickListener { toggleOtherEntries() }
         shellTitle.setOnClickListener { showFarmSwitcherDialog() }
         shellFarmSwitchIcon.setOnClickListener { showFarmSwitcherDialog() }
         todayReconcileButton.setOnClickListener { showProductionAllocationDialog() }
@@ -1354,7 +1311,6 @@ class FarmActivity : AppCompatActivity() {
             navigateTo(Destination.KHATA)
         }
         todayViewFarmWorkButton.setOnClickListener { navigateTo(Destination.FARM_WORK) }
-        productionButton.setOnClickListener { showProductionDialog() }
         farmerOverviewMonthButton.setOnClickListener { showFarmerMonthDialog() }
         farmWorkRecordProductionButton.setOnClickListener { showProductionDialog() }
         farmWorkBuySupplyButton.setOnClickListener { showSupplierPurchaseDialog() }
@@ -1608,12 +1564,6 @@ class FarmActivity : AppCompatActivity() {
             }
         }
 
-        recordIncomeButton.setOnClickListener {
-            confirmDiscardIfNeeded { openEditorForNew(TransactionType.INCOME) }
-        }
-        recordExpenseButton.setOnClickListener {
-            confirmDiscardIfNeeded { openEditorForNew(TransactionType.EXPENSE) }
-        }
         transactionTypeIncomeRadio.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) onTransactionTypeChanged(TransactionType.INCOME)
         }
@@ -1778,6 +1728,26 @@ class FarmActivity : AppCompatActivity() {
         dialog.findViewById<Button>(R.id.recordSheetUsedButton).setOnClickListener {
             dialog.dismiss()
             showSupplyUsageDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetOtherIncomeButton).setOnClickListener {
+            dialog.dismiss()
+            confirmDiscardIfNeeded {
+                openEditorForNew(
+                    TransactionType.INCOME,
+                    R.string.transaction_editor_new_other_income,
+                    TransactionCategory.OTHER_INCOME
+                )
+            }
+        }
+        dialog.findViewById<Button>(R.id.recordSheetOtherExpenseButton).setOnClickListener {
+            dialog.dismiss()
+            confirmDiscardIfNeeded {
+                openEditorForNew(
+                    TransactionType.EXPENSE,
+                    R.string.transaction_editor_new_other_expense,
+                    TransactionCategory.OTHER_EXPENSE
+                )
+            }
         }
         dialog.findViewById<Button>(R.id.recordSheetPaidMoneyButton).setOnClickListener {
             dialog.dismiss()
@@ -3703,12 +3673,17 @@ class FarmActivity : AppCompatActivity() {
 
     // --- Transaction editor -------------------------------------------------
 
-    private fun openEditorForNew(type: TransactionType) {
+    private fun openEditorForNew(
+        type: TransactionType,
+        titleRes: Int = R.string.transaction_editor_new_section,
+        category: TransactionCategory? = null
+    ) {
         val state = TransactionEditorState.create(
             type = type,
-            occurredAt = OffsetDateTime.now(deviceZone)
+            occurredAt = OffsetDateTime.now(deviceZone),
+            category = category
         )
-        applyEditorState(state, baseline = state)
+        applyEditorState(state, baseline = state, titleOverride = titleRes)
     }
 
     private fun openEditorForTransaction(transaction: FarmTransaction) {
@@ -3730,12 +3705,17 @@ class FarmActivity : AppCompatActivity() {
         return farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
     }
 
-    private fun applyEditorState(state: TransactionEditorState, baseline: TransactionEditorState) {
+    private fun applyEditorState(
+        state: TransactionEditorState,
+        baseline: TransactionEditorState,
+        titleOverride: Int? = null
+    ) {
         editorState = state
         editorBaseline = baseline
         transactionEditorTitle.text = string(
-            if (state.mode == TransactionEditorMode.CREATE) R.string.transaction_editor_new_section
-            else R.string.transaction_editor_edit_section
+            titleOverride
+                ?: if (state.mode == TransactionEditorMode.CREATE) R.string.transaction_editor_new_section
+                else R.string.transaction_editor_edit_section
         )
         syncTypeListenersSuppressed = true
         transactionTypeIncomeRadio.isChecked = state.type == TransactionType.INCOME
@@ -5619,8 +5599,6 @@ class FarmActivity : AppCompatActivity() {
         if (bundle == null) return
         toolsExpanded = bundle.getBoolean(STATE_TOOLS_EXPANDED, false)
         updateToolsExpansion()
-        otherEntriesExpanded = bundle.getBoolean(STATE_OTHER_ENTRIES_EXPANDED, false)
-        updateOtherEntriesExpansion()
         if (!bundle.getBoolean(STATE_EDITOR_OPEN, false)) return
         val state = readEditorState(bundle, STATE_EDITOR_PREFIX) ?: return
         val baseline = readEditorState(bundle, STATE_EDITOR_BASELINE_PREFIX) ?: state
@@ -5696,7 +5674,6 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun renderFarm(farm: FarmState) {
-        farmNameText.text = farm.name
         val currency = farm.currencyCode
         val totals = try {
             FarmTotals.of(farm.transactions)
@@ -5705,11 +5682,7 @@ class FarmActivity : AppCompatActivity() {
             showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
             return
         }
-        balanceText.text = string(R.string.overview_balance_format, formatMoney(currency, totals.balanceMinor))
-        incomeText.text = string(R.string.overview_income_format, formatMoney(currency, totals.incomeMinor))
-        expensesText.text = string(R.string.overview_expenses_format, formatMoney(currency, totals.expensesMinor))
         renderFarmerOverview(farm)
-        firstActionPrompt.visibility = if (farm.transactions.isEmpty()) View.VISIBLE else View.GONE
         renderRecentTransactions(farm, currency)
         renderFarmTools(farm, currency, totals)
     }
@@ -5820,7 +5793,6 @@ class FarmActivity : AppCompatActivity() {
         if (overview.supplies.isNotEmpty()) {
             lines += string(R.string.farmer_overview_supplies_format, overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" })
         }
-        farmerOverviewTodayText.text = lines.joinToString("\n")
     }
 
     private fun showFarmerMonthDialog() {
@@ -6690,18 +6662,6 @@ class FarmActivity : AppCompatActivity() {
         updateToolsExpansion()
     }
 
-    private fun toggleOtherEntries() {
-        otherEntriesExpanded = !otherEntriesExpanded
-        updateOtherEntriesExpansion()
-    }
-
-    private fun updateOtherEntriesExpansion() {
-        legacyAccountingActions.visibility = if (otherEntriesExpanded) View.VISIBLE else View.GONE
-        otherEntriesButton.text = string(
-            if (otherEntriesExpanded) R.string.hide_other_entries_action else R.string.other_entries_action
-        )
-    }
-
     private fun updateToolsExpansion() {
         farmToolsContainer.visibility = if (toolsExpanded) View.VISIBLE else View.GONE
         farmToolsToggleButton.text = string(
@@ -7064,7 +7024,6 @@ class FarmActivity : AppCompatActivity() {
         const val STATE_EDITOR_DESCRIPTION = "Description"
         const val STATE_EDITOR_OCCURRED_AT = "OccurredAt"
         const val STATE_TOOLS_EXPANDED = "toolsExpanded"
-        const val STATE_OTHER_ENTRIES_EXPANDED = "otherEntriesExpanded"
         const val STATE_TRADE_EDITOR_OPEN = "tradeEditorOpen"
         const val STATE_TRADE_EDITOR_PREFIX = "tradeEditor"
         const val STATE_TRADE_EDITOR_BASELINE_PREFIX = "tradeEditorBaseline"

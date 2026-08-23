@@ -249,7 +249,9 @@ class FarmActivityPresentationTest {
 
             var balance: String? = null
             scenario.onActivity { activity -> balance = activity.formatMoney("NPR", 12345) }
-            onView(withId(R.id.balanceText)).check(matches(withText(containsString(balance))))
+            // M15 removed the inert legacy overview block; the live balance
+            // surface is the Farm tools summary line.
+            onView(withId(R.id.summaryText)).check(matches(withText(containsString(balance))))
         } finally {
             scenario.close()
         }
