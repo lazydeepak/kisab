@@ -12,9 +12,12 @@
 | Smartphone confidence | low / medium / high |
 | Session language used for tasks | EN / NE |
 | Device & screen | (model, approx size) |
+| Android version | |
 | Build verified | v0.2.2 (code 5) — confirm from Settings→About before start |
-| Configuration extras | dark-mode block / landscape block / large-text block / मन-पाथी-मुरी scenario |
-| Consent | verbal script read; participant agreed |
+| Starting state | first-run screen, zero farms (reset method used: UI-delete / reinstall; verification result: ) |
+| Appearance mode during tasks | Follow-system / Light / Dark |
+| Text size | default 16 sp (large-text block performed at end: Y/N) |
+| Orientation notes | portrait throughout / landscape spot-check result |
 
 ## 2. Task log
 
@@ -26,11 +29,12 @@ For each task attempted: **first action** · independent completion Y/N · time-
 | T2 choose activities | | | | | |
 | T3 switch farm | | | | | |
 | T4 production (+unit) | | | | | |
+| T4b second-product / control-swap watch | | | | | |
 | T4N मन/पाथी/मुरी variant | | | | | |
-| T5 cash sale | | | | | |
+| T5 cash sale (customer creation reaction) | | | | | |
 | T6 credit sale partial | | | | | |
 | T7 final settlement | | | | | |
-| T8 cash purchase | | | | | |
+| T8 cash purchase + supplier requirement + where-expected probe | | | | | |
 | T9 credit purchase + Activity | | | | | |
 | T10 supply use + remaining | | | | | |
 | T11 find who owes | | | | | |
@@ -39,6 +43,8 @@ For each task attempted: **first action** · independent completion Y/N · time-
 | T14 misc cash expense probe | | | | | |
 | T15 misc cash income probe | | | | | |
 | T16 protect records (backup) | | | | | |
+
+**Consent:** verbal script read; participant agreed.
 
 ## 3. Generic-cash probe detail (T14/T15) — mandatory
 
@@ -78,8 +84,10 @@ Slider position used · relaunch persistence Y/N · clipped text locations · un
 
 ## 7. Defects & findings raised by this session
 
-| Finding | Tag (product-defect/comprehension/android-unfamiliarity/needs-evidence) | Severity P0–P3 | Evidence quote/ref |
-|---|---|---|---|
+Keep the three layers separate — do not collapse them into one claim.
+
+| # | **Observed fact** (what literally happened / was said) | Tag (product-defect/comprehension/android-unfamiliarity/needs-evidence) | Sev P0–P3 | **Interpretation** (hypothesis) | **Recommendation** (product change, if any) |
+|---|---|---|---|---|---|
 
 ## 8. Interview highlights
 

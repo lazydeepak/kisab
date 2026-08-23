@@ -52,6 +52,28 @@ Distribute fixed configurations across sessions so no session carries all burden
 
 All sessions: default text size start; large-text block performed at session end so earlier tasks stay comparable.
 
+## 4a. Standardized starting state (mandatory between participants)
+
+**Clean-start protocol.** Each participant begins with **no farms, products, parties, or records** and performs setup themselves (T1/T2 create everything later tasks need). No rehearsal or prior-participant state may be carried in.
+
+**Session-start state (verified aloud before consent):**
+- App: production-signed v0.2.2 / code 5, first-run screen visible ("Farm name" + CREATE FARM), zero existing farms.
+- Settings at defaults: English or Nepali UI per session matrix, text size default (16 sp), appearance Follow-system, notifications as found.
+
+**Reset procedure between participants (in order of preference):**
+1. **UI-based (preferred):** More → Farms → open each farm → DELETE FARM (confirm). When the last farm is deleted the app returns to the first-run screen. Then Settings: restore language/text-size/appearance defaults manually. Verify: first-run screen with empty farm list.
+2. **Reinstall (fallback if UI state is in doubt):** uninstall `com.susankhya.kisab`, reinstall the same published v0.2.2 APK (`app-release.apk` from GitHub release v0.2.2), re-grant install-unknown-apps. Never use adb shell tricks against app data.
+
+**Task dependency map (all satisfied within a single session):**
+- T5 cash sale → needs product (T4) and customer (created during T5).
+- T6 credit sale → any customer from T5.
+- T7 settlement → receivable created by T6.
+- T8 cash purchase → supply created during T8; T9 credit purchase → supplier created during T9.
+- T10 use → stock from T8/T9.
+- T13 breakdown → meaningful after ≥1 activity-tagged trade (T6/T9) plus untagged entries.
+
+**Between-session recording:** note reset method used and post-reset verification result in the session record.
+
 ## 5. Task inventory (v0.2.2)
 
 Original tasks A–M are preserved where still valid, renumbered; new v0.2.2-specific tasks added. Prompts are farmer-facing; success criteria are facilitator-facing.
@@ -59,12 +81,13 @@ Original tasks A–M are preserved where still valid, renumbered; new v0.2.2-spe
 ### Setup
 
 - **T1 Create farm**: "आफ्नो फार्म यो एपमा बनाउनुहोस्।" — Expect: reaches name input, currency understanding optional. Observe: finds first-run screen affordances unaided.
-- **T2 Choose activities**: "यो फार्मले के-कस्तो काम गर्छ भन्ने जनाउनुहोस् (जस्तै कुखुरा पालन)।" — Path: More → Farms → farm → CHANGE ACTIVITIES. Observe: discovery route; whether "activities" concept lands.
+- **T2 Choose activities**: "यो फार्मले के-कस्तो काम गर्छ भन्ने जनाउनुहोस् (जस्तै कुखुरा पालन)।" — Observe: discovery route; whether "activities" concept lands. *(Facilitator-only success reference, never read aloud: More → Farms → farm → CHANGE ACTIVITIES.)*
 - **T3 Switch/understand farms**: existing task K. Observe: app-bar switcher vs More→Farms routes.
 
 ### Production
 
 - **T4 Record today's production** (was B): "आज बिहान [X] उत्पादन भयो, रेकर्ड राख्नुहोस्।" Use participant's real product. Observe: Record discovery, product creation dialog, **default unit sense** (note: defaults to litre), session choice.
+- **T4b Second-product & control-swap watch**: later, ask them to record a DIFFERENT product's output (e.g., "अब गाईको दूध पनि रेकर्ड गर्नुहोस्"). Silently observe: whether they find ADD PRODUCT; whether the left-button now reading DELETE causes hesitation, mis-tap, or near-miss; whether the confirmation dialog registers with them. Do NOT point out the swap before or during; debrief only afterward ("यो बटनले के गर्छ जस्तो लाग्यो?").
 - **T4N Nepali units variant**: same but quantity phrased in मन/पाथी (e.g., "२ पाथी अन्न उत्पादन भयो") or मुरी for stores. Observe: unit spinner discovery; whether मन/पाथी/मुरी labels are found and chosen over litre/kg.
 
 ### Sales
@@ -75,7 +98,7 @@ Original tasks A–M are preserved where still valid, renumbered; new v0.2.2-spe
 
 ### Purchases & supplies
 
-- **T8 Cash purchase** (was F adapted): "फार्मले चाहिने [दाना/मल] किन्नुभयो, नगद तिर्नुभयो।" — Observe: supply creation, unit/BAG selection, stock increment awareness.
+- **T8 Cash purchase** (was F adapted): "फार्मले चाहिने [दाना/मल] किन्नुभयो, नगद तिर्नुभयो।" — Observe: supply creation, unit/BAG selection, stock increment awareness. **Probe (do not characterize as defect):** supplier is requested even for full-cash buys — record whether that makes sense to the participant; afterward ask where they EXPECT this purchase to appear (Expenses? Khata? both?) and check the Today tiles with them silently noted.
 - **T9 Credit purchase partial**: "उधारोमा किन्नुभयो; अहिले अलिकति तिर्नुभयो।" — Observe: supplier creation, Activity selector visibility/reaction (record verbatim interpretation), payable creation.
 - **T10 Supply use** (was G): "अघि किनेको [इनपुट] आज प्रयोग भयो।" — Observe: USED path from Record or Farm Work; remaining-stock mental model (was H: "अब कति बाँकी छ?").
 

@@ -36,6 +36,8 @@ The repository's own records state that no real user has ever participated in va
 |---|---|
 | Protocol refreshed & committed | DONE |
 | Session instruments committed | DONE |
+| Standardized starting-state + reset procedure defined (clean-start; UI-delete preferred, reinstall fallback) | DONE |
+| Facilitator runbook committed | DONE |
 | Rehearsal on released build | PASS |
 | ≥3 completed consented sessions | PENDING (facilitator) |
 | Generic-cash gap probed every session | PENDING |
