@@ -4,6 +4,8 @@
 
 **M14 DISPOSITION: IN PROGRESS — pilot kit complete, rehearsal PASS, facilitated sessions pending**
 
+**Session count: 0 / 3. P01 execution is BLOCKED on a human participant**: the device (`ZA22374XPC`) is staged at the protocol start state with production-signed v0.2.2 (code 5), and `PILOT_01_SESSION_P01.md` is ready for facilitation — it must be conducted by a human facilitator per protocol §3 and may not be simulated. M15 is separately **PASS** (generic cash entry, PR #51); the M14 setup/re-check device pass is **PASS** (PR #52).
+
 M14 is a field-validation milestone, not a development milestone. Released **v0.2.2 (code 5)** is the immutable baseline. This record defines the scope; execution evidence accumulates in:
 
 - `docs/validation/PILOT_01_PROTOCOL_v0.2.2.md` — refreshed protocol (supersedes the v0.2.0 draft)
