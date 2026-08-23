@@ -1,5 +1,9 @@
 # M13 Validation Record — Pilot Release and OTA Validation
 
+## M13 FINAL DISPOSITION: PASS
+
+Every gate is green including the production-signed release path: annotated tag `v0.2.2` → protected GitHub `Release` workflow produced a production-signed APK that passed independent verification (signer certificate matches the frozen production identity), the published GitHub Release asset digest equals the live manifest's `sha256`, and the genuine pilot device upgraded in place from production-signed 0.2.1/4 to 0.2.2/5 over the **live** channel with full data preservation and "Up to date" status afterward.
+
 ## Candidate identity
 
 - **Branch**: `feat/farm-activities`
@@ -22,9 +26,9 @@ Repository HEAD is many commits past the signed v0.2.1 RC-03 (`18d5f5f2…`, con
 | OLD — production-signed pilot | v0.2.1 RC-03, candidate `18d5f5f2c89e12d090bf00f5f47031e3db6d40be`, downloaded from the GitHub release asset | `443e6582b3766348b60c3e608daedd5dfbea0b40f601bb9c661fe88961e417b7` (matches live manifest and prior validation record) | certificate SHA-256 `92a578e8cedad6ea86d2dc27663a3279f07a70794627a280f877ab30b1f89cff`, DN `CN=Kisab Release, OU=Susankhya, O=Susankhya, C=NP` — verified locally via `apksigner verify --print-certs`; matches the frozen v0.1.0 identity enforced in CI |
 | OLD — debug rebuild of the same source | assembled from a git worktree pinned to `18d5f5f2…`; `aapt dump badging`: `versionCode='4' versionName='0.2.1'` | n/a (test artifact) | debug keystore |
 | NEW — M13 target (debug) | HEAD + M13 changes; `versionCode='5' versionName='0.2.2'` | `2196ffc2f5e6bf7d14d0fd8708b212025e788d51f19553d4711e99632d5fe455` (this exact file was the OTA download target) | debug keystore |
-| NEW — production-signed | **PENDING AUTHORIZATION** — must be produced by the protected `RC sign` pipeline against a frozen candidate SHA | to be verified against manifest + cert `92a578e8…` after the run | release keystore |
+| NEW — production-signed (final) | built by the protected `Release` workflow from tag `v0.2.2` → commit `c11f4bb8977c8c2e7b77b0d6f265a93814ac0234`; `aapt dump badging`: `versionCode='5' versionName='0.2.2'`, package `com.susankhya.kisab` | **`6463fe8660b6c9eb59764ad864a2581285bcbf47c6517184c2587e64398a7a94`** (workflow-reported, artifact sidecar, release asset, and anonymous re-download all agree) | certificate SHA-256 `92a578e8cedad6ea86d2dc27663a3279f07a70794627a280f877ab30b1f89cff` — production identity |
 
-Per the M13 execution rule set by the repository owner: no keystore material or passwords were copied into the local environment; all mechanism validation used debug builds; the production-signed gate is explicitly deferred to an authorized push → main → freeze → tag → protected-workflow sequence (see "Pending authorization").
+Per the M13 execution rule set by the repository owner: no keystore material or passwords were copied into the local environment; all mechanism validation used debug builds. The owner subsequently authorized the production gate, which was executed through the repository's tag-based `Release` pipeline (see "Production-signed release gate" below) — no signing policy was weakened and no keystore left CI.
 
 ## Test update channel (validation infrastructure only)
 
@@ -113,10 +117,56 @@ No deadlock between expiry and update paths was observed: update checks run insi
 
 Architecture audit found no further defects: HTTPS-only URL gating, strict manifest validation, strictly-greater version comparison, checksum-before-install ordering, FileProvider authorities/path coverage, archive package-name verification, mutation-guard scoping (27 call sites; backup/export/update never gated), separate clock-floor persistence, deterministic whole-day expiry math, and device-zone day keys were all verified from source during this milestone.
 
+## Production-signed release gate (executed)
+
+### Release topology
+
+- Branch protection requires reviewed PRs with the `build` status check, so the documentation commit reached `main` through PR #45 (`release/v0.2.2-m13`, build PASS 2m59s) → merge commit **`c11f4bb8977c8c2e7b77b0d6f265a93814ac0234`**, which is the single unambiguous release source: its tree contains `appVersionName = "0.2.2"` / `appVersionCode = 5` and `docs/release/RELEASE_NOTES_0.2.2.md`.
+- Annotated tag **`v0.2.2`** → `c11f4bb…` (tag object `3370a06e553fbb8be6767bc23f7f337312680e69`), pushed after local verification and a full `scripts/release-preflight.sh v0.2.2` pass (`versionName=0.2.2 versionCode=5 tag=v0.2.2`).
+- The tag-based `Release` workflow was used instead of editing any frozen-SHA constant: its validate job resolves the annotated tag, peels it to a commit, requires containment in `origin/main`, and re-checks immutability — so signed source, tag target, validated SHA, trusted workflow revision (main), and artifact checkout are all provably the same commit without weakening any trust boundary.
+
+### Protected signing run
+
+- Launcher run `32611322928` (workflow_dispatch `tag=v0.2.2`) emitted the `release-signing-request` dispatch.
+- Release run **`32611327982`**: `validate` SUCCESS → `build-sign` SUCCESS after owner approval of the protected `release-signing` environment deployment → `create-draft-release` SUCCESS.
+- `build-sign` re-ran `verifyLocal` + `verifyReleaseMetadata` from the checked-out validated commit, verified tag == packaged versionName, signed, and recorded the digest of the **final signed APK**: `6463fe8660b6c9eb59764ad864a2581285bcbf47c6517184c2587e64398a7a94`.
+
+### Independent artifact verification (local)
+
+- Workflow artifact `kisab-v0.2.2-signed-apk`: sidecar `.sha256` matches computed SHA-256 of `app-release.apk`.
+- `aapt dump badging`: `package: name='com.susankhya.kisab' versionCode='5' versionName='0.2.2'`.
+- `apksigner verify --print-certs`: `CN=Kisab Release, OU=Susankhya, O=Susankhya, C=NP`; certificate SHA-256 `92a578e8cedad6ea86d2dc27663a3279f07a70794627a280f877ab30b1f89cff` — identical to the production identity enforced since v0.1.0.
+- Draft release assets downloaded separately; asset digest equals artifact digest.
+
+### Live channel publication
+
+- Draft release published as latest (`v0.2.2`); asset URL `https://github.com/lazydeepak/kisab/releases/download/v0.2.2/app-release.apk` returns HTTP 302 → 200 anonymously.
+- Manifest update went through PR #46 (branch protection again): live manifest now advertises `versionCode 5 / versionName 0.2.2`, that exact `apkUrl`, and `sha256 6463fe86…`.
+- Out-of-repo verification: `curl` of `raw.githubusercontent.com/.../pilot-manifest.json` returned the new content, and an anonymous full download of the advertised `apkUrl` hashed to exactly `6463fe86…` — no interval where manifest and artifact disagreed.
+
+### Physical production-signed OTA (the missing M13 gate)
+
+On `ZA22374XPC`, starting from the genuine production-signed v0.2.1 (code 4) with UI-seeded representative state (farm `PilotFarm` USD; production Eggs 10 L; credit sale Ram 12 L @ $10 = $120 total, $50 received, $70 outstanding):
+
+1. Settings → About showed `Kisab 0.2.1`; CHECK FOR UPDATES hit the **live** GitHub manifest.
+2. Dialog: "Current version: 0.2.1 / New version: 0.2.2 / Published: 2026-08-23T01:58:36Z" + data-stays-on-device note + release notes.
+3. DOWNLOAD: in-app streaming SHA-256 verification passed against the live manifest before installer handoff.
+4. Android package installer reached; explicit on-device user consent performed at the installer prompt (performed physically by the owner during the run).
+5. Result: in-place upgrade accepted — `dumpsys package`: `versionCode=5 versionName=0.2.2`, same applicationId/signer (continuity enforced by the OS), no uninstall/reinstall.
+6. Launch: farm `PilotFarm` intact — Today tiles `$120.00 sales / $50.00 received / $0.00 expenses / $70.00 credit sales`, receivable `$70.00`, `Production: Eggs: 10 L` — all equal to the recorded pre-upgrade baseline; Khata shows customer Ram `$70.00` due with the sale trade row intact.
+7. Settings → About now reads `Kisab 0.2.2` and `Update status: Up to date`.
+
+Evidence captures: `prodgate/pre_today.xml|.png`, `update_dialog.xml`, `post_today.xml|.png`, `post_about.xml` (session evidence directory).
+
+### Connected suite after upgrade
+
+Deliberately not executed post-upgrade: `connectedDebugAndroidTest` would replace the production-signed installation with the debug-signed test build (signature conflict forces uninstall, wiping the upgraded pilot store) and thereby destroy the real-upgrade evidence it is meant to extend. The suite already ran green this milestone on this device (**138 tests, 0 failures**) against an identical code tree.
+
+
+
 ## Remaining risks
 
-1. **Pending authorization (STOP point)**: the production-signed 0.2.2 gate requires the owner-approved sequence — push the branch, merge to `main` through review, freeze the new candidate SHA into `rc-sign.yml`/`rc-sign-launch.yml` (pattern of prior PRs #35/#38), create annotated tag `v0.2.2`, run `scripts/release-preflight.sh v0.2.2`, launch the secret-free launcher, let the protected workflow sign, then verify cert `92a578e8…` and the artifact digest against the published manifest, and finally repeat the physical-device OTA from production-signed 0.2.1 to production-signed 0.2.2 (which also re-exercises the schema-12→14 migration on the real pilot store).
-2. The live GitHub manifest still advertises 0.2.1/4 — correct until the authorized publish updates it.
-3. The quick-tunnel hostname is ephemeral validation infrastructure and must not be referenced as a release endpoint.
-4. Play Protect verdicts apply per-artifact; production builds have historically required manual consent (documented), while debuggable artifacts may be hard-blocked.
-5. `RELEASE_NOTES_0.2.2.md` is a draft and must be finalized with final artifact hashes at publish time.
+1. **RESOLVED — production gate executed** as documented above (was the STOP point): tag-based `Release` pipeline used; no frozen-SHA workflow edit was needed.
+2. The live manifest now advertises v0.2.2/5; future drops must follow the same sequence (PR → merge → tag → protected sign → publish release → verify digest → manifest PR).
+3. Play Protect verdicts apply per-artifact and per-scan: this production-signed drop installed with on-device consent; keep documenting any consent prompt in future pilot updates.
+4. `RELEASE_NOTES_0.2.2.md` was published with the draft release body; it intentionally omits final hashes (the manifest + release assets carry authoritative digests).

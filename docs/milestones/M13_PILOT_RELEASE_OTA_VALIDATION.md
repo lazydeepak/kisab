@@ -2,11 +2,11 @@
 
 ## Status
 
-**M13 FINAL DISPOSITION: PASS (mechanism) / PENDING-AUTHORIZATION (production-signed gate)**
+**M13 FINAL DISPOSITION: PASS**
 
-Implemented on `feat/farm-activities` on top of M12 at `3526e97`. This record is the authority for the M13 scope: proving the complete private-release lifecycle end to end — release artifact identity, OTA update pipeline, data preservation across real in-place upgrades, negative-path fail-safety, expiry/update interaction, and release workflow/preflight audit — as a **release-hardening milestone** with no product features.
+Implemented on `main` on top of M12 at `3526e97` (code hardening landed via `fd37aed`, evidence records via `2410be3`). This record is the authority for the M13 scope: proving the complete private-release lifecycle end to end — release artifact identity, OTA update pipeline, data preservation across real in-place upgrades, negative-path fail-safety, expiry/update interaction, and release workflow/preflight audit — as a **release-hardening milestone** with no product features. The production-signed gate was executed under owner authorization: tag `v0.2.2` → protected `Release` workflow run `32611327982` → verified APK `6463fe86…7a94` (cert `92a578e8…`) → live manifest published → physical 0.2.1→0.2.2 OTA with full preservation.
 
-Validation evidence: `docs/validation/M13_PILOT_RELEASE_OTA_VALIDATION.md` (486 unit tests / 0 failures, lint 0 errors, connected suite 138/138 on `ZA22374XPC`, full documented OTA chain on device+emulator with byte-exact data preservation, five negative cases green, complete expiry matrix).
+Validation evidence: `docs/validation/M13_PILOT_RELEASE_OTA_VALIDATION.md`.
 
 ## 1. Problem being solved
 
@@ -50,7 +50,7 @@ A Cloudflare quick tunnel exposed a local static origin over publicly trusted TL
 |---|---|
 | `verifyLocal` green | PASS (486/0, lint 0, 0.2.2/5 metadata) |
 | Connected suite remains green | PASS (138/0) |
-| Real signed older → newer upgrade succeeds | PASS for mechanism (debug pair, emulator full completion; physical Android 16 completed same pair earlier); **production-signed pair PENDING AUTHORIZATION** |
+| Real signed older → newer upgrade succeeds | PASS — production-signed 0.2.1/4 → production-signed 0.2.2/5 over the **live** channel on `ZA22374XPC`; mechanism additionally proven end-to-end on the API-26 emulator with the debug pair |
 | Android accepts signer continuity | PASS (same-signer in-place upgrades accepted; production identity verified via apksigner against frozen value) |
 | Manifest identifies correct target version | PASS (exact manifest recorded) |
 | Checksum corresponds to final artifact | PASS (target sha256 = downloaded file digest) |
