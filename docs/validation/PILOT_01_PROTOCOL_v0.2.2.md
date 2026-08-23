@@ -58,7 +58,7 @@ All sessions: default text size start; large-text block performed at session end
 
 **Session-start state (verified aloud before consent):**
 - App: production-signed v0.2.2 / code 5, first-run screen visible ("Farm name" + CREATE FARM), zero existing farms.
-- Settings at defaults: English or Nepali UI per session matrix, text size default (16 sp), appearance Follow-system, notifications as found.
+- Settings at defaults: English or Nepali UI per session matrix, text size default (**24 sp** — `AppTextSize.DEFAULT_SP`; the app intentionally renders 24/16 = 1.5× authored sizes on fresh installs), appearance Follow-system, notifications as found.
 
 **Reset procedure between participants (in order of preference):**
 1. **UI-based (preferred):** More → Farms → open each farm → DELETE FARM (confirm). When the last farm is deleted the app returns to the first-run screen. Then Settings: restore language/text-size/appearance defaults manually. Verify: first-run screen with empty farm list.

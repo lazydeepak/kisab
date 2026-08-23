@@ -1,33 +1,32 @@
-# PILOT-01 Session Record — v0.2.2
+# PILOT-01 Session Record — P01 (v0.2.2)
 
-> Copy this file per participant: `PILOT_01_SESSION_P0X.md`. Keep only the sections that apply.
-> Anonymity: participant ID only; no names/numbers/addresses/photos anywhere.
+> **SCAFFOLD — no observations recorded yet.** All blank fields are filled by the facilitator during/after the live session. Nothing in this file may be pre-filled from rehearsal or assumption.
 
 ## 1. Profile & configuration
 
 | Field | Value |
 |---|---|
-| Participant | P0_ |
-| Farming type | dairy / poultry / vegetable-crop / mixed |
-| Smartphone confidence | low / medium / high |
-| Session language used for tasks | EN / NE |
-| Device & screen | (model, approx size) |
-| Android version | |
-| Build verified | v0.2.2 (code 5) — confirm from Settings→About before start |
-| Starting state | first-run screen, zero farms (reset method used: UI-delete / reinstall; verification result: ) |
-| Appearance mode during tasks | Follow-system / Light / Dark |
-| Text size | factory default 24 sp (large-text block performed at end: Y/N) |
-| Orientation notes | portrait throughout / landscape spot-check result |
+| Participant | P01 |
+| Farming type | _(facilitator: dairy / poultry / vegetable-crop / mixed)_ |
+| Smartphone confidence | _(low / medium / high)_ |
+| Session language used for tasks | English (per matrix; switch only if participant prefers) |
+| Device & screen | Motorola Edge 60 Fusion, ~6.7" |
+| Android version | Android 16 (API 36) |
+| Build verified | **Kisab v0.2.2 (code 5)** — verified in Settings→About before start |
+| Starting state | first-run screen, zero farms — VERIFIED before handoff |
+| Reset method used | UI-delete of rehearsal farms + reinstall fallback (auto-restore resurrected old farm; deleted via UI) — see runbook hazard note |
+| Appearance mode during tasks | Follow-system |
+| Text size | factory default 24 sp |
+| Orientation notes | portrait throughout; landscape spot-check at end |
+| Consent | ☐ verbal script read; participant agreed *(mark when done)* |
 
 ## 2. Task log
-
-For each task attempted: **first action** · independent completion Y/N · time-to-complete (rough) · hesitations/mis-taps/backtracking (verbatim where useful) · facilitator intervention · what participant said labels meant.
 
 | Task | First action | Completed unassisted | Time | Observations / exact quotes | Intervention |
 |---|---|---|---|---|---|
 | T1 create farm | | | | | |
 | T2 choose activities | | | | | |
-| T3 switch farm | | | | | |
+| T3 switch farm | n/a this session unless second farm created | | | | |
 | T4 production (+unit) | | | | | |
 | T4b second-product / control-swap watch | | | | | |
 | T4N मन/पाथी/मुरी variant | | | | | |
@@ -44,11 +43,11 @@ For each task attempted: **first action** · independent completion Y/N · time-
 | T15 misc cash income probe | | | | | |
 | T16 protect records (backup) | | | | | |
 
-**Consent:** verbal script read; participant agreed.
+**Consent:** ☐ agreed
 
 ## 3. Generic-cash probe detail (T14/T15) — mandatory
 
-| Aspect | T14 expense | T15 income |
+| Aspect | T14 expense (transport/electricity/labour) | T15 income (misc farm income) |
 |---|---|---|
 | First path tried | | |
 | Succeeded? | | |
@@ -71,22 +70,22 @@ For each task attempted: **first action** · independent completion Y/N · time-
 
 ## 5. M9 debt checks performed this session
 
-- [ ] Nepali walkthrough (whole session in NE)
+- [ ] Nepali walkthrough (if assigned)
 - [ ] Dark mode walkthrough
-- [ ] Landscape spot-check
+- [x] Landscape spot-check *(assigned P01)*
 - [ ] Saved text-size persists after relaunch
-- [ ] मन/पाथी/मुरी workflow
+- [x] मन/पाथी/मुरी workflow *(assigned P01)*
 Notes/clipping/overlap observations:
 
-## 6. Large-text block (if assigned)
+## 6. Large-text block
 
-Slider position used · relaunch persistence Y/N · clipped text locations · unreachable actions · dialog issues:
+Not assigned to P01 (per matrix).
 
 ## 7. Defects & findings raised by this session
 
 Keep the three layers separate — do not collapse them into one claim.
 
-| # | **Observed fact** (what literally happened / was said) | Tag (product-defect/comprehension/android-unfamiliarity/needs-evidence) | Sev P0–P3 | **Interpretation** (hypothesis) | **Recommendation** (product change, if any) |
+| # | **Observed fact** | Tag | Sev P0–P3 | **Interpretation** | **Recommendation** |
 |---|---|---|---|---|---|
 
 ## 8. Interview highlights
