@@ -91,6 +91,22 @@
         android:textStyle="bold" />
 
     <Button
+        android:id="@+id/recordSheetOtherIncomeButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:minHeight="56dp"
+        android:text="@string/other_income_action" />
+
+    <Button
+        android:id="@+id/recordSheetOtherExpenseButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:minHeight="56dp"
+        android:text="@string/other_expense_action" />
+
+    <Button
         android:id="@+id/recordSheetPaidMoneyButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

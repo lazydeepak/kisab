@@ -32,12 +32,16 @@ data class TransactionEditorState(
     val occurredAt: OffsetDateTime
 ) {
     companion object {
-        fun create(type: TransactionType, occurredAt: OffsetDateTime): TransactionEditorState =
+        fun create(
+            type: TransactionType,
+            occurredAt: OffsetDateTime,
+            category: TransactionCategory? = null
+        ): TransactionEditorState =
             TransactionEditorState(
                 mode = TransactionEditorMode.CREATE,
                 transactionId = null,
                 type = type,
-                category = FarmOrdering.categoriesFor(type).first(),
+                category = category ?: FarmOrdering.categoriesFor(type).first(),
                 activity = null,
                 amountText = "",
                 description = "",

@@ -68,6 +68,8 @@
     <string name="received_money_overpayment">पाएको रकम ग्राहकको लिन बाँकी रकमभन्दा बढी छ।</string>
     <string name="supply_purchase_action">किनेँ</string>
     <string name="supplier_payment_action">पैसा तिरेँ</string>
+    <string name="other_income_action">अन्य आम्दानी</string>
+    <string name="other_expense_action">अन्य खर्च</string>
     <string name="supplier_purchase_supplier">आपूर्तिकर्ता</string>
     <string name="supplier_add">आपूर्तिकर्ता थप्नुहोस्</string>
     <string name="supplier_payment_title">पैसा तिरेँ</string>
@@ -195,6 +197,8 @@
     <string name="transaction_row_format">- %1$s | %2$s | %3$s | %4$s | %5$s</string>
 
     <string name="transaction_editor_new_section">नयाँ लेनदेन</string>
+    <string name="transaction_editor_new_other_income">अन्य आम्दानी राख्नुहोस्</string>
+    <string name="transaction_editor_new_other_expense">अन्य खर्च राख्नुहोस्</string>
     <string name="transaction_editor_edit_section">लेनदेन सम्पादन गर्नुहोस्</string>
     <string name="transaction_date_time_label">मिति/समय</string>
     <string name="change_date_time_action">मिति र समय परिवर्तन गर्नुहोस्</string>
