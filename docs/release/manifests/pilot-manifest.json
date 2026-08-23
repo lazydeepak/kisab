@@ -1,8 +1,8 @@
 {
-  "versionCode": 4,
-  "versionName": "0.2.1",
-  "apkUrl": "https://github.com/lazydeepak/kisab/releases/download/v0.2.1/kisab-v0.2.1-rc-signed.apk",
-  "sha256": "443e6582b3766348b60c3e608daedd5dfbea0b40f601bb9c661fe88961e417b7",
-  "releaseNotes": "Kisab v0.2.1 first pilot OTA target: active update channel delivering an in-place signed upgrade with data preservation.",
-  "publishedAt": "2026-08-18T15:37:00Z"
+  "versionCode": 5,
+  "versionName": "0.2.2",
+  "apkUrl": "https://github.com/lazydeepak/kisab/releases/download/v0.2.2/app-release.apk",
+  "sha256": "6463fe8660b6c9eb59764ad864a2581285bcbf47c6517184c2587e64398a7a94",
+  "releaseNotes": "Kisab v0.2.2: update-integrity hardening with streaming checksum verification; fully green on-device test baseline.",
+  "publishedAt": "2026-08-23T01:58:36Z"
 }
