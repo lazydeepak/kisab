@@ -47,7 +47,7 @@
 - OTHER INCOME → title "Record other income" → Activity set to Poultry → saved; recent row shows `Poultry | Income | Other income…`; Khata confirmed free of parties/trades throughout.
 - NE strings present with parity (`अन्य आम्दानी`, `अन्य खर्च`, titles `अन्य आम्दानी राख्नुहोस्` / `अन्य खर्च राख्नुहोस्`); LocalizationParityTest enforces key parity.
 
-*Interruption note:* the physical device was twice removed from Kisab mid-walkthrough by activity outside this milestone. The final Received-tile confirmation was therefore completed via the dedicated unit test plus the green connected run; a visual confirmation folds into the next M14 session setup.
+*Interruption note resolved:* the physical device was twice removed from Kisab mid-walkthrough by activity outside this milestone, deferring one visual check. **Re-check PASS (M14 setup pass, 2026-08-23):** on a freshly installed build at `37c4099`, OTHER INCOME $30 "ManureSale" with Activity=Poultry saved from the Record sheet, the ledger row rendered `Poultry | Income | Other income | ManureSale | $30.00`, and **Today's Received tile updated live to `$30.00`**; OTHER EXPENSE $12.50 "VanFare" likewise updated the Expenses tile; Khata showed zero parties/trades. Device then reset to the clean first-run state for P01.
 
 ## M14 interaction (accurate record)
 
