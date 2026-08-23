@@ -12,8 +12,9 @@ Companion to `PILOT_01_PROTOCOL_v0.2.2.md`. This is operations only; the protoco
 
 1. **Reset to clean start** (protocol §4a):
    - More → Farms → open every farm listed → DELETE FARM (confirm each) until first-run "Farm name" screen returns.
-   - Settings → restore defaults: language per session matrix · text size default · appearance Follow-system.
+   - Settings → restore defaults: language per session matrix · text size default (**24 sp**) · appearance Follow-system.
    - If anything looks off: uninstall Kisab → reinstall the same APK from GitHub release v0.2.2 → allow install-unknown-apps when asked.
+   - **⚠ Device hazard (ZA22374XPC): Android auto-restore can resurrect deleted farms and old settings after a reinstall.** After ANY reinstall, verify the first-run screen; if old farms reappear, delete them via the UI before the session. Factory-default text size is **24 sp** — do not "correct" it to 16.
 2. Verify first-run screen + About version. Record reset method in template §1.
 3. Read consent script; get agreement.
 
