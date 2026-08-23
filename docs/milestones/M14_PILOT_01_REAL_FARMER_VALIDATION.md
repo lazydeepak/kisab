@@ -52,11 +52,11 @@ M14 reaches final PASS only when the pending rows are satisfied by genuine sessi
 
 Rehearsal findings F1–F6 are facilitator briefings and M15 candidates-in-waiting, not fixes: IME covering SAVE (F1), ADD PRODUCT ↔ DELETE neutral-button swap on the production dialog (F2), silent duplicate-product rejection (F3), mandatory supplier for cash buys (F4), supplier-present cash purchases invisible in Today expenses (F5), over-production shown as "All accounted for" (F6). Each gets confirmed/refuted by observed participant behavior before any code changes.
 
-## 7. Session readiness re-check (post-M15)
+## 6. Session readiness re-check (post-M15)
 
 After M15 landed (`37c4099`), a device re-check confirmed the pilot environment and added one live verification: production-line build (v0.2.2/code 5 carrying M15) installed on `ZA22374XPC`; Record sheet shows all nine verbs including OTHER INCOME / OTHER EXPENSE; generic income $30 "ManureSale" with Activity=Poultry saved with no Party/Product/Supply and **Today's Received tile updated live to $30.00** (the check deferred from the M15 walkthrough); generic expense $12.50 "VanFare" updated the Expenses tile; Khata remained free of parties/trades. Device then reset to the verified clean first-run state — **ready for P01**.
 
-## 8. Files
+## 7. Files
 
 - `docs/milestones/M14_PILOT_01_REAL_FARMER_VALIDATION.md` (this record)
 - `docs/validation/PILOT_01_PROTOCOL_v0.2.2.md`
