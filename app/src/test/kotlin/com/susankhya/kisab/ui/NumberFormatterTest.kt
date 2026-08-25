@@ -25,4 +25,10 @@ class NumberFormatterTest {
         assertEquals("३", formatter.format(ne, 3))
         assertEquals("१,२३४", formatter.format(ne, 1234))
     }
+
+    @Test
+    fun disablesNumberGroupingWhenRequested() {
+        assertEquals("1234", formatter.format(Locale.US, 1234, grouping = false))
+        assertEquals("१२३४", formatter.format(ne, 1234, grouping = false))
+    }
 }

@@ -36,16 +36,9 @@ scripts/release-preflight.sh
 scripts/release-preflight.sh v0.2.0
 ```
 
-## Milestone status
-- Kisab M0 is complete. The repository now contains the documented product scope, architecture, and a farm-domain vertical slice grounded in the product boundary.
-- Kisab M1 is complete. It implements an offline farm-management flow with a launchable Android UI, local persistence, deterministic domain operations, and automated coverage for the complete journey.
-- Kisab M2 is complete. It hardens the transaction model with stable IDs, explicit transaction types and categories, minor-unit money with currency codes, explicit timestamps, validation, and create/edit/delete flows.
-- Kisab M3 is complete. It adds fully offline single-farm backup/restore using a versioned backup envelope, Android document picker integration, full pre-restore validation, and destructive overwrite confirmation.
-- Kisab `v0.1.0` is published and verified. The annotated tag points to a commit contained in `main`, and release workflow run `30750947492` produced the production-signed APK that passed tests, lint, tag/version validation, Android APK signature verification using v2 signing, and independent checksum verification. The GitHub release is published. See `docs/release/RELEASE_NOTES_0.1.0.md` for the full record.
-- Kisab M4 implementation and physical-device pilot work are complete; M4-05 release-candidate closeout remains deferred. M5-00 through M5-05, M6, and M6.1 are merged on `main`, covering the application shell, Parties, Trades, Settlements, Party Khata, farm financial overview, Party Hisab calculator, and branded navigation shell.
-- M6.2 adds a local CI-equivalent Gradle gate, machine-readable build evidence, workflow lint, API-36-hermetic GitHub CI, Android-test compilation in CI, and secret-free release preflight. It does not publish a release.
-- M6.3 adds offline money arithmetic, profit/loss, simple-interest, and Nepali land-unit calculators to Hisab without persisting results or changing farm accounting data.
-- M6.4 adds farmer-entered seed, fertilizer, feed, milk, and crop-yield planning calculators. They remain offline, temporary projections and do not provide agronomy recommendations or alter farm records.
+## Project status
+
+Current work and stage: `docs/CURRENT.md`. Milestone records and dispositions: `docs/milestones/`, with validation evidence under `docs/validation/`. Deferred work: `docs/BACKLOG.md`. Agent operating contract: `AGENTS.md`.
 
 ## Kisab M1 acceptance criteria
 - Launch a usable Android app from a launcher activity.
@@ -86,4 +79,4 @@ export KISAB_KEY_PASSWORD=...
 
 CI signs releases through the `Release` workflow, which runs on `repository_dispatch` (never on tag push, and never on manual `workflow_dispatch` — a manual run could be started from a selected branch). GitHub sources `repository_dispatch` runs from the default branch `main` and sets `GITHUB_REF` to `main`, so the workflow that reaches signing secrets is always the trusted, reviewed `main` version. Start a release from the secret-free `Release launcher` workflow ("Run workflow"), which emits the event. A secret-free `validate` job verifies the supplied tag is annotated and points at a commit contained in `origin/main`; the `build-sign` job then checks out that validated commit SHA and signs using the `KISAB_KEYSTORE_B64` and password/alias secrets stored on the protected `release-signing` GitHub Environment (configured to permit only the `main` branch, with required reviewers). The keystore is never committed to the repository, never echoed or logged, and is reconstructed only into a temporary runner-local path that is deleted when the job ends. Its base64 form is stored as a GitHub Actions environment secret, which is guarded by the repository owner.
 
-See the documentation in `docs/charter/`, `docs/architecture/`, `docs/decisions/`, and `docs/release/` for the charter, v1 boundary, architecture decision record, and release policy.
+See the documentation in `docs/charter/`, `docs/architecture/`, `docs/decisions/`, and `docs/release/` for the charter, v1 boundary, architecture decision records, and release policy. The accepted-but-frozen post-`v0.2.0` multiplatform direction is recorded in `docs/decisions/ADR-0002-post-v0.2.0-multiplatform-direction.md`; agent workflow and validation-depth rules are recorded in `docs/decisions/ADR-0003-agent-workflow-and-validation-depth.md`.

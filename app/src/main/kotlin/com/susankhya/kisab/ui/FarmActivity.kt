@@ -1,26 +1,43 @@
 package com.susankhya.kisab.ui
 
 import android.app.DatePickerDialog
+import android.app.Dialog
 import android.app.LocaleManager
 import android.app.TimePickerDialog
 import android.content.Intent
+import android.content.DialogInterface
+import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
+import android.net.Uri
 import android.os.Bundle
 import android.os.LocaleList
+import android.text.Editable
 import android.text.InputType
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.TextWatcher
 import android.text.format.DateFormat
+import android.text.style.RelativeSizeSpan
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.view.Gravity
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import androidx.annotation.RequiresApi
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.SeekBar
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
@@ -30,13 +47,18 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import com.susankhya.kisab.BuildConfig
 import com.susankhya.kisab.R
+import com.susankhya.kisab.domain.FarmActivityCatalog
+import com.susankhya.kisab.domain.FarmActivityType
 import com.susankhya.kisab.domain.FarmEntry
 import com.susankhya.kisab.domain.FarmEntryKind
 import com.susankhya.kisab.domain.FarmSliceService
@@ -48,15 +70,36 @@ import com.susankhya.kisab.domain.FinancialPeriodPreset
 import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.domain.ArithmeticOperation
 import com.susankhya.kisab.domain.KisanCalculators
+import com.susankhya.kisab.domain.FarmManagement
+import com.susankhya.kisab.domain.AccountLink
+import com.susankhya.kisab.domain.AccountLinkService
+import com.susankhya.kisab.domain.LocalUserService
 import com.susankhya.kisab.domain.LandUnit
 import com.susankhya.kisab.domain.Party
 import com.susankhya.kisab.domain.PartyDraft
 import com.susankhya.kisab.domain.PartyLedgerEntryType
 import com.susankhya.kisab.domain.PartyRole
+import com.susankhya.kisab.domain.FarmProduct
+import com.susankhya.kisab.domain.ProductSaleDetail
+import com.susankhya.kisab.domain.ProductSaleHistory
+import com.susankhya.kisab.domain.ProductUnit
+import com.susankhya.kisab.domain.FarmSupply
+import com.susankhya.kisab.domain.SupplyUsageDraft
+import com.susankhya.kisab.domain.ProductionRecordDraft
+import com.susankhya.kisab.domain.ProductionSession
+import com.susankhya.kisab.domain.productionForDay
+import com.susankhya.kisab.domain.ProductionAllocationDraft
+import com.susankhya.kisab.domain.ProductionAllocationType
+import com.susankhya.kisab.domain.PartyLedger
+import com.susankhya.kisab.domain.PartyLedgerSummary
+import com.susankhya.kisab.domain.partyLedger
+import com.susankhya.kisab.domain.partyLedgerSummary
+import com.susankhya.kisab.domain.farmerOverview
 import com.susankhya.kisab.domain.PaymentStatus
 import com.susankhya.kisab.domain.Trade
 import com.susankhya.kisab.domain.TradeDraft
 import com.susankhya.kisab.domain.TradeType
+import com.susankhya.kisab.domain.TraditionalGrainUnit
 import com.susankhya.kisab.domain.TransactionCategory
 import com.susankhya.kisab.domain.TransactionType
 import com.susankhya.kisab.domain.Settlement
@@ -70,21 +113,58 @@ import com.susankhya.kisab.persistence.FarmBackupCodec
 import com.susankhya.kisab.persistence.FarmBackupException
 import com.susankhya.kisab.persistence.FarmBackupFileAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesAppLanguagePreferences
+import com.susankhya.kisab.persistence.SharedPreferencesAppAppearancePreferences
+import com.susankhya.kisab.persistence.SharedPreferencesAppTextSizePreferences
+import com.susankhya.kisab.persistence.SharedPreferencesBackupFreshnessStore
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
+import com.susankhya.kisab.notifications.NotificationCategory
+import com.susankhya.kisab.notifications.NotificationChannels
+import com.susankhya.kisab.notifications.NotificationCoordinator
+import com.susankhya.kisab.notifications.NotificationDeepLink
+import com.susankhya.kisab.notifications.NotificationPermission
+import com.susankhya.kisab.notifications.NotificationPermissionPresentation
+import com.susankhya.kisab.notifications.NotificationPermissionUiState
+import com.susankhya.kisab.notifications.NotificationPreferences
+import com.susankhya.kisab.persistence.SharedPreferencesAccountLinkStore
+import com.susankhya.kisab.persistence.SharedPreferencesNotificationPreferences
+import com.susankhya.kisab.persistence.SharedPreferencesPrivateBuildClockStore
+import com.susankhya.kisab.persistence.SharedPreferencesPrivateBuildWarningStore
+import com.susankhya.kisab.release.PrivateBuildAccessStage
+import com.susankhya.kisab.release.PrivateBuildExpiryGate
+import com.susankhya.kisab.release.PrivateBuildExpirySnapshot
+import com.susankhya.kisab.persistence.SharedPreferencesLocalUserStore
+import com.susankhya.kisab.update.ApkDownloader
+import com.susankhya.kisab.update.ApkInstaller
+import com.susankhya.kisab.update.StaticManifestUpdateSource
+import com.susankhya.kisab.update.UpdateCheckResult
+import com.susankhya.kisab.update.UpdateInfo
+import com.susankhya.kisab.update.VersionInfo
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.math.BigDecimal
+import java.text.DecimalFormatSymbols
+import java.util.IdentityHashMap
 import java.util.Locale
 
 class FarmActivity : AppCompatActivity() {
     private lateinit var store: SharedPreferencesFarmStore
     private lateinit var service: FarmSliceService
+    private lateinit var localUserService: LocalUserService
+    private lateinit var accountLinkService: AccountLinkService
+    private lateinit var privateBuildExpiryGate: PrivateBuildExpiryGate
+    private lateinit var privateBuildWarningStore: SharedPreferencesPrivateBuildWarningStore
+    private var privateBuildExpiryStartupHandled = false
     internal lateinit var backupFileAdapter: FarmBackupFileAdapter
 
-    private enum class Destination { HOME, HISAB_KITAB, HISAB, SETTINGS }
+    private enum class Destination { TODAY, KHATA, FARM_WORK, MORE, HISAB, SETTINGS, FARMS, FARM_DETAILS, ADD_FARM }
+    private enum class KhataFilter { ALL, TO_RECEIVE, TO_PAY }
 
     private val moneyFormatter = MoneyFormatter()
     private val moneyInputParser = MoneyInputParser(moneyFormatter)
@@ -102,13 +182,19 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var shellRoot: LinearLayout
     private lateinit var shellAppBar: LinearLayout
     private lateinit var shellTitle: TextView
+    private lateinit var shellFarmSwitchIcon: ImageView
     private lateinit var shellMenuButton: ImageButton
+    private lateinit var privateBuildExpiryBanner: TextView
     private lateinit var bottomNavigation: LinearLayout
-    private lateinit var navHomeItem: LinearLayout
-    private lateinit var navHisabKitabItem: LinearLayout
-    private lateinit var navHisabItem: LinearLayout
+    private lateinit var navTodayItem: LinearLayout
+    private lateinit var navKhataItem: LinearLayout
+    private lateinit var navRecordItem: LinearLayout
+    private lateinit var navFarmWorkItem: LinearLayout
+    private lateinit var navMoreItem: LinearLayout
     private lateinit var hisabKitabScreen: ScrollView
     private lateinit var hisabScreen: ScrollView
+    private lateinit var farmWorkScreen: ScrollView
+    private lateinit var moreScreen: ScrollView
     private lateinit var settingsScreen: ScrollView
 
     private lateinit var hisabNoFarmText: TextView
@@ -146,6 +232,11 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var landToUnitSpinner: Spinner
     private lateinit var convertLandButton: Button
     private lateinit var landResultText: TextView
+    private lateinit var grainValueInput: EditText
+    private lateinit var grainFromUnitSpinner: Spinner
+    private lateinit var grainToUnitSpinner: Spinner
+    private lateinit var convertGrainButton: Button
+    private lateinit var grainResultText: TextView
 
     // Farm Planning
     private lateinit var farmPlanningCalculatorSpinner: Spinner
@@ -246,6 +337,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var tradeEditorContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var tradeEditorTitle: TextView
     private lateinit var tradePartySpinner: Spinner
+    private lateinit var tradeActivityLabel: TextView
+    private lateinit var tradeActivitySpinner: Spinner
     private lateinit var tradeTotalInput: EditText
     private lateinit var tradeStatusPaidRadio: RadioButton
     private lateinit var tradeStatusPartialRadio: RadioButton
@@ -287,10 +380,63 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var addSettlementButton: Button
     private lateinit var doneSettlementsButton: Button
 
-    private lateinit var settingsCurrencyText: TextView
-    private lateinit var changeSettingsCurrencyButton: Button
-    private lateinit var settingsCurrencyLockedText: TextView
-    private lateinit var settingsNoFarmText: TextView
+    private lateinit var settingsDataNoFarmText: TextView
+    private lateinit var settingsExportBackupButton: Button
+    private lateinit var settingsImportBackupButton: Button
+    private lateinit var settingsAboutSection: View
+    private lateinit var settingsAboutVersionText: TextView
+    private lateinit var settingsAboutUpdateStatusText: TextView
+    private lateinit var settingsAboutUpdateButton: Button
+    private lateinit var settingsAppearanceSection: TextView
+    private lateinit var settingsDataSection: TextView
+    private lateinit var settingsAccountSection: TextView
+    private lateinit var settingsAccountStatusLabel: TextView
+    private lateinit var settingsAccountStatusDetail: TextView
+    private lateinit var settingsAccountSignInRequiredText: TextView
+    private lateinit var settingsNotificationsSection: TextView
+    private lateinit var settingsNotificationsStatusText: TextView
+    private lateinit var settingsNotificationsExplanationText: TextView
+    private lateinit var settingsNotificationsActionButton: Button
+    private lateinit var notificationUpdatesOnRadio: RadioButton
+    private lateinit var notificationUpdatesOffRadio: RadioButton
+    private lateinit var notificationRemindersOnRadio: RadioButton
+    private lateinit var notificationRemindersOffRadio: RadioButton
+    private lateinit var notificationPreferences: NotificationPreferences
+    private var notificationSelectionSuppressed = false
+    private lateinit var requestNotificationPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var farmsScreen: ScrollView
+    private lateinit var farmsListContainer: LinearLayout
+    private lateinit var farmsEmptyText: TextView
+    private lateinit var addFarmButton: Button
+    private lateinit var farmDetailsScreen: ScrollView
+    private lateinit var farmDetailsNameText: TextView
+    private lateinit var farmDetailsRenameButton: Button
+    private lateinit var farmDetailsCurrencyText: TextView
+    private lateinit var farmDetailsChangeCurrencyButton: Button
+    private lateinit var farmDetailsActiveStatusText: TextView
+    private lateinit var farmDetailsSwitchButton: Button
+    private lateinit var farmDetailsActivitiesEmptyText: TextView
+    private lateinit var farmDetailsActivitiesContainer: LinearLayout
+    private lateinit var farmDetailsChangeActivitiesButton: Button
+    private lateinit var farmDetailsBreakdownContainer: LinearLayout
+    private lateinit var farmDetailsResetButton: Button
+    private lateinit var farmDetailsDeleteButton: Button
+    private lateinit var addFarmScreen: ScrollView
+    private lateinit var addFarmNameInput: EditText
+    private lateinit var addFarmCurrencyText: TextView
+    private lateinit var addFarmChangeCurrencyButton: Button
+    private lateinit var addFarmActivitiesText: TextView
+    private lateinit var addFarmChooseActivitiesButton: Button
+    private lateinit var addFarmCreateButton: Button
+    private lateinit var settingsTextSizeValueText: TextView
+    private lateinit var settingsTextSizeSeekBar: SeekBar
+    private lateinit var currencyDisplayOnRadio: RadioButton
+    private lateinit var currencyDisplayOffRadio: RadioButton
+    private lateinit var numberGroupingOnRadio: RadioButton
+    private lateinit var numberGroupingOffRadio: RadioButton
+    private lateinit var appearanceModeFollowSystemRadio: RadioButton
+    private lateinit var appearanceModeLightRadio: RadioButton
+    private lateinit var appearanceModeDarkRadio: RadioButton
     private lateinit var languageFollowDeviceRadio: RadioButton
     private lateinit var languageEnglishRadio: RadioButton
     private lateinit var languageNepaliRadio: RadioButton
@@ -298,19 +444,18 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var createFarmContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmDetailsContainer: androidx.appcompat.widget.LinearLayoutCompat
     private lateinit var farmNameInput: EditText
+    private lateinit var createFarmCurrencyText: TextView
+    private lateinit var changeCreateFarmCurrencyButton: Button
     private lateinit var createFarmButton: Button
-    private lateinit var farmNameText: TextView
-    private lateinit var balanceText: TextView
-    private lateinit var incomeText: TextView
-    private lateinit var expensesText: TextView
-    private lateinit var firstActionPrompt: TextView
-    private lateinit var recordIncomeButton: Button
-    private lateinit var recordExpenseButton: Button
+    private lateinit var createFarmActivitiesText: TextView
+    private lateinit var createFarmChooseActivitiesButton: Button
     private lateinit var transactionEditorContainer: LinearLayoutCompat
     private lateinit var transactionEditorTitle: TextView
     private lateinit var transactionTypeIncomeRadio: RadioButton
     private lateinit var transactionTypeExpenseRadio: RadioButton
     private lateinit var transactionCategorySpinner: Spinner
+    private lateinit var transactionActivityLabel: TextView
+    private lateinit var transactionActivitySpinner: Spinner
     private lateinit var transactionAmountInput: EditText
     private lateinit var transactionDescriptionInput: EditText
     private lateinit var transactionDateTimeText: TextView
@@ -331,17 +476,102 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var addEntryButton: Button
     private lateinit var exportBackupButton: Button
     private lateinit var importBackupButton: Button
+    private lateinit var farmerOverviewMonthButton: Button
+    private lateinit var farmWorkProductionButton: Button
+    private lateinit var farmWorkAllocationButton: Button
+    private lateinit var farmWorkBoughtButton: Button
+    private lateinit var farmWorkUsedButton: Button
+    private lateinit var farmWorkRemainingButton: Button
+    private lateinit var moreHisabButton: Button
+    private lateinit var moreFarmsButton: Button
+    private lateinit var moreSettingsButton: Button
+    private lateinit var moreBackupButton: Button
+    private lateinit var moreAboutButton: Button
+
+    private lateinit var todayHeaderBar: LinearLayout
+    private lateinit var todayDateText: TextView
+    private lateinit var todayHeroCard: View
+    private lateinit var todayHeroTitle: TextView
+    private lateinit var todayEmptyStateText: TextView
+    private lateinit var todayProductionContainer: View
+    private lateinit var todayProductionHeadlineText: TextView
+    private lateinit var todayUnexplainedContainer: View
+    private lateinit var todayUnexplainedText: TextView
+    private lateinit var todayReconcileButton: Button
+    private lateinit var todayMoneyMetricsContainer: View
+    private lateinit var todaySalesValueText: TextView
+    private lateinit var todayReceivedValueText: TextView
+    private lateinit var todayExpensesValueText: TextView
+    private lateinit var todayCreditSalesContainer: View
+    private lateinit var todayCreditSalesValueText: TextView
+    private lateinit var todayMoneyAttentionCard: View
+    private lateinit var todayKhataSettledText: TextView
+    private lateinit var todayReceivableContainer: View
+    private lateinit var todayReceivableAmountText: TextView
+    private lateinit var todayViewReceivablesButton: Button
+    private lateinit var todayPayableContainer: View
+    private lateinit var todayPayableAmountText: TextView
+    private lateinit var todayViewPayablesButton: Button
+    private lateinit var todayFarmStatusCard: View
+    private lateinit var todayNoFarmStatusText: TextView
+    private lateinit var todayProductionStatusText: TextView
+    private lateinit var todaySuppliesStatusText: TextView
+    private lateinit var todayViewFarmWorkButton: Button
+
+    private lateinit var farmWorkRecordProductionButton: Button
+    private lateinit var farmWorkNoProductsText: TextView
+    private lateinit var farmWorkProductionContainer: LinearLayout
+    private lateinit var farmWorkBuySupplyButton: Button
+    private lateinit var farmWorkNoSuppliesText: TextView
+    private lateinit var farmWorkSuppliesContainer: LinearLayout
+
+    private lateinit var khataOverviewContainer: LinearLayout
+    private lateinit var khataSearchInput: EditText
+    private lateinit var khataFilterRadioGroup: RadioGroup
+    private lateinit var khataFilterAllRadio: RadioButton
+    private lateinit var khataFilterToReceiveRadio: RadioButton
+    private lateinit var khataFilterToPayRadio: RadioButton
+    private lateinit var khataFilterEmptyText: TextView
+    private lateinit var partyKhataHeadlineCard: View
+    private lateinit var partyKhataHeadlineText: TextView
+    private lateinit var khataContextualReceiveButton: Button
+    private lateinit var khataContextualPayButton: Button
+
+    private var currentKhataFilter: KhataFilter = KhataFilter.ALL
+    private var khataSearchQuery: String = ""
+    private var khataFilterSuppressed = false
 
     private lateinit var createBackupDocumentLauncher: ActivityResultLauncher<Intent>
     private lateinit var openBackupDocumentLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var languagePreferences: AppLanguagePreferences
+    private lateinit var textSizePreferences: AppTextSizePreferences
+    private lateinit var appearancePreferences: AppearancePreferences
     private var languageCheckSuppressed = false
+    private var textSizeChangeSuppressed = false
+    private var appearanceSelectionSuppressed = false
+    private var pendingSettingsScrollToSection: View? = null
+    private val originalTextSizesPx = IdentityHashMap<TextView, Float>()
 
     private var currentFarmId: String? = null
+    /** Farm selected in Farm Management (details/reset/delete/export target). */
+    private var managedFarmId: String? = null
+    private var pendingExportFarmId: String? = null
+    private var pendingDangerBackupGate: String? = null // "reset" or "delete"
+    private var addFarmCurrencyCode: String = FarmState.DEFAULT_CURRENCY_CODE
+    private var createFarmActivities: Set<FarmActivityType> = emptySet()
+    private var addFarmActivities: Set<FarmActivityType> = emptySet()
     private var pendingExportContent: String? = null
+    private var pendingResetBackupGate = false
+    private val resetFlow = ResetFarmFlow { performResetFarmData() }
+    private val deleteFlow = DeleteFarmFlow { performDeleteManagedFarm() }
+    private val clock: Clock = Clock { System.currentTimeMillis() }
+    private lateinit var backupFreshnessStore: BackupFreshnessStore
+    private lateinit var backupFreshness: BackupFreshnessChecker
 
-    private var currentDestination: Destination = Destination.HOME
-    private var lastPrimaryDestination: Destination = Destination.HOME
+    private var createFarmCurrencyCode: String = FarmState.DEFAULT_CURRENCY_CODE
+
+    private var currentDestination: Destination = Destination.TODAY
+    private var lastPrimaryDestination: Destination = Destination.TODAY
     private var editorState: TransactionEditorState? = null
     private var editorBaseline: TransactionEditorState? = null
     private var toolsExpanded: Boolean = false
@@ -357,12 +587,35 @@ class FarmActivity : AppCompatActivity() {
     private var khataPartyId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        appearancePreferences = SharedPreferencesAppAppearancePreferences(applicationContext)
+        AppCompatDelegate.setDefaultNightMode(appearancePreferences.appearanceMode().nightMode)
         super.onCreate(savedInstanceState)
 
         store = SharedPreferencesFarmStore(applicationContext)
         service = FarmSliceService(store)
+        localUserService = LocalUserService(SharedPreferencesLocalUserStore(applicationContext))
+        localUserService.migrateExistingInstall(service.currentFarmId())
+        accountLinkService = AccountLinkService(SharedPreferencesAccountLinkStore(applicationContext))
+        notificationPreferences = SharedPreferencesNotificationPreferences(applicationContext)
+        NotificationChannels.ensureCreated(applicationContext)
+        requestNotificationPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { _ ->
+            if (currentDestination == Destination.SETTINGS) renderNotificationsSettings()
+        }
+        privateBuildWarningStore = SharedPreferencesPrivateBuildWarningStore(applicationContext)
+        privateBuildExpiryGate = PrivateBuildExpiryGate(
+            enabled = BuildConfig.PRIVATE_BUILD_EXPIRY_ENABLED,
+            expiresAtEpochMillis = BuildConfig.PRIVATE_BUILD_EXPIRES_AT_EPOCH_MILLIS,
+            deviceClock = clock,
+            clockStore = SharedPreferencesPrivateBuildClockStore(applicationContext)
+        )
         backupFileAdapter = AndroidStorageAccessFrameworkBackupFileAdapter(applicationContext)
         languagePreferences = SharedPreferencesAppLanguagePreferences(applicationContext)
+        textSizePreferences = SharedPreferencesAppTextSizePreferences(applicationContext)
+        backupFreshnessStore = SharedPreferencesBackupFreshnessStore(applicationContext)
+        backupFreshness = BackupFreshnessChecker(backupFreshnessStore, clock)
+        createFarmCurrencyCode = FarmCurrencies.defaultFor(Locale.getDefault())
 
         createBackupDocumentLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -370,21 +623,30 @@ class FarmActivity : AppCompatActivity() {
                 val content = pendingExportContent
                 pendingExportContent = null
                 if (uri == null || content == null) {
+                    pendingExportFarmId = null
                     showToast(R.string.toast_export_cancelled)
+                    finishDangerBackupGate(succeeded = false)
                     return@registerForActivityResult
                 }
                 try {
                     backupFileAdapter.writeText(uri.toString(), content, FarmBackupCodec.MAX_BACKUP_BYTES)
                     showToast(R.string.toast_backup_exported)
+                    recordSuccessfulBackup(pendingExportFarmId ?: currentFarmId)
+                    pendingExportFarmId = null
+                    finishDangerBackupGate(succeeded = true)
                 } catch (exception: FarmBackupException) {
                     showValidationMessage(FarmUiError.fromBackupFailure(exception).resourceId)
+                    finishDangerBackupGate(succeeded = false)
                 } catch (exception: Exception) {
                     Log.e(LOG_TAG, "export backup failed", exception)
                     showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
+                    finishDangerBackupGate(succeeded = false)
                 }
             } else {
                 pendingExportContent = null
+                pendingExportFarmId = null
                 showToast(R.string.toast_export_cancelled)
+                finishDangerBackupGate(succeeded = false)
             }
         }
 
@@ -408,6 +670,8 @@ class FarmActivity : AppCompatActivity() {
         bindViews()
         applyShellSystemBarInsets()
         wireListeners()
+        syncTextSizeSelection()
+        applyAppTextSize()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (editorState != null) {
@@ -416,7 +680,7 @@ class FarmActivity : AppCompatActivity() {
                     } else {
                         closeEditor()
                     }
-                } else if (currentDestination == Destination.HISAB_KITAB && settlementTargetTradeId != null) {
+                } else if (currentDestination == Destination.KHATA && settlementTargetTradeId != null) {
                     if (settlementEditorState != null) {
                         if (isSettlementEditorDirty()) {
                             showDiscardDialog { cancelSettlementForm() }
@@ -426,24 +690,28 @@ class FarmActivity : AppCompatActivity() {
                     } else {
                         closeSettlementEditor()
                     }
-                } else if (currentDestination == Destination.HISAB_KITAB && tradeEditorState != null) {
+                } else if (currentDestination == Destination.KHATA && tradeEditorState != null) {
                     if (isTradeEditorDirty()) {
                         showDiscardDialog { closeTradeEditor() }
                     } else {
                         closeTradeEditor()
                     }
-                } else if (currentDestination == Destination.HISAB_KITAB && editingPartyId != null) {
+                } else if (currentDestination == Destination.KHATA && editingPartyId != null) {
                     if (isPartyEditorDirty()) {
                         showDiscardDialog { closePartyEditor() }
                     } else {
                         closePartyEditor()
                     }
-                } else if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+                } else if (currentDestination == Destination.KHATA && khataPartyId != null) {
                     closePartyKhata()
-                } else if (currentDestination == Destination.SETTINGS) {
+                } else if (currentDestination == Destination.FARM_DETAILS || currentDestination == Destination.ADD_FARM) {
+                    managedFarmId = null
+                    showDestination(Destination.FARMS)
+                } else if (currentDestination == Destination.FARMS || currentDestination == Destination.SETTINGS || currentDestination == Destination.HISAB) {
+                    managedFarmId = null
                     showDestination(lastPrimaryDestination)
-                } else if (currentDestination != Destination.HOME) {
-                    showDestination(Destination.HOME)
+                } else if (currentDestination != Destination.TODAY) {
+                    showDestination(Destination.TODAY)
                 } else {
                     finish()
                 }
@@ -456,6 +724,8 @@ class FarmActivity : AppCompatActivity() {
         restoreFarmPlanningFrom(savedInstanceState)
         render()
         showDestination(currentDestination)
+        ensurePrivateBuildExpiryUi()
+        handleNotificationDeepLink(intent)
         restoreEditorFrom(savedInstanceState)
         restoreTradeEditorFrom(savedInstanceState)
         restoreSettlementEditorFrom(savedInstanceState)
@@ -496,6 +766,7 @@ class FarmActivity : AppCompatActivity() {
                 }
             }
         }
+        outState.putString(STATE_KHATA_FILTER, currentKhataFilter.name)
         khataPartyId?.let { outState.putString(STATE_KHATA_PARTY_ID, it) }
     }
 
@@ -548,13 +819,19 @@ class FarmActivity : AppCompatActivity() {
         shellAppBar = findViewById(R.id.shellAppBar)
         scrollView = findViewById(R.id.scrollView)
         shellTitle = findViewById(R.id.shellTitle)
+        shellFarmSwitchIcon = findViewById<ImageView>(R.id.shellFarmSwitchIcon)
         shellMenuButton = findViewById(R.id.shellMenuButton)
+        privateBuildExpiryBanner = findViewById(R.id.privateBuildExpiryBanner)
         bottomNavigation = findViewById(R.id.bottomNavigation)
-        navHomeItem = findViewById(R.id.navHomeItem)
-        navHisabKitabItem = findViewById(R.id.navHisabKitabItem)
-        navHisabItem = findViewById(R.id.navHisabItem)
+        navTodayItem = findViewById(R.id.navTodayItem)
+        navKhataItem = findViewById(R.id.navKhataItem)
+        navRecordItem = findViewById(R.id.navRecordItem)
+        navFarmWorkItem = findViewById(R.id.navFarmWorkItem)
+        navMoreItem = findViewById(R.id.navMoreItem)
         hisabKitabScreen = findViewById(R.id.hisabKitabScreen)
         hisabScreen = findViewById(R.id.hisabScreen)
+        farmWorkScreen = findViewById(R.id.farmWorkScreen)
+        moreScreen = findViewById(R.id.moreScreen)
         settingsScreen = findViewById(R.id.settingsScreen)
         hisabNoFarmText = findViewById(R.id.hisabNoFarmText)
         hisabNoPartiesText = findViewById(R.id.hisabNoPartiesText)
@@ -591,6 +868,11 @@ class FarmActivity : AppCompatActivity() {
         landToUnitSpinner = findViewById(R.id.landToUnitSpinner)
         convertLandButton = findViewById(R.id.convertLandButton)
         landResultText = findViewById(R.id.landResultText)
+        grainValueInput = findViewById(R.id.grainValueInput)
+        grainFromUnitSpinner = findViewById(R.id.grainFromUnitSpinner)
+        grainToUnitSpinner = findViewById(R.id.grainToUnitSpinner)
+        convertGrainButton = findViewById(R.id.convertGrainButton)
+        grainResultText = findViewById(R.id.grainResultText)
 
         // Farm Planning
         farmPlanningCalculatorSpinner = findViewById(R.id.farmPlanningCalculatorSpinner)
@@ -647,18 +929,30 @@ class FarmActivity : AppCompatActivity() {
             landLabels
         ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
         landToUnitSpinner.setSelection(LandUnit.values().indexOf(LandUnit.SQUARE_METRE))
+        val grainLabels = TraditionalGrainUnit.values().map { FarmLabels.grainUnit(this, it) }
+        grainFromUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            grainLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        grainToUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            grainLabels
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        grainToUnitSpinner.setSelection(TraditionalGrainUnit.values().indexOf(TraditionalGrainUnit.MANA))
 
         // Farm Planning spinners
-        val calculatorLabels = FarmOrdering.farmPlanningCalculators.map { FarmLabels.farmPlanningCalculator(this, it) }
+        val calculatorLabels = farmPlanningCalculatorChoices().map { FarmLabels.farmPlanningCalculator(this, it) }
         farmPlanningCalculatorSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
             calculatorLabels
         ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-        farmPlanningCalculatorSpinner.setSelection(FarmOrdering.farmPlanningCalculators.indexOf(farmPlanningCalculator))
+        farmPlanningCalculatorSpinner.setSelection(farmPlanningCalculatorChoices().indexOf(farmPlanningCalculator))
         farmPlanningCalculatorSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val calculator = FarmOrdering.farmPlanningCalculators.getOrNull(position)
+                val calculator = farmPlanningCalculatorChoices().getOrNull(position)
                 if (calculator != null && calculator != farmPlanningCalculator && !farmPlanningSelectionSuppressed) {
                     farmPlanningCalculator = calculator
                     renderFarmPlanning()
@@ -718,29 +1012,78 @@ class FarmActivity : AppCompatActivity() {
         savePartyButton = findViewById(R.id.savePartyButton)
         cancelPartyButton = findViewById(R.id.cancelPartyButton)
         deletePartyButton = findViewById(R.id.deletePartyButton)
-        settingsCurrencyText = findViewById(R.id.settingsCurrencyText)
-        changeSettingsCurrencyButton = findViewById(R.id.changeSettingsCurrencyButton)
-        settingsCurrencyLockedText = findViewById(R.id.settingsCurrencyLockedText)
-        settingsNoFarmText = findViewById(R.id.settingsNoFarmText)
+        settingsDataNoFarmText = findViewById(R.id.settingsDataNoFarmText)
+        settingsExportBackupButton = findViewById(R.id.settingsExportBackupButton)
+        settingsImportBackupButton = findViewById(R.id.settingsImportBackupButton)
+        settingsAboutSection = findViewById(R.id.settingsAboutSection)
+        settingsAboutVersionText = findViewById(R.id.settingsAboutVersionText)
+        settingsAboutUpdateStatusText = findViewById(R.id.settingsAboutUpdateStatusText)
+        settingsAboutUpdateButton = findViewById(R.id.settingsAboutUpdateButton)
+        settingsAppearanceSection = findViewById(R.id.settingsAppearanceSection)
+        settingsDataSection = findViewById(R.id.settingsDataSection)
+        settingsAccountSection = findViewById(R.id.settingsAccountSection)
+        settingsAccountStatusLabel = findViewById(R.id.settingsAccountStatusLabel)
+        settingsAccountStatusDetail = findViewById(R.id.settingsAccountStatusDetail)
+        settingsAccountSignInRequiredText = findViewById(R.id.settingsAccountSignInRequiredText)
+        settingsNotificationsSection = findViewById(R.id.settingsNotificationsSection)
+        settingsNotificationsStatusText = findViewById(R.id.settingsNotificationsStatusText)
+        settingsNotificationsExplanationText = findViewById(R.id.settingsNotificationsExplanationText)
+        settingsNotificationsActionButton = findViewById(R.id.settingsNotificationsActionButton)
+        notificationUpdatesOnRadio = findViewById(R.id.notificationUpdatesOnRadio)
+        notificationUpdatesOffRadio = findViewById(R.id.notificationUpdatesOffRadio)
+        notificationRemindersOnRadio = findViewById(R.id.notificationRemindersOnRadio)
+        notificationRemindersOffRadio = findViewById(R.id.notificationRemindersOffRadio)
+        farmsScreen = findViewById(R.id.farmsScreen)
+        farmsListContainer = findViewById(R.id.farmsListContainer)
+        farmsEmptyText = findViewById(R.id.farmsEmptyText)
+        addFarmButton = findViewById(R.id.addFarmButton)
+        farmDetailsScreen = findViewById(R.id.farmDetailsScreen)
+        farmDetailsNameText = findViewById(R.id.farmDetailsNameText)
+        farmDetailsRenameButton = findViewById(R.id.farmDetailsRenameButton)
+        farmDetailsCurrencyText = findViewById(R.id.farmDetailsCurrencyText)
+        farmDetailsChangeCurrencyButton = findViewById(R.id.farmDetailsChangeCurrencyButton)
+        farmDetailsActiveStatusText = findViewById(R.id.farmDetailsActiveStatusText)
+        farmDetailsSwitchButton = findViewById(R.id.farmDetailsSwitchButton)
+        farmDetailsActivitiesEmptyText = findViewById(R.id.farmDetailsActivitiesEmptyText)
+        farmDetailsActivitiesContainer = findViewById(R.id.farmDetailsActivitiesContainer)
+        farmDetailsChangeActivitiesButton = findViewById(R.id.farmDetailsChangeActivitiesButton)
+        farmDetailsBreakdownContainer = findViewById(R.id.farmDetailsBreakdownContainer)
+        farmDetailsResetButton = findViewById(R.id.farmDetailsResetButton)
+        farmDetailsDeleteButton = findViewById(R.id.farmDetailsDeleteButton)
+        addFarmScreen = findViewById(R.id.addFarmScreen)
+        addFarmNameInput = findViewById(R.id.addFarmNameInput)
+        addFarmCurrencyText = findViewById(R.id.addFarmCurrencyText)
+        addFarmChangeCurrencyButton = findViewById(R.id.addFarmChangeCurrencyButton)
+        addFarmActivitiesText = findViewById(R.id.addFarmActivitiesText)
+        addFarmChooseActivitiesButton = findViewById(R.id.addFarmChooseActivitiesButton)
+        addFarmCreateButton = findViewById(R.id.addFarmCreateButton)
+        settingsTextSizeValueText = findViewById(R.id.settingsTextSizeValueText)
+        settingsTextSizeSeekBar = findViewById(R.id.settingsTextSizeSeekBar)
+        currencyDisplayOnRadio = findViewById(R.id.currencyDisplayOnRadio)
+        currencyDisplayOffRadio = findViewById(R.id.currencyDisplayOffRadio)
+        numberGroupingOnRadio = findViewById(R.id.numberGroupingOnRadio)
+        numberGroupingOffRadio = findViewById(R.id.numberGroupingOffRadio)
+        appearanceModeFollowSystemRadio = findViewById(R.id.appearanceModeFollowSystemRadio)
+        appearanceModeLightRadio = findViewById(R.id.appearanceModeLightRadio)
+        appearanceModeDarkRadio = findViewById(R.id.appearanceModeDarkRadio)
         languageFollowDeviceRadio = findViewById(R.id.languageFollowDeviceRadio)
         languageEnglishRadio = findViewById(R.id.languageEnglishRadio)
         languageNepaliRadio = findViewById(R.id.languageNepaliRadio)
         createFarmContainer = findViewById(R.id.createFarmContainer)
         farmDetailsContainer = findViewById(R.id.farmDetailsContainer)
         farmNameInput = findViewById(R.id.farmNameInput)
+        createFarmCurrencyText = findViewById(R.id.createFarmCurrencyText)
+        changeCreateFarmCurrencyButton = findViewById(R.id.changeCreateFarmCurrencyButton)
         createFarmButton = findViewById(R.id.createFarmButton)
-        farmNameText = findViewById(R.id.farmNameText)
-        balanceText = findViewById(R.id.balanceText)
-        incomeText = findViewById(R.id.incomeText)
-        expensesText = findViewById(R.id.expensesText)
-        firstActionPrompt = findViewById(R.id.firstActionPrompt)
-        recordIncomeButton = findViewById(R.id.recordIncomeButton)
-        recordExpenseButton = findViewById(R.id.recordExpenseButton)
+        createFarmActivitiesText = findViewById(R.id.createFarmActivitiesText)
+        createFarmChooseActivitiesButton = findViewById(R.id.createFarmChooseActivitiesButton)
         transactionEditorContainer = findViewById(R.id.transactionEditorContainer)
         transactionEditorTitle = findViewById(R.id.transactionEditorTitle)
         transactionTypeIncomeRadio = findViewById(R.id.transactionTypeIncomeRadio)
         transactionTypeExpenseRadio = findViewById(R.id.transactionTypeExpenseRadio)
         transactionCategorySpinner = findViewById(R.id.transactionCategorySpinner)
+        transactionActivityLabel = findViewById(R.id.transactionActivityLabel)
+        transactionActivitySpinner = findViewById(R.id.transactionActivitySpinner)
         transactionAmountInput = findViewById(R.id.transactionAmountInput)
         transactionDescriptionInput = findViewById(R.id.transactionDescriptionInput)
         transactionDateTimeText = findViewById(R.id.transactionDateTimeText)
@@ -761,6 +1104,66 @@ class FarmActivity : AppCompatActivity() {
         addEntryButton = findViewById(R.id.addEntryButton)
         exportBackupButton = findViewById(R.id.exportBackupButton)
         importBackupButton = findViewById(R.id.importBackupButton)
+        farmerOverviewMonthButton = findViewById(R.id.farmerOverviewMonthButton)
+        farmWorkProductionButton = findViewById(R.id.farmWorkProductionButton)
+        farmWorkAllocationButton = findViewById(R.id.farmWorkAllocationButton)
+        farmWorkBoughtButton = findViewById(R.id.farmWorkBoughtButton)
+        farmWorkUsedButton = findViewById(R.id.farmWorkUsedButton)
+        farmWorkRemainingButton = findViewById(R.id.farmWorkRemainingButton)
+        moreHisabButton = findViewById(R.id.moreHisabButton)
+        moreFarmsButton = findViewById(R.id.moreFarmsButton)
+        moreSettingsButton = findViewById(R.id.moreSettingsButton)
+        moreBackupButton = findViewById(R.id.moreBackupButton)
+        moreAboutButton = findViewById(R.id.moreAboutButton)
+
+        todayHeaderBar = findViewById(R.id.todayHeaderBar)
+        todayDateText = findViewById(R.id.todayDateText)
+        todayHeroCard = findViewById(R.id.todayHeroCard)
+        todayHeroTitle = findViewById(R.id.todayHeroTitle)
+        todayEmptyStateText = findViewById(R.id.todayEmptyStateText)
+        todayProductionContainer = findViewById(R.id.todayProductionContainer)
+        todayProductionHeadlineText = findViewById(R.id.todayProductionHeadlineText)
+        todayUnexplainedContainer = findViewById(R.id.todayUnexplainedContainer)
+        todayUnexplainedText = findViewById(R.id.todayUnexplainedText)
+        todayReconcileButton = findViewById(R.id.todayReconcileButton)
+        todayMoneyMetricsContainer = findViewById(R.id.todayMoneyMetricsContainer)
+        todaySalesValueText = findViewById(R.id.todaySalesValueText)
+        todayReceivedValueText = findViewById(R.id.todayReceivedValueText)
+        todayExpensesValueText = findViewById(R.id.todayExpensesValueText)
+        todayCreditSalesContainer = findViewById(R.id.todayCreditSalesContainer)
+        todayCreditSalesValueText = findViewById(R.id.todayCreditSalesValueText)
+        todayMoneyAttentionCard = findViewById(R.id.todayMoneyAttentionCard)
+        todayKhataSettledText = findViewById(R.id.todayKhataSettledText)
+        todayReceivableContainer = findViewById(R.id.todayReceivableContainer)
+        todayReceivableAmountText = findViewById(R.id.todayReceivableAmountText)
+        todayViewReceivablesButton = findViewById(R.id.todayViewReceivablesButton)
+        todayPayableContainer = findViewById(R.id.todayPayableContainer)
+        todayPayableAmountText = findViewById(R.id.todayPayableAmountText)
+        todayViewPayablesButton = findViewById(R.id.todayViewPayablesButton)
+        todayFarmStatusCard = findViewById(R.id.todayFarmStatusCard)
+        todayNoFarmStatusText = findViewById(R.id.todayNoFarmStatusText)
+        todayProductionStatusText = findViewById(R.id.todayProductionStatusText)
+        todaySuppliesStatusText = findViewById(R.id.todaySuppliesStatusText)
+        todayViewFarmWorkButton = findViewById(R.id.todayViewFarmWorkButton)
+
+        farmWorkRecordProductionButton = findViewById(R.id.farmWorkRecordProductionButton)
+        farmWorkNoProductsText = findViewById(R.id.farmWorkNoProductsText)
+        farmWorkProductionContainer = findViewById(R.id.farmWorkProductionContainer)
+        farmWorkBuySupplyButton = findViewById(R.id.farmWorkBuySupplyButton)
+        farmWorkNoSuppliesText = findViewById(R.id.farmWorkNoSuppliesText)
+        farmWorkSuppliesContainer = findViewById(R.id.farmWorkSuppliesContainer)
+
+        khataOverviewContainer = findViewById(R.id.khataOverviewContainer)
+        khataSearchInput = findViewById(R.id.khataSearchInput)
+        khataFilterRadioGroup = findViewById(R.id.khataFilterRadioGroup)
+        khataFilterAllRadio = findViewById(R.id.khataFilterAllRadio)
+        khataFilterToReceiveRadio = findViewById(R.id.khataFilterToReceiveRadio)
+        khataFilterToPayRadio = findViewById(R.id.khataFilterToPayRadio)
+        khataFilterEmptyText = findViewById(R.id.khataFilterEmptyText)
+        partyKhataHeadlineCard = findViewById(R.id.partyKhataHeadlineCard)
+        partyKhataHeadlineText = findViewById(R.id.partyKhataHeadlineText)
+        khataContextualReceiveButton = findViewById(R.id.khataContextualReceiveButton)
+        khataContextualPayButton = findViewById(R.id.khataContextualPayButton)
 
         entryKindSpinner.adapter = ArrayAdapter(
             this,
@@ -812,6 +1215,8 @@ class FarmActivity : AppCompatActivity() {
         tradeEditorContainer = findViewById(R.id.tradeEditorContainer)
         tradeEditorTitle = findViewById(R.id.tradeEditorTitle)
         tradePartySpinner = findViewById(R.id.tradePartySpinner)
+        tradeActivityLabel = findViewById(R.id.tradeActivityLabel)
+        tradeActivitySpinner = findViewById(R.id.tradeActivitySpinner)
         tradeTotalInput = findViewById(R.id.tradeTotalInput)
         tradeStatusPaidRadio = findViewById(R.id.tradeStatusPaidRadio)
         tradeStatusPartialRadio = findViewById(R.id.tradeStatusPartialRadio)
@@ -885,19 +1290,138 @@ class FarmActivity : AppCompatActivity() {
 
     private fun wireListeners() {
         createFarmButton.setOnClickListener { createFarm() }
+        changeCreateFarmCurrencyButton.setOnClickListener {
+            showCurrencyChooser(createFarmCurrencyCode) { code ->
+                createFarmCurrencyCode = code
+                createFarmCurrencyText.text = FarmCurrencies.label(code, presentationLocale)
+            }
+        }
         addEntryButton.setOnClickListener { addEntry() }
         exportBackupButton.setOnClickListener { exportBackup() }
         importBackupButton.setOnClickListener { importBackup() }
-        changeSettingsCurrencyButton.setOnClickListener { showFarmCurrencyChooser() }
+        shellTitle.setOnClickListener { showFarmSwitcherDialog() }
+        shellFarmSwitchIcon.setOnClickListener { showFarmSwitcherDialog() }
+        todayReconcileButton.setOnClickListener { showProductionAllocationDialog() }
+        todayViewReceivablesButton.setOnClickListener {
+            setKhataFilter(KhataFilter.TO_RECEIVE)
+            navigateTo(Destination.KHATA)
+        }
+        todayViewPayablesButton.setOnClickListener {
+            setKhataFilter(KhataFilter.TO_PAY)
+            navigateTo(Destination.KHATA)
+        }
+        todayViewFarmWorkButton.setOnClickListener { navigateTo(Destination.FARM_WORK) }
+        farmerOverviewMonthButton.setOnClickListener { showFarmerMonthDialog() }
+        farmWorkRecordProductionButton.setOnClickListener { showProductionDialog() }
+        farmWorkBuySupplyButton.setOnClickListener { showSupplierPurchaseDialog() }
+        farmWorkProductionButton.setOnClickListener { showProductionDialog() }
+        farmWorkAllocationButton.setOnClickListener { showProductionAllocationDialog() }
+        farmWorkBoughtButton.setOnClickListener { showSupplierPurchaseDialog() }
+        farmWorkUsedButton.setOnClickListener { showSupplyUsageDialog() }
+        farmWorkRemainingButton.setOnClickListener { showSupplyStockDialog() }
+        moreHisabButton.setOnClickListener { navigateTo(Destination.HISAB) }
+        moreFarmsButton.setOnClickListener {
+            managedFarmId = null
+            navigateTo(Destination.FARMS)
+        }
+        moreSettingsButton.setOnClickListener {
+            pendingSettingsScrollToSection = null
+            navigateTo(Destination.SETTINGS)
+        }
+        moreBackupButton.setOnClickListener {
+            pendingSettingsScrollToSection = settingsDataSection
+            navigateTo(Destination.SETTINGS)
+        }
+        moreAboutButton.setOnClickListener { showAboutDialog() }
 
-        navHomeItem.setOnClickListener { navigateTo(Destination.HOME) }
-        navHisabKitabItem.setOnClickListener { navigateTo(Destination.HISAB_KITAB) }
-        navHisabItem.setOnClickListener { navigateTo(Destination.HISAB) }
+        khataSearchInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                khataSearchQuery = s?.toString()?.trim().orEmpty()
+                renderParties()
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
+
+        khataFilterRadioGroup.setOnCheckedChangeListener { _, checkedId ->
+            if (!khataFilterSuppressed) {
+                currentKhataFilter = when (checkedId) {
+                    R.id.khataFilterToReceiveRadio -> KhataFilter.TO_RECEIVE
+                    R.id.khataFilterToPayRadio -> KhataFilter.TO_PAY
+                    else -> KhataFilter.ALL
+                }
+                renderParties()
+            }
+        }
+
+        khataContextualReceiveButton.setOnClickListener {
+            val partyId = khataPartyId ?: return@setOnClickListener
+            showReceivedMoneyDialog(partyId)
+        }
+
+        khataContextualPayButton.setOnClickListener {
+            val partyId = khataPartyId ?: return@setOnClickListener
+            showSupplierPaymentDialog(partyId)
+        }
+        settingsExportBackupButton.setOnClickListener { exportBackup() }
+        settingsImportBackupButton.setOnClickListener { importBackup() }
+        settingsAboutUpdateButton.setOnClickListener { checkForPrivateAppUpdate() }
+        settingsNotificationsActionButton.setOnClickListener { onNotificationsActionClicked() }
+        notificationUpdatesOnRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (!notificationSelectionSuppressed && isChecked) {
+                notificationPreferences.setCategoryEnabled(NotificationCategory.APP_UPDATES, true)
+            }
+        }
+        notificationUpdatesOffRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (!notificationSelectionSuppressed && isChecked) {
+                notificationPreferences.setCategoryEnabled(NotificationCategory.APP_UPDATES, false)
+            }
+        }
+        notificationRemindersOnRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (!notificationSelectionSuppressed && isChecked) {
+                notificationPreferences.setCategoryEnabled(NotificationCategory.BACKUP_REMINDERS, true)
+            }
+        }
+        notificationRemindersOffRadio.setOnCheckedChangeListener { _, isChecked ->
+            if (!notificationSelectionSuppressed && isChecked) {
+                notificationPreferences.setCategoryEnabled(NotificationCategory.BACKUP_REMINDERS, false)
+            }
+        }
+        addFarmButton.setOnClickListener { openAddFarmScreen() }
+        farmDetailsRenameButton.setOnClickListener { showRenameFarmDialog() }
+        farmDetailsChangeCurrencyButton.setOnClickListener { showManagedFarmCurrencyChooser() }
+        farmDetailsSwitchButton.setOnClickListener { switchToManagedFarm() }
+        farmDetailsResetButton.setOnClickListener { showResetFarmDataConfirmation() }
+        farmDetailsDeleteButton.setOnClickListener { showDeleteFarmConfirmation() }
+        addFarmChangeCurrencyButton.setOnClickListener {
+            showCurrencyChooser(addFarmCurrencyCode) { code ->
+                addFarmCurrencyCode = code
+                addFarmCurrencyText.text = FarmCurrencies.label(code, presentationLocale)
+            }
+        }
+        addFarmCreateButton.setOnClickListener { createFarmFromAddScreen() }
+        settingsTextSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser || textSizeChangeSuppressed) return
+                onTextSizeSelected(AppTextSize.MIN_SP + progress)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+        })
+
+        navTodayItem.setOnClickListener { navigateTo(Destination.TODAY) }
+        navKhataItem.setOnClickListener { navigateTo(Destination.KHATA) }
+        navRecordItem.setOnClickListener { showRecordSheet() }
+        navFarmWorkItem.setOnClickListener { navigateTo(Destination.FARM_WORK) }
+        navMoreItem.setOnClickListener { navigateTo(Destination.MORE) }
         shellMenuButton.setOnClickListener { showShellMenu() }
         calculateArithmeticButton.setOnClickListener { calculateArithmetic() }
         calculateProfitButton.setOnClickListener { calculateProfit() }
         calculateInterestButton.setOnClickListener { calculateInterest() }
         convertLandButton.setOnClickListener { convertLand() }
+        convertGrainButton.setOnClickListener { convertGrain() }
         calculateSeedButton.setOnClickListener { calculateSeed() }
         calculateFertilizerButton.setOnClickListener { calculateFertilizer() }
         calculateFeedButton.setOnClickListener { calculateFeed() }
@@ -973,6 +1497,13 @@ class FarmActivity : AppCompatActivity() {
         saveTradeButton.setOnClickListener { saveTrade() }
         cancelTradeButton.setOnClickListener { cancelTradeEditing() }
         deleteTradeButton.setOnClickListener { confirmDeleteTrade() }
+        tradeActivitySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                onTradeActivityChanged()
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
         changeTradeDateTimeButton.setOnClickListener { showTradeDateTimePickers() }
         tradeStatusPaidRadio.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) onTradePaymentStatusChanged(PaymentStatus.PAID)
@@ -1002,12 +1533,37 @@ class FarmActivity : AppCompatActivity() {
             }
         }
 
-        recordIncomeButton.setOnClickListener {
-            confirmDiscardIfNeeded { openEditorForNew(TransactionType.INCOME) }
+        val currencyDisplayRadios = listOf(
+            currencyDisplayOnRadio to true,
+            currencyDisplayOffRadio to false
+        )
+        currencyDisplayRadios.forEach { (radio, on) ->
+            radio.setOnClickListener {
+                if (!appearanceSelectionSuppressed) onCurrencyDisplaySelected(on)
+            }
         }
-        recordExpenseButton.setOnClickListener {
-            confirmDiscardIfNeeded { openEditorForNew(TransactionType.EXPENSE) }
+
+        val numberGroupingRadios = listOf(
+            numberGroupingOnRadio to true,
+            numberGroupingOffRadio to false
+        )
+        numberGroupingRadios.forEach { (radio, on) ->
+            radio.setOnClickListener {
+                if (!appearanceSelectionSuppressed) onNumberGroupingSelected(on)
+            }
         }
+
+        val appearanceModeRadios = listOf(
+            appearanceModeFollowSystemRadio to AppearanceMode.FOLLOW_SYSTEM,
+            appearanceModeLightRadio to AppearanceMode.LIGHT,
+            appearanceModeDarkRadio to AppearanceMode.DARK
+        )
+        appearanceModeRadios.forEach { (radio, mode) ->
+            radio.setOnClickListener {
+                if (!appearanceSelectionSuppressed) onAppearanceModeSelected(mode)
+            }
+        }
+
         transactionTypeIncomeRadio.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) onTransactionTypeChanged(TransactionType.INCOME)
         }
@@ -1019,6 +1575,25 @@ class FarmActivity : AppCompatActivity() {
         deleteTransactionButton.setOnClickListener { deleteTransaction() }
         changeDateTimeButton.setOnClickListener { showDateTimePickers() }
         farmToolsToggleButton.setOnClickListener { toggleFarmTools() }
+        createFarmChooseActivitiesButton.setOnClickListener {
+            showFarmActivitiesChooser(createFarmActivities) {
+                createFarmActivities = it
+                createFarmActivitiesText.text = activitySummaryText(createFarmActivities)
+            }
+        }
+        addFarmChooseActivitiesButton.setOnClickListener {
+            showFarmActivitiesChooser(addFarmActivities) {
+                addFarmActivities = it
+                addFarmActivitiesText.text = activitySummaryText(addFarmActivities)
+            }
+        }
+        farmDetailsChangeActivitiesButton.setOnClickListener { showManagedFarmActivitiesChooser() }
+        transactionActivitySpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                onTransactionActivityChanged()
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        }
     }
 
     // --- Shell navigation ---------------------------------------------------
@@ -1026,6 +1601,7 @@ class FarmActivity : AppCompatActivity() {
     private fun navigateTo(destination: Destination) {
         if (destination == currentDestination) {
             render()
+            scrollSettingsToPendingSection()
             return
         }
         confirmDiscardIfNeeded {
@@ -1039,28 +1615,64 @@ class FarmActivity : AppCompatActivity() {
 
     private fun showDestination(destination: Destination) {
         currentDestination = destination
-        if (destination != Destination.HISAB_KITAB && khataPartyId != null) {
-            closePartyKhata()
+        if (destination != Destination.KHATA) {
+            if (khataPartyId != null) closePartyKhata()
+            if (editingPartyId != null) setPartyEditorVisible(false)
         }
-        if (destination != Destination.SETTINGS) lastPrimaryDestination = destination
-        scrollView.visibility = if (destination == Destination.HOME) View.VISIBLE else View.GONE
-        hisabKitabScreen.visibility = if (destination == Destination.HISAB_KITAB) View.VISIBLE else View.GONE
+        if (destination in setOf(Destination.TODAY, Destination.KHATA, Destination.FARM_WORK, Destination.MORE)) {
+            lastPrimaryDestination = destination
+        }
+        scrollView.visibility = if (destination == Destination.TODAY) View.VISIBLE else View.GONE
+        hisabKitabScreen.visibility = if (destination == Destination.KHATA) View.VISIBLE else View.GONE
+        farmWorkScreen.visibility = if (destination == Destination.FARM_WORK) View.VISIBLE else View.GONE
+        moreScreen.visibility = if (destination == Destination.MORE) View.VISIBLE else View.GONE
         hisabScreen.visibility = if (destination == Destination.HISAB) View.VISIBLE else View.GONE
         settingsScreen.visibility = if (destination == Destination.SETTINGS) View.VISIBLE else View.GONE
+        farmsScreen.visibility = if (destination == Destination.FARMS) View.VISIBLE else View.GONE
+        farmDetailsScreen.visibility = if (destination == Destination.FARM_DETAILS) View.VISIBLE else View.GONE
+        addFarmScreen.visibility = if (destination == Destination.ADD_FARM) View.VISIBLE else View.GONE
         updateShellTitle()
         updateShellNavigationState()
         if (destination == Destination.SETTINGS) renderSettings()
-        if (destination == Destination.HISAB_KITAB) renderHisabKitab()
+        if (destination == Destination.KHATA) renderHisabKitab()
+        if (destination == Destination.FARM_WORK) renderFarmWork()
         if (destination == Destination.HISAB) renderHisabCalculator()
+        if (destination == Destination.FARMS) renderFarmsList()
+        if (destination == Destination.FARM_DETAILS) renderFarmDetails()
+        if (destination == Destination.ADD_FARM) renderAddFarmScreen()
+        applyAppTextSize()
+        scrollSettingsToPendingSection()
+    }
+
+    private fun scrollSettingsToPendingSection() {
+        val target = pendingSettingsScrollToSection ?: return
+        pendingSettingsScrollToSection = null
+        settingsScreen.post { settingsScreen.smoothScrollTo(0, target.top) }
     }
 
     private fun showShellMenu() {
         PopupMenu(this, shellMenuButton).apply {
             inflate(R.menu.menu_shell_overflow)
+            applyMenuTextScale(menu)
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     R.id.menuSettings -> {
+                        pendingSettingsScrollToSection = null
                         navigateTo(Destination.SETTINGS)
+                        true
+                    }
+                    R.id.menuBackupRestore -> {
+                        pendingSettingsScrollToSection = settingsDataSection
+                        navigateTo(Destination.SETTINGS)
+                        true
+                    }
+                    R.id.menuFarms -> {
+                        managedFarmId = null
+                        navigateTo(Destination.FARMS)
+                        true
+                    }
+                    R.id.menuAbout -> {
+                        showAboutDialog()
                         true
                     }
                     else -> false
@@ -1070,10 +1682,81 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
+    private fun applyMenuTextScale(menu: android.view.Menu) {
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.BASE_SP
+        for (index in 0 until menu.size()) {
+            val item = menu.getItem(index)
+            val title = item.title ?: continue
+            item.title = SpannableString(title).also {
+                it.setSpan(RelativeSizeSpan(scale), 0, it.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+    }
+
     private fun updateShellNavigationState() {
-        navHomeItem.isSelected = currentDestination == Destination.HOME
-        navHisabKitabItem.isSelected = currentDestination == Destination.HISAB_KITAB
-        navHisabItem.isSelected = currentDestination == Destination.HISAB
+        navTodayItem.isSelected = currentDestination == Destination.TODAY
+        navKhataItem.isSelected = currentDestination == Destination.KHATA
+        navRecordItem.isSelected = false
+        navFarmWorkItem.isSelected = currentDestination == Destination.FARM_WORK
+        navMoreItem.isSelected = currentDestination == Destination.MORE
+    }
+
+    private fun showRecordSheet() {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.record_action_sheet)
+        dialog.window?.apply {
+            setGravity(Gravity.BOTTOM)
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+        dialog.findViewById<Button>(R.id.recordSheetProductionButton).setOnClickListener {
+            dialog.dismiss()
+            showProductionDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetSellButton).setOnClickListener {
+            dialog.dismiss()
+            showQuickSaleDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetReceivedMoneyButton).setOnClickListener {
+            dialog.dismiss()
+            showReceivedMoneyDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetBoughtButton).setOnClickListener {
+            dialog.dismiss()
+            showSupplierPurchaseDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetUsedButton).setOnClickListener {
+            dialog.dismiss()
+            showSupplyUsageDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetOtherIncomeButton).setOnClickListener {
+            dialog.dismiss()
+            confirmDiscardIfNeeded {
+                openEditorForNew(
+                    TransactionType.INCOME,
+                    R.string.transaction_editor_new_other_income,
+                    TransactionCategory.OTHER_INCOME
+                )
+            }
+        }
+        dialog.findViewById<Button>(R.id.recordSheetOtherExpenseButton).setOnClickListener {
+            dialog.dismiss()
+            confirmDiscardIfNeeded {
+                openEditorForNew(
+                    TransactionType.EXPENSE,
+                    R.string.transaction_editor_new_other_expense,
+                    TransactionCategory.OTHER_EXPENSE
+                )
+            }
+        }
+        dialog.findViewById<Button>(R.id.recordSheetPaidMoneyButton).setOnClickListener {
+            dialog.dismiss()
+            showSupplierPaymentDialog()
+        }
+        dialog.findViewById<Button>(R.id.recordSheetCancelButton).setOnClickListener { dialog.dismiss() }
+        dialog.show()
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.BASE_SP
+        dialog.window?.decorView?.let { applyTextScale(it, scale) }
     }
 
     private fun calculateArithmetic() {
@@ -1142,6 +1825,24 @@ class FarmActivity : AppCompatActivity() {
                 FarmLabels.landUnit(this, from),
                 formatCalculatorValue(result),
                 FarmLabels.landUnit(this, to)
+            )
+        )
+    }
+
+    private fun convertGrain() {
+        val value = calculatorValue(grainValueInput) ?: return
+        val units = TraditionalGrainUnit.values()
+        val from = units.getOrNull(grainFromUnitSpinner.selectedItemPosition) ?: return
+        val to = units.getOrNull(grainToUnitSpinner.selectedItemPosition) ?: return
+        val result = KisanCalculators.convertGrain(value, from, to)
+        showCalculatorResult(
+            grainResultText,
+            string(
+                R.string.grain_result_format,
+                formatCalculatorValue(value),
+                FarmLabels.grainUnit(this, from),
+                formatCalculatorValue(result),
+                FarmLabels.grainUnit(this, to)
             )
         )
     }
@@ -1246,7 +1947,12 @@ class FarmActivity : AppCompatActivity() {
 
     private fun renderFarmPlanning() {
         farmPlanningSelectionSuppressed = true
-        farmPlanningCalculatorSpinner.setSelection(FarmOrdering.farmPlanningCalculators.indexOf(farmPlanningCalculator))
+        farmPlanningCalculatorSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            farmPlanningCalculatorChoices().map { FarmLabels.farmPlanningCalculator(this, it) }
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        farmPlanningCalculatorSpinner.setSelection(farmPlanningCalculatorChoices().indexOf(farmPlanningCalculator).coerceAtLeast(0))
         farmPlanningSelectionSuppressed = false
 
         seedCalculatorContainer.visibility = if (farmPlanningCalculator == FarmPlanningCalculator.SEED) View.VISIBLE else View.GONE
@@ -1271,7 +1977,11 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun formatCalculatorValue(value: BigDecimal): String =
-        decimalValueFormatter.format(presentationLocale, value)
+        decimalValueFormatter.format(
+            presentationLocale,
+            value,
+            grouping = appearancePreferences.numberGroupingOn()
+        )
 
     private fun formatCalculatorPercent(value: BigDecimal?): String = value?.let {
         string(R.string.percent_value_format, formatCalculatorValue(it))
@@ -1393,14 +2103,75 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun updateShellTitle() {
+        val isToday = currentDestination == Destination.TODAY
+        val hasFarm = currentFarmId != null
+        shellFarmSwitchIcon.visibility = if (isToday && hasFarm) View.VISIBLE else View.GONE
+        shellFarmSwitchIcon.isClickable = isToday && hasFarm
+        shellFarmSwitchIcon.isFocusable = isToday && hasFarm
+        shellTitle.isClickable = isToday && hasFarm
+        shellTitle.isFocusable = isToday && hasFarm
+
         shellTitle.text = when (currentDestination) {
-            Destination.HOME -> {
+            Destination.TODAY -> {
                 val farm = currentFarmId?.let { service.loadFarm(it) }
                 farm?.name ?: string(R.string.app_name)
             }
-            Destination.HISAB_KITAB -> string(R.string.nav_hisab_kitab)
+            Destination.KHATA -> string(R.string.nav_khata)
+            Destination.FARM_WORK -> string(R.string.nav_farm_work)
+            Destination.MORE -> string(R.string.nav_more)
             Destination.HISAB -> string(R.string.nav_hisab)
             Destination.SETTINGS -> string(R.string.nav_settings)
+            Destination.FARMS -> string(R.string.farms_page_title)
+            Destination.FARM_DETAILS -> string(R.string.farm_details_page_title)
+            Destination.ADD_FARM -> string(R.string.add_farm_page_title)
+        }
+    }
+
+    private fun showFarmSwitcherDialog() {
+        val persisted = service.farmIds()
+        val owned = localUserService.ownedFarmIds()
+        val visibleIds = FarmManagement.visibleFarmIds(persisted, owned)
+        val activeId = currentFarmId ?: service.currentFarmId()
+        val farms = visibleIds.mapNotNull { service.loadFarm(it) }
+        val farmItems = farms.map { farm ->
+            val activeSuffix = if (farm.id == activeId) "  ·  " + string(R.string.farm_switcher_active_badge) else ""
+            "${farm.name} (${farm.currencyCode})$activeSuffix"
+        }.toTypedArray()
+
+        val activeIndex = farms.indexOfFirst { it.id == activeId }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.farm_switcher_dialog_title)
+            .setSingleChoiceItems(farmItems, activeIndex) { d, which ->
+                val selectedFarm = farms.getOrNull(which)
+                d.dismiss()
+                if (selectedFarm != null && selectedFarm.id != activeId) {
+                    switchToFarm(selectedFarm.id)
+                }
+            }
+            .setPositiveButton(R.string.farm_switcher_manage_farms) { _, _ ->
+                managedFarmId = null
+                navigateTo(Destination.FARMS)
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun switchToFarm(farmId: String) {
+        if (!requireMutationsAllowed()) return
+        try {
+            service.setCurrentFarmId(farmId)
+            currentFarmId = farmId
+            managedFarmId = farmId
+            khataPartyId = null
+            editingPartyId = null
+            tradeEditorState = null
+            settlementEditorState = null
+            render()
+            showToast(R.string.toast_farm_switched)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "switch farm failed")
         }
     }
 
@@ -1426,14 +2197,14 @@ class FarmActivity : AppCompatActivity() {
         }
         hisabSummaryContainer.visibility = View.VISIBLE
         val currency = farm.currencyCode
-        val toReceive = farm.trades.filter { it.type == TradeType.SALE }.fold(0L) { acc, trade ->
-            Math.addExact(acc, farm.settlements.paymentSummaryFor(trade).outstandingMinor)
+        val toReceive = farm.parties.fold(0L) { acc, party ->
+            Math.addExact(acc, farm.partyLedgerSummary(party.id).toReceiveMinor)
         }
-        val toPay = farm.trades.filter { it.type == TradeType.PURCHASE }.fold(0L) { acc, trade ->
-            Math.addExact(acc, farm.settlements.paymentSummaryFor(trade).outstandingMinor)
+        val toPay = farm.parties.fold(0L) { acc, party ->
+            Math.addExact(acc, farm.partyLedgerSummary(party.id).toPayMinor)
         }
-        toReceiveText.text = string(R.string.to_receive_summary_format, formatMoney(currency, toReceive))
-        toPayText.text = string(R.string.to_pay_summary_format, formatMoney(currency, toPay))
+        toReceiveText.text = formatMoney(currency, toReceive)
+        toPayText.text = formatMoney(currency, toPay)
     }
 
     private fun renderFinancialOverview() {
@@ -1550,13 +2321,23 @@ class FarmActivity : AppCompatActivity() {
             } else {
                 string(R.string.trade_row_status_due_format, formatMoney(currency, summary.outstandingMinor))
             }
-            row.text = string(
-                R.string.trade_row_format,
-                FarmLabels.tradeType(this, trade.type),
-                displayTradeCounterparty(trade),
-                formatMoney(currency, trade.totalMinor),
-                string(R.string.trade_row_time_format, statusText, displayTradeTime(trade))
-            )
+            row.text = if (trade.activity == null) {
+                string(
+                    R.string.trade_row_format,
+                    FarmLabels.tradeType(this, trade.type),
+                    displayTradeCounterparty(trade),
+                    formatMoney(currency, trade.totalMinor),
+                    string(R.string.trade_row_time_format, statusText, displayTradeTime(trade))
+                )
+            } else {
+                "${activityDisplayName(trade.activity)} | " + string(
+                    R.string.trade_row_format,
+                    FarmLabels.tradeType(this, trade.type),
+                    displayTradeCounterparty(trade),
+                    formatMoney(currency, trade.totalMinor),
+                    string(R.string.trade_row_time_format, statusText, displayTradeTime(trade))
+                )
+            }
             row.contentDescription = row.text
             row.setOnClickListener {
                 confirmDiscardPartyIfNeeded { openTradeEditorForTrade(trade) }
@@ -1597,7 +2378,8 @@ class FarmActivity : AppCompatActivity() {
                     paidStatus = summary?.status ?: PaymentStatus.UNPAID,
                     paidText = "",
                     description = trade.description,
-                    occurredAt = trade.occurredAt
+                    occurredAt = trade.occurredAt,
+                    activity = trade.activity
                 )
                 applyTradeEditorState(state, baseline = state)
             }
@@ -1609,6 +2391,7 @@ class FarmActivity : AppCompatActivity() {
         tradeEditorBaseline = baseline
         tradeParties = buildTradePartyChoices(state.type)
         refreshTradePartySpinner(state.type, state.partyId)
+        refreshTradeActivityChoices(state.activity)
         tradeEditorTitle.text = string(tradeEditorTitleRes(state))
         tradeTotalInput.setText(state.totalText)
         syncTradeStatusListener = true
@@ -1679,6 +2462,49 @@ class FarmActivity : AppCompatActivity() {
     private fun selectedTradePartyId(): String? =
         tradeParties.getOrNull(tradePartySpinner.selectedItemPosition)?.id
 
+    private fun tradeActivityChoices(): List<FarmActivityType?> {
+        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return listOf(null)
+        return FarmActivityCatalog.activityChoices(farm.activities.toSet(), tradeEditorState?.activity)
+    }
+
+    /** Activity choices for create-only dialogs (General + enabled activities only). */
+    private fun farmActivityChoicesForDialog(): List<FarmActivityType?> {
+        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return listOf(null)
+        return listOf(null) + FarmActivityCatalog.displayOrder.filter { it in farm.activities }
+    }
+
+    private fun selectedTradeActivity(): FarmActivityType? {
+        val choices = tradeActivityChoices()
+        val position = tradeActivitySpinner.selectedItemPosition.coerceIn(0, choices.size - 1)
+        return choices[position]
+    }
+
+    private fun refreshTradeActivityChoices(currentActivity: FarmActivityType?) {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        val hasEnabled = farm != null && farm.activities.isNotEmpty()
+        val show = hasEnabled || currentActivity != null
+        tradeActivityLabel.visibility = if (show) View.VISIBLE else View.GONE
+        tradeActivitySpinner.visibility = if (show) View.VISIBLE else View.GONE
+        val choices = if (farm == null) listOf<FarmActivityType?>(null)
+        else FarmActivityCatalog.activityChoices(farm.activities.toSet(), currentActivity)
+        tradeActivitySpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            choices.map { activity ->
+                if (activity == null) string(R.string.transaction_activity_general_option)
+                else activityDisplayName(activity)
+            }
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        tradeActivitySpinner.setSelection(choices.indexOf(currentActivity).coerceAtLeast(0))
+    }
+
+    private fun onTradeActivityChanged() {
+        val state = tradeEditorState ?: return
+        tradeEditorState = state.copy(activity = selectedTradeActivity())
+    }
+
     private fun onTradePaymentStatusChanged(status: PaymentStatus) {
         if (syncTradeStatusListener) return
         val state = tradeEditorState ?: return
@@ -1712,7 +2538,8 @@ class FarmActivity : AppCompatActivity() {
             totalText = tradeTotalInput.text?.toString().orEmpty(),
             paidStatus = if (editMode) state.paidStatus else selectedTradePaymentStatus(),
             paidText = if (editMode) state.paidText else tradePaidInput.text?.toString().orEmpty(),
-            description = tradeDescriptionInput.text?.toString().orEmpty()
+            description = tradeDescriptionInput.text?.toString().orEmpty(),
+            activity = selectedTradeActivity()
         )
     }
 
@@ -1725,7 +2552,7 @@ class FarmActivity : AppCompatActivity() {
         tradeTotalInput.setText("")
         tradePaidInput.setText("")
         tradeDescriptionInput.setText("")
-        if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+        if (currentDestination == Destination.KHATA && khataPartyId != null) {
             refreshKhataView()
         }
     }
@@ -1766,6 +2593,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun saveTrade() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentTradeEditorState() ?: return
         val total = when (val result = moneyInputParser.parse(presentationLocale, currentFarmCurrency(), state.totalText)) {
@@ -1811,7 +2639,8 @@ class FarmActivity : AppCompatActivity() {
             partyId = partyId,
             totalMinor = total,
             description = state.description,
-            occurredAt = occurredAt
+            occurredAt = occurredAt,
+            activity = state.activity
         )
         try {
             if (state.mode == TradeEditorMode.CREATE) {
@@ -1829,6 +2658,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun confirmDeleteTrade() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentTradeEditorState() ?: return
         if (state.mode != TradeEditorMode.EDIT) return
@@ -1939,6 +2769,7 @@ class FarmActivity : AppCompatActivity() {
         bundle.putString(prefix + STATE_TRADE_EDITOR_PAID, state.paidText)
         bundle.putString(prefix + STATE_TRADE_EDITOR_DESCRIPTION, state.description)
         bundle.putString(prefix + STATE_TRADE_EDITOR_OCCURRED_AT, state.occurredAt.toInstant().toString())
+        bundle.putString(prefix + STATE_TRADE_EDITOR_ACTIVITY, state.activity?.name)
     }
 
     private fun readTradeEditorState(bundle: Bundle, prefix: String): TradeEditorState? {
@@ -1954,6 +2785,9 @@ class FarmActivity : AppCompatActivity() {
         val occurredAt = bundle.getString(prefix + STATE_TRADE_EDITOR_OCCURRED_AT)?.let {
             runCatching { OffsetDateTime.parse(it) }.getOrNull()
         } ?: return null
+        val activity = bundle.getString(prefix + STATE_TRADE_EDITOR_ACTIVITY)?.let {
+            runCatching { FarmActivityType.valueOf(it) }.getOrNull()
+        }
         return TradeEditorState(
             mode = mode,
             tradeId = bundle.getString(prefix + STATE_TRADE_EDITOR_TRADE_ID),
@@ -1963,7 +2797,8 @@ class FarmActivity : AppCompatActivity() {
             paidStatus = paidStatus,
             paidText = bundle.getString(prefix + STATE_TRADE_EDITOR_PAID).orEmpty(),
             description = bundle.getString(prefix + STATE_TRADE_EDITOR_DESCRIPTION).orEmpty(),
-            occurredAt = occurredAt
+            occurredAt = occurredAt,
+            activity = activity
         )
     }
 
@@ -2151,7 +2986,7 @@ class FarmActivity : AppCompatActivity() {
             tradeEditorContainer.visibility = View.VISIBLE
             tradeEditorState?.let { refreshTradeEditorPaymentSection(it) }
         }
-        if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null && tradeEditorState == null) {
+        if (currentDestination == Destination.KHATA && khataPartyId != null && tradeEditorState == null) {
             refreshKhataView()
             return
         }
@@ -2159,6 +2994,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun saveSettlement() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentSettlementEditorState() ?: return
         val tradeId = settlementTargetTradeId ?: return
@@ -2210,6 +3046,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun confirmDeleteSettlement() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentSettlementEditorState() ?: return
         if (state.mode != SettlementEditorMode.EDIT) return
@@ -2348,27 +3185,66 @@ class FarmActivity : AppCompatActivity() {
     private fun renderParties() {
         val farmId = currentFarmId ?: run {
             partiesEmptyText.visibility = View.VISIBLE
+            khataFilterEmptyText.visibility = View.GONE
             partiesContainer.removeAllViews()
             return
         }
-        val parties = service.parties(farmId)
-        partiesEmptyText.visibility = if (parties.isEmpty()) View.VISIBLE else View.GONE
+        val allParties = service.parties(farmId)
+        if (allParties.isEmpty()) {
+            partiesEmptyText.visibility = View.VISIBLE
+            khataFilterEmptyText.visibility = View.GONE
+            partiesContainer.removeAllViews()
+            return
+        }
+        partiesEmptyText.visibility = View.GONE
+
+        val partySummaries = allParties.map { party ->
+            party to service.partyLedgerSummary(farmId, party.id)
+        }
+
+        val query = khataSearchQuery.lowercase()
+        val searched = if (query.isBlank()) {
+            partySummaries
+        } else {
+            partySummaries.filter { (party, _) ->
+                party.name.lowercase().contains(query) || party.contact.lowercase().contains(query)
+            }
+        }
+
+        val filtered = when (currentKhataFilter) {
+            KhataFilter.ALL -> searched
+            KhataFilter.TO_RECEIVE -> searched.filter { (_, summary) -> summary.toReceiveMinor > 0 }
+            KhataFilter.TO_PAY -> searched.filter { (_, summary) -> summary.toPayMinor > 0 }
+        }
+
+        if (filtered.isEmpty()) {
+            khataFilterEmptyText.visibility = View.VISIBLE
+            partiesContainer.removeAllViews()
+            return
+        }
+        khataFilterEmptyText.visibility = View.GONE
         partiesContainer.removeAllViews()
-        if (parties.isEmpty()) return
+
+        val sorted = filtered.sortedWith(
+            compareByDescending<Pair<Party, PartyLedgerSummary>> { (_, s) -> maxOf(s.toReceiveMinor, s.toPayMinor) > 0L }
+                .thenByDescending { (_, s) -> maxOf(s.toReceiveMinor, s.toPayMinor) }
+                .thenBy { (p, _) -> p.name.lowercase() }
+        )
+
+        val currency = currentFarmCurrency()
         val inflater = LayoutInflater.from(this)
-        parties.forEach { party ->
+        sorted.forEach { (party, summary) ->
             val row = inflater.inflate(R.layout.item_party_row, partiesContainer, false) as TextView
             row.setTag(party.id)
-            row.text = string(
-                R.string.party_row_format,
-                party.name,
-                FarmLabels.partyRole(this, party.role)
-            )
-            row.contentDescription = string(
-                R.string.party_row_format,
-                party.name,
-                FarmLabels.partyRole(this, party.role)
-            )
+            val statusText = when {
+                summary.toReceiveMinor > 0 -> "${string(R.string.today_receivable_label)} ${formatMoney(currency, summary.toReceiveMinor)}"
+                summary.toPayMinor > 0 -> "${string(R.string.today_payable_label)} ${formatMoney(currency, summary.toPayMinor)}"
+                else -> string(R.string.khata_settled_label)
+            }
+            val contactText = if (party.contact.isNotBlank()) " · ${party.contact}" else ""
+            val roleText = FarmLabels.partyRole(this, party.role)
+            row.text = "${party.name}\n$statusText ($roleText$contactText)"
+            row.contentDescription = "${party.name}, $statusText, $roleText$contactText"
             row.setOnClickListener {
                 openPartyKhataFor(party.id)
             }
@@ -2392,6 +3268,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun saveParty() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val name = partyNameInput.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
@@ -2425,7 +3302,7 @@ class FarmActivity : AppCompatActivity() {
                 showToast(R.string.toast_party_saved)
             }
             closePartyEditor()
-            if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+            if (currentDestination == Destination.KHATA && khataPartyId != null) {
                 refreshKhataView()
             } else {
                 renderParties()
@@ -2436,6 +3313,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun confirmDeleteParty() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val partyId = editingPartyId ?: return
         if (service.trades(farmId).any { it.partyId == partyId }) {
@@ -2462,7 +3340,7 @@ class FarmActivity : AppCompatActivity() {
     private fun closePartyEditor() {
         editingPartyId = null
         setPartyEditorVisible(false)
-        if (currentDestination == Destination.HISAB_KITAB && khataPartyId != null) {
+        if (currentDestination == Destination.KHATA && khataPartyId != null) {
             refreshKhataView()
         } else {
             renderParties()
@@ -2508,7 +3386,39 @@ class FarmActivity : AppCompatActivity() {
         val ledger = service.partyLedger(farmId, partyId)
         val currency = currentFarmCurrency()
         partyKhataTitle.text = party.name
-        partyKhataRoleText.text = FarmLabels.partyRole(this, party.role)
+        val contactSubtitle = if (party.contact.isNotBlank()) " · ${party.contact}" else ""
+        partyKhataRoleText.text = "${FarmLabels.partyRole(this, party.role)}$contactSubtitle"
+
+        when {
+            ledger.summary.toReceiveMinor > 0 -> {
+                partyKhataHeadlineText.text = string(
+                    R.string.khata_headline_to_receive_format,
+                    formatMoney(currency, ledger.summary.toReceiveMinor)
+                )
+                partyKhataHeadlineText.setTextColor(getColor(R.color.receivableText))
+                khataContextualReceiveButton.visibility = View.VISIBLE
+                khataContextualPayButton.visibility = View.GONE
+            }
+            ledger.summary.toPayMinor > 0 -> {
+                partyKhataHeadlineText.text = string(
+                    R.string.khata_headline_to_pay_format,
+                    formatMoney(currency, ledger.summary.toPayMinor)
+                )
+                partyKhataHeadlineText.setTextColor(getColor(R.color.payableText))
+                khataContextualReceiveButton.visibility = View.GONE
+                khataContextualPayButton.visibility = View.VISIBLE
+            }
+            else -> {
+                partyKhataHeadlineText.text = string(
+                    R.string.khata_headline_settled_format,
+                    formatMoney(currency, 0L)
+                )
+                partyKhataHeadlineText.setTextColor(getColor(R.color.textSecondary))
+                khataContextualReceiveButton.visibility = View.GONE
+                khataContextualPayButton.visibility = View.GONE
+            }
+        }
+
         partyKhataToReceiveText.text = string(
             R.string.to_receive_summary_format,
             formatMoney(currency, ledger.summary.toReceiveMinor)
@@ -2533,17 +3443,28 @@ class FarmActivity : AppCompatActivity() {
         if (entries.isEmpty()) return
 
         val inflater = LayoutInflater.from(this)
+        val now = OffsetDateTime.now(deviceZone)
         entries.asReversed().forEach { entry ->
             val row = inflater.inflate(R.layout.item_ledger_entry_row, khataEntriesContainer, false) as TextView
             row.setTag(entry.sourceId)
-            val header = when (entry.sourceType) {
-                PartyLedgerEntryType.SALE -> FarmLabels.tradeType(this, TradeType.SALE)
-                PartyLedgerEntryType.PURCHASE -> FarmLabels.tradeType(this, TradeType.PURCHASE)
-                PartyLedgerEntryType.PAYMENT_RECEIVED -> string(R.string.payment_received_label)
-                PartyLedgerEntryType.PAYMENT_MADE -> string(R.string.payment_made_label)
+            val actionFormatted = when (entry.sourceType) {
+                PartyLedgerEntryType.SALE -> string(R.string.khata_entry_sold_format, formatMoney(currency, entry.amountMinor))
+                PartyLedgerEntryType.PURCHASE -> string(R.string.khata_entry_bought_format, formatMoney(currency, entry.amountMinor))
+                PartyLedgerEntryType.PAYMENT_RECEIVED -> string(R.string.khata_entry_received_format, formatMoney(currency, entry.amountMinor))
+                PartyLedgerEntryType.PAYMENT_MADE -> string(R.string.khata_entry_paid_format, formatMoney(currency, entry.amountMinor))
+            }
+            val dateFormatted = if (timePresentation.isToday(deviceZone, entry.occurredAt, now)) {
+                string(
+                    R.string.today_time_format,
+                    string(R.string.today_label),
+                    timePresentation.shortTime(presentationLocale, deviceZone, entry.occurredAt)
+                )
+            } else {
+                timePresentation.displayDateTime(presentationLocale, deviceZone, entry.occurredAt)
             }
             val detail = buildString {
-                append(string(R.string.ledger_entry_header_format, header, formatMoney(currency, entry.amountMinor)))
+                append(actionFormatted)
+                append("  ·  ").append(dateFormatted)
                 append("\n").append(
                     string(
                         R.string.ledger_entry_balance_after_format,
@@ -2551,9 +3472,24 @@ class FarmActivity : AppCompatActivity() {
                     )
                 )
                 if (entry.description.isNotBlank()) append("\n").append(entry.description)
-                append("\n").append(
-                    timePresentation.displayDateTime(presentationLocale, deviceZone, entry.occurredAt)
-                )
+                if (entry.sourceType == PartyLedgerEntryType.SALE) {
+                    service.loadFarm(farmId)?.productSaleDetails
+                        ?.firstOrNull { it.tradeId == entry.tradeId }
+                        ?.let { prodDetail ->
+                            val product = service.product(farmId, prodDetail.productId)
+                            if (product != null) {
+                                append("\n").append(
+                                    string(
+                                        R.string.khata_product_sale_detail_format,
+                                        product.name,
+                                        prodDetail.normalizedQuantity().toPlainString(),
+                                        productUnitLabel(prodDetail.unit, prodDetail.customUnitLabel),
+                                        formatMoney(currency, prodDetail.rateMinor)
+                                    )
+                                )
+                            }
+                        }
+                }
             }
             row.text = detail
             row.contentDescription = detail
@@ -2576,18 +3512,23 @@ class FarmActivity : AppCompatActivity() {
 
     private fun updateHisabKitabChromeVisibility(khataActive: Boolean) {
         val chromeVisibility = if (khataActive) View.GONE else View.VISIBLE
-        newSaleButton.visibility = chromeVisibility
-        newPurchaseButton.visibility = chromeVisibility
-        hisabSummaryContainer.visibility = chromeVisibility
-        financialOverviewContainer.visibility = chromeVisibility
-        tradesSectionLabel.visibility = chromeVisibility
-        tradesEmptyText.visibility = chromeVisibility
-        tradesContainer.visibility = chromeVisibility
-        partiesSectionLabel.visibility = chromeVisibility
-        partiesEmptyText.visibility = chromeVisibility
-        partiesContainer.visibility = chromeVisibility
-        addPartyButton.visibility = chromeVisibility
+        khataOverviewContainer.visibility = chromeVisibility
         partyKhataContainer.visibility = if (khataActive) View.VISIBLE else View.GONE
+    }
+
+    private fun setKhataFilter(filter: KhataFilter) {
+        currentKhataFilter = filter
+        syncKhataFilterSelection()
+    }
+
+    private fun syncKhataFilterSelection() {
+        khataFilterSuppressed = true
+        when (currentKhataFilter) {
+            KhataFilter.ALL -> khataFilterAllRadio.isChecked = true
+            KhataFilter.TO_RECEIVE -> khataFilterToReceiveRadio.isChecked = true
+            KhataFilter.TO_PAY -> khataFilterToPayRadio.isChecked = true
+        }
+        khataFilterSuppressed = false
     }
 
     private fun partyBalanceSemantics(currency: String, balanceMinor: Long): String = when {
@@ -2618,6 +3559,10 @@ class FarmActivity : AppCompatActivity() {
 
     private fun restoreKhataFrom(bundle: Bundle?) {
         if (bundle == null) return
+        bundle.getString(STATE_KHATA_FILTER)?.let { runCatching { KhataFilter.valueOf(it) }.getOrNull() }?.let {
+            currentKhataFilter = it
+            syncKhataFilterSelection()
+        }
         val partyId = bundle.getString(STATE_KHATA_PARTY_ID) ?: return
         val farmId = currentFarmId ?: return
         if (service.party(farmId, partyId) == null) return
@@ -2677,13 +3622,19 @@ class FarmActivity : AppCompatActivity() {
         FarmOrdering.partyRoles[partyRoleSpinner.selectedItemPosition.coerceIn(0, FarmOrdering.partyRoles.size - 1)]
 
     private fun createFarm() {
+        if (!requireMutationsAllowed()) return
         val name = farmNameInput.text?.toString()?.trim().orEmpty()
         if (name.isBlank()) {
             showValidationMessage(FarmUiError.FARM_NAME_REQUIRED.resourceId)
             return
         }
         try {
-            service.createFarm(name)
+            val farm = service.createFarm(name, createFarmCurrencyCode, createFarmActivities.toList())
+            service.setCurrentFarmId(farm.id)
+            localUserService.associateFarm(farm.id)
+            currentFarmId = farm.id
+            managedFarmId = farm.id
+            createFarmActivities = emptySet()
             render()
             showToast(R.string.toast_farm_created)
         } catch (exception: Exception) {
@@ -2692,6 +3643,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun addEntry() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val label = entryLabelInput.text?.toString()?.trim().orEmpty()
         if (label.isBlank()) {
@@ -2721,12 +3673,17 @@ class FarmActivity : AppCompatActivity() {
 
     // --- Transaction editor -------------------------------------------------
 
-    private fun openEditorForNew(type: TransactionType) {
+    private fun openEditorForNew(
+        type: TransactionType,
+        titleRes: Int = R.string.transaction_editor_new_section,
+        category: TransactionCategory? = null
+    ) {
         val state = TransactionEditorState.create(
             type = type,
-            occurredAt = OffsetDateTime.now(deviceZone)
+            occurredAt = OffsetDateTime.now(deviceZone),
+            category = category
         )
-        applyEditorState(state, baseline = state)
+        applyEditorState(state, baseline = state, titleOverride = titleRes)
     }
 
     private fun openEditorForTransaction(transaction: FarmTransaction) {
@@ -2735,6 +3692,7 @@ class FarmActivity : AppCompatActivity() {
             transactionId = transaction.id,
             type = transaction.type,
             category = transaction.category,
+            activity = transaction.activity,
             amountText = moneyFormatter.toEditFieldValue(presentationLocale, farmCurrencyOf(transaction), transaction.amountMinor),
             description = transaction.description,
             occurredAt = transaction.occurredAt
@@ -2747,20 +3705,28 @@ class FarmActivity : AppCompatActivity() {
         return farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
     }
 
-    private fun applyEditorState(state: TransactionEditorState, baseline: TransactionEditorState) {
+    private fun applyEditorState(
+        state: TransactionEditorState,
+        baseline: TransactionEditorState,
+        titleOverride: Int? = null
+    ) {
         editorState = state
         editorBaseline = baseline
         transactionEditorTitle.text = string(
-            if (state.mode == TransactionEditorMode.CREATE) R.string.transaction_editor_new_section
-            else R.string.transaction_editor_edit_section
+            titleOverride
+                ?: if (state.mode == TransactionEditorMode.CREATE) R.string.transaction_editor_new_section
+                else R.string.transaction_editor_edit_section
         )
         syncTypeListenersSuppressed = true
         transactionTypeIncomeRadio.isChecked = state.type == TransactionType.INCOME
         transactionTypeExpenseRadio.isChecked = state.type == TransactionType.EXPENSE
         syncTypeListenersSuppressed = false
         refreshCategoryChoices(state.type)
-        val categoryIndex = FarmOrdering.categoriesFor(state.type).indexOf(state.category).coerceAtLeast(0)
+        val categoryIndex = transactionCategoryChoices(state.type).indexOf(state.category).coerceAtLeast(0)
         transactionCategorySpinner.setSelection(categoryIndex)
+        refreshActivityChoices(state.activity)
+        val activityIndex = transactionActivityChoices().indexOf(state.activity).coerceAtLeast(0)
+        transactionActivitySpinner.setSelection(activityIndex)
         transactionAmountInput.setText(state.amountText)
         transactionDescriptionInput.setText(state.description)
         updateDateTimeDisplay()
@@ -2814,6 +3780,7 @@ class FarmActivity : AppCompatActivity() {
         return state.copy(
             type = selectedTransactionType(),
             category = selectedTransactionCategory(),
+            activity = selectedTransactionActivity(),
             amountText = transactionAmountInput.text?.toString().orEmpty(),
             description = transactionDescriptionInput.text?.toString().orEmpty()
         )
@@ -2822,7 +3789,7 @@ class FarmActivity : AppCompatActivity() {
     private fun onTransactionTypeChanged(type: TransactionType) {
         if (syncTypeListenersSuppressed) return
         val state = editorState ?: return
-        val categories = FarmOrdering.categoriesFor(type)
+        val categories = transactionCategoryChoices(type)
         refreshCategoryChoices(type)
         val updated = state.copy(type = type, category = categories.first())
         editorState = updated
@@ -2830,7 +3797,1261 @@ class FarmActivity : AppCompatActivity() {
         saveTransactionButton.text = string(saveActionRes(updated))
     }
 
+    private fun showRecordDateTimePicker(
+        initialDateTime: OffsetDateTime,
+        onDateTimeSelected: (OffsetDateTime) -> Unit
+    ) {
+        val date = initialDateTime.atZoneSameInstant(deviceZone).toLocalDate()
+        DatePickerDialog(
+            this,
+            { _, year, month, dayOfMonth ->
+                val time = initialDateTime.atZoneSameInstant(deviceZone).toLocalTime()
+                TimePickerDialog(
+                    this,
+                    { _, hourOfDay, minute ->
+                        val selected = java.time.LocalDateTime.of(year, month + 1, dayOfMonth, hourOfDay, minute)
+                            .atZone(deviceZone)
+                            .toOffsetDateTime()
+                        onDateTimeSelected(selected)
+                    },
+                    time.hour,
+                    time.minute,
+                    false
+                ).show()
+            },
+            date.year,
+            date.monthValue - 1,
+            date.dayOfMonth
+        ).show()
+    }
+
+    private fun showQuickSaleDialog(
+        preselectedCustomerId: String? = null,
+        preselectedProductId: String? = null,
+        prefilledRateMinor: Long? = null
+    ) {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val recentCustomerIds = ProductSaleHistory.recentCustomerIds(farm)
+        val customers = service.parties(farmId)
+            .filter { it.role.compatibleWith(TradeType.SALE) }
+            .sortedWith(compareBy<Party> { recentCustomerIds.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
+        if (customers.isEmpty()) {
+            showQuickCustomerDialog { customer ->
+                showQuickSaleDialog(preselectedCustomerId = customer.id, preselectedProductId = preselectedProductId, prefilledRateMinor = prefilledRateMinor)
+            }
+            return
+        }
+        val recentProductIds = ProductSaleHistory.recentProductIds(farm)
+        val products = service.products(farmId)
+            .sortedWith(compareBy<FarmProduct> { recentProductIds.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
+        if (products.isEmpty()) {
+            showProductCreationDialog { showQuickSaleDialog() }
+            return
+        }
+        val selectableCustomers = customers.toMutableList()
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        scrollView.addView(content)
+
+        val customerSpinner = Spinner(this)
+        val customerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, selectableCustomers.map { it.name }.toMutableList())
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        customerSpinner.adapter = customerAdapter
+
+        val addCustomerButton = Button(this).apply {
+            text = string(R.string.quick_sale_add_customer)
+            minHeight = dp(44)
+        }
+        val productSpinner = Spinner(this)
+        productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { product ->
+            "${product.name} · ${productUnitLabel(product.defaultUnit, product.customUnitLabel)}"
+        }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+
+        val saleActivityChoices = farmActivityChoicesForDialog()
+        val saleActivitySpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@FarmActivity,
+                android.R.layout.simple_spinner_item,
+                saleActivityChoices.map { activity ->
+                    if (activity == null) string(R.string.transaction_activity_general_option)
+                    else activityDisplayName(activity)
+                }
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            visibility = if (saleActivityChoices.size > 1) View.VISIBLE else View.GONE
+        }
+
+        val customerBalanceText = TextView(this).apply {
+            textSize = 13f
+            setTextColor(getColor(R.color.receivableText))
+            setPadding(0, dp(2), 0, dp(6))
+        }
+
+        val quantityInput = EditText(this).apply {
+            hint = string(R.string.quick_sale_quantity)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        val rateInput = EditText(this).apply {
+            hint = string(R.string.quick_sale_rate)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        val unitText = TextView(this).apply {
+            textSize = 13f
+            setTextColor(getColor(R.color.textSecondary))
+        }
+
+        val summaryTile = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = ContextCompat.getDrawable(this@FarmActivity, R.drawable.bg_metric_tile)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(8)
+            }
+            layoutParams = lp
+        }
+        val summaryText = TextView(this).apply {
+            textSize = 14f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        summaryTile.addView(summaryText)
+
+        val paymentGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        val paidRadio = RadioButton(this).apply { text = string(R.string.quick_sale_paid) }
+        val creditRadio = RadioButton(this).apply { text = string(R.string.quick_sale_credit) }
+        val partialRadio = RadioButton(this).apply { text = string(R.string.quick_sale_partial) }
+        paymentGroup.addView(paidRadio)
+        paymentGroup.addView(creditRadio)
+        paymentGroup.addView(partialRadio)
+        paidRadio.isChecked = true
+
+        val partialInput = EditText(this).apply {
+            hint = string(R.string.quick_sale_partial_amount)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            visibility = View.GONE
+        }
+
+        var saleOccurredAt = OffsetDateTime.now(deviceZone)
+        val dateTimeButton = Button(this).apply {
+            text = string(R.string.record_change_date_time)
+            minHeight = dp(44)
+            setOnClickListener {
+                showRecordDateTimePicker(saleOccurredAt) { selected ->
+                    saleOccurredAt = selected
+                    text = timePresentation.displayDateTime(presentationLocale, deviceZone, selected)
+                }
+            }
+        }
+
+        content.addView(labelText(R.string.quick_sale_customer))
+        content.addView(customerSpinner)
+        content.addView(addCustomerButton)
+        content.addView(customerBalanceText)
+        content.addView(labelText(R.string.quick_sale_product))
+        content.addView(productSpinner)
+        content.addView(labelText(R.string.transaction_activity_label))
+        content.addView(saleActivitySpinner)
+        content.addView(quantityInput)
+        content.addView(unitText)
+        content.addView(rateInput)
+        content.addView(summaryTile)
+        content.addView(paymentGroup)
+        content.addView(partialInput)
+        content.addView(dateTimeButton)
+
+        var rateEdited = prefilledRateMinor != null
+        var suppressRateEdit = false
+        fun selectedCustomer(): Party? = selectableCustomers.getOrNull(customerSpinner.selectedItemPosition)
+        fun selectedProduct(): FarmProduct? = products.getOrNull(productSpinner.selectedItemPosition)
+        fun refreshRateSuggestion() {
+            if (rateEdited) return
+            val customerId = selectedCustomer()?.id
+            val productId = selectedProduct()?.id ?: return
+            val currentFarm = service.loadFarm(farmId) ?: return
+            val suggested = if (customerId != null) {
+                ProductSaleHistory.latestRateForCustomerAndProduct(currentFarm, customerId, productId)
+                    ?: ProductSaleHistory.latestRateForProduct(currentFarm, productId)
+            } else {
+                ProductSaleHistory.latestRateForProduct(currentFarm, productId)
+            } ?: return
+            suppressRateEdit = true
+            rateInput.setText(moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), suggested))
+            rateInput.setSelection(rateInput.text?.length ?: 0)
+            suppressRateEdit = false
+        }
+        fun refreshCustomerBalance() {
+            val customer = selectedCustomer() ?: return
+            val summary = service.partyLedgerSummary(farmId, customer.id)
+            customerBalanceText.text = if (summary.toReceiveMinor > 0) {
+                string(
+                    R.string.quick_sale_customer_balance_format,
+                    formatMoney(currentFarmCurrency(), summary.toReceiveMinor)
+                )
+            } else {
+                ""
+            }
+        }
+        fun refreshSummary() {
+            val product = selectedProduct() ?: return
+            unitText.text = productUnitLabel(product.defaultUnit, product.customUnitLabel)
+            val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty())
+            val rate = moneyInputParser.parse(presentationLocale, currentFarmCurrency(), rateInput.text?.toString().orEmpty())
+            if (quantity == null || rate !is MoneyInputResult.Valid) {
+                summaryText.text = ""
+                return
+            }
+            val total = runCatching {
+                ProductSaleDetail("preview", product.id, quantity, product.defaultUnit, product.customUnitLabel, rate.amountMinor).totalMinor()
+            }.getOrNull() ?: run {
+                summaryText.text = ""
+                return
+            }
+            val paid = when {
+                paidRadio.isChecked -> total
+                creditRadio.isChecked -> 0L
+                else -> (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), partialInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor
+            }
+            summaryText.text = if (paid == null || paid > total) {
+                string(R.string.quick_sale_total_format, formatMoney(currentFarmCurrency(), total))
+            } else {
+                string(
+                    R.string.quick_sale_summary_format,
+                    formatMoney(currentFarmCurrency(), total),
+                    when {
+                        paid == total -> string(R.string.quick_sale_paid_summary)
+                        paid == 0L -> string(R.string.quick_sale_credit_summary)
+                        else -> string(
+                            R.string.quick_sale_partial_summary,
+                            formatMoney(currentFarmCurrency(), paid),
+                            formatMoney(currentFarmCurrency(), total - paid)
+                        )
+                    }
+                )
+            }
+        }
+        val watcher = object : TextWatcher {
+            override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) = refreshSummary()
+            override fun afterTextChanged(text: Editable?) = Unit
+        }
+        quantityInput.addTextChangedListener(watcher)
+        rateInput.addTextChangedListener(watcher)
+        rateInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(text: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(text: CharSequence?, start: Int, before: Int, count: Int) {
+                if (!suppressRateEdit) rateEdited = true
+                refreshSummary()
+            }
+            override fun afterTextChanged(text: Editable?) = Unit
+        })
+        customerSpinner.onItemSelectedListener = simpleItemSelectedListener {
+            refreshCustomerBalance()
+            refreshRateSuggestion()
+            refreshSummary()
+        }
+        productSpinner.onItemSelectedListener = simpleItemSelectedListener {
+            refreshRateSuggestion()
+            refreshSummary()
+        }
+        partialRadio.setOnCheckedChangeListener { _, checked ->
+            partialInput.visibility = if (checked) View.VISIBLE else View.GONE
+            refreshSummary()
+        }
+        partialInput.addTextChangedListener(watcher)
+        addCustomerButton.setOnClickListener {
+            showQuickCustomerDialog { customer ->
+                selectableCustomers.add(0, customer)
+                customerAdapter.clear()
+                customerAdapter.addAll(selectableCustomers.map { it.name })
+                customerAdapter.notifyDataSetChanged()
+                customerSpinner.setSelection(0)
+            }
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.quick_sale_title)
+            .setView(scrollView)
+            .setPositiveButton(R.string.quick_sale_save, null)
+            .setNeutralButton(R.string.quick_sale_add_product) { _, _ -> showProductCreationDialog { showQuickSaleDialog() } }
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val product = selectedProduct() ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty())
+                    ?: return@setOnClickListener showToast(R.string.quick_sale_quantity_invalid)
+                val rate = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), rateInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)
+                    ?: return@setOnClickListener showToast(R.string.quick_sale_rate_invalid)
+                val total = runCatching {
+                    ProductSaleDetail("preview", product.id, quantity, product.defaultUnit, product.customUnitLabel, rate.amountMinor).totalMinor()
+                }.getOrElse { return@setOnClickListener showToast(R.string.quick_sale_total_invalid) }
+                val paid = when {
+                    paidRadio.isChecked -> total
+                    creditRadio.isChecked -> 0L
+                    else -> (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), partialInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor
+                        ?: return@setOnClickListener showToast(R.string.quick_sale_partial_invalid)
+                }
+                if (paid > total) return@setOnClickListener showToast(R.string.quick_sale_partial_invalid)
+                try {
+                    service.addProductSale(
+                        farmId = farmId,
+                        partyId = selectedCustomer()!!.id,
+                        productId = product.id,
+                        quantity = quantity,
+                        rateMinor = rate.amountMinor,
+                        initialPaymentMinor = paid,
+                        occurredAt = saleOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                        activity = saleActivityChoices.getOrNull(saleActivitySpinner.selectedItemPosition)
+                    )
+                    dialog.dismiss()
+                    render()
+                    showQuickSaleSavedDialog(selectedCustomer()!!.id, product.id, rate.amountMinor)
+                } catch (exception: Exception) {
+                    showUnexpectedFailure(exception, "save quick sale failed")
+                }
+            }
+        }
+        dialog.show()
+        scaleDialogContent(dialog)
+        customerSpinner.setSelection(selectableCustomers.indexOfFirst { it.id == preselectedCustomerId }.coerceAtLeast(0))
+        productSpinner.setSelection(products.indexOfFirst { it.id == preselectedProductId }.coerceAtLeast(0))
+        if (prefilledRateMinor != null) {
+            suppressRateEdit = true
+            rateInput.setText(moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), prefilledRateMinor))
+            suppressRateEdit = false
+        }
+        refreshCustomerBalance()
+        refreshRateSuggestion()
+        refreshSummary()
+    }
+
+    private fun showQuickCustomerDialog(afterCreate: (Party) -> Unit) {
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        scrollView.addView(content)
+        val nameInput = EditText(this).apply { hint = string(R.string.quick_sale_customer_name) }
+        val phoneInput = EditText(this).apply {
+            hint = string(R.string.quick_sale_customer_phone)
+            inputType = android.text.InputType.TYPE_CLASS_PHONE
+        }
+        content.addView(nameInput)
+        content.addView(phoneInput)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.quick_sale_add_customer)
+            .setView(scrollView)
+            .setPositiveButton(R.string.action_ok, null)
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val farmId = currentFarmId ?: return@setOnClickListener
+                val name = nameInput.text?.toString()?.trim().orEmpty()
+                if (name.isBlank()) return@setOnClickListener showToast(R.string.quick_sale_customer_name_required)
+                try {
+                    val customer = service.addParty(
+                        farmId,
+                        PartyDraft(name = name, role = PartyRole.CUSTOMER, contact = phoneInput.text?.toString()?.trim().orEmpty())
+                    )
+                    dialog.dismiss()
+                    afterCreate(customer)
+                } catch (exception: Exception) {
+                    Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun showSupplyPurchaseDialog() {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val supplies = service.supplies(farmId)
+        if (supplies.isEmpty()) {
+            showSupplyCreationDialog { showSupplyPurchaseDialog() }
+            return
+        }
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val supplySpinner = Spinner(this)
+        supplySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, supplies.map { it.name })
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val quantityInput = EditText(this).apply { hint = string(R.string.supply_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val unitText = TextView(this)
+        val costInput = EditText(this).apply { hint = string(R.string.supply_cost); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val noteInput = EditText(this).apply { hint = string(R.string.supply_note) }
+        content.addView(supplySpinner); content.addView(quantityInput); content.addView(unitText); content.addView(costInput); content.addView(noteInput)
+        fun refreshUnit() { supplies.getOrNull(supplySpinner.selectedItemPosition)?.let { unitText.text = supplyUnitLabel(it.unit, it.customUnitLabel) } }
+        supplySpinner.onItemSelectedListener = simpleItemSelectedListener { refreshUnit() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_purchase_title).setView(content)
+            .setNeutralButton(R.string.supply_add) { _, _ -> showSupplyCreationDialog { showSupplyPurchaseDialog() } }
+            .setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val supply = supplies.getOrNull(supplySpinner.selectedItemPosition) ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.supply_quantity_invalid)
+                val cost = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), costInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor
+                    ?: return@setOnClickListener showToast(R.string.supply_cost_invalid)
+                try {
+                    service.addSupplyPurchase(
+                        farmId, supply.id, quantity, supply.unit, cost, TransactionCategory.SUPPLIES,
+                        OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME),
+                        noteInput.text?.toString().orEmpty().ifBlank { supply.name }
+                    )
+                    dialog.dismiss(); render(); showToast(R.string.supply_saved)
+                } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
+            }
+        }
+        dialog.show(); refreshUnit()
+    }
+
+    private fun showSupplierPurchaseDialog(targetSupplyId: String? = null) {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val supplies = service.supplies(farmId)
+        if (supplies.isEmpty()) return showSupplyCreationDialog { showSupplierPurchaseDialog(targetSupplyId) }
+        val suppliers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.PURCHASE) }
+        if (suppliers.isEmpty()) return showSupplierCreationDialog { showSupplierPurchaseDialog(targetSupplyId) }
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val supplierSpinner = Spinner(this)
+        supplierSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, suppliers.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val supplySpinner = Spinner(this)
+        supplySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, supplies.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetSupplyId != null) {
+            val idx = supplies.indexOfFirst { it.id == targetSupplyId }
+            if (idx >= 0) supplySpinner.setSelection(idx)
+        }
+        val purchaseActivityChoices = farmActivityChoicesForDialog()
+        val purchaseActivitySpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@FarmActivity,
+                android.R.layout.simple_spinner_item,
+                purchaseActivityChoices.map { activity ->
+                    if (activity == null) string(R.string.transaction_activity_general_option)
+                    else activityDisplayName(activity)
+                }
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            visibility = if (purchaseActivityChoices.size > 1) View.VISIBLE else View.GONE
+        }
+        val quantityInput = EditText(this).apply { hint = string(R.string.supply_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val costInput = EditText(this).apply { hint = string(R.string.supply_cost); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val paidInput = EditText(this).apply { hint = string(R.string.supplier_payment_now); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL; visibility = View.GONE }
+        val stateGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        val paid = RadioButton(this).apply { text = string(R.string.supplier_payment_state_paid) }
+        val credit = RadioButton(this).apply { text = string(R.string.supplier_payment_state_credit) }
+        val partial = RadioButton(this).apply { text = string(R.string.supplier_payment_state_partial) }
+        stateGroup.addView(paid); stateGroup.addView(credit); stateGroup.addView(partial); paid.isChecked = true
+        val summary = TextView(this).apply { setTypeface(typeface, android.graphics.Typeface.BOLD) }
+        content.addView(supplierSpinner); content.addView(supplySpinner); content.addView(labelText(R.string.transaction_activity_label)); content.addView(purchaseActivitySpinner); content.addView(quantityInput); content.addView(costInput); content.addView(stateGroup); content.addView(paidInput); content.addView(summary)
+        fun refreshSummary() {
+            val cost = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), costInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return
+            val paidNow = if (paid.isChecked) cost else if (credit.isChecked) 0L else (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), paidInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: 0L
+            summary.text = string(R.string.quick_sale_summary_format, formatMoney(currentFarmCurrency(), cost), string(R.string.supplier_payment_balance_format, formatMoney(currentFarmCurrency(), cost - paidNow)))
+        }
+        costInput.addTextChangedListener(object : TextWatcher { override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit; override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = refreshSummary(); override fun afterTextChanged(e: Editable?) = Unit })
+        paidInput.addTextChangedListener(object : TextWatcher { override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit; override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = refreshSummary(); override fun afterTextChanged(e: Editable?) = Unit })
+        partial.setOnCheckedChangeListener { _, checked -> paidInput.visibility = if (checked) View.VISIBLE else View.GONE; refreshSummary() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_purchase_title).setView(content).setNeutralButton(R.string.supplier_add) { _, _ -> showSupplierCreationDialog { showSupplierPurchaseDialog(targetSupplyId) } }.setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val supply = supplies[supplySpinner.selectedItemPosition]
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.supply_quantity_invalid)
+                val cost = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), costInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return@setOnClickListener showToast(R.string.supply_cost_invalid)
+                val paidNow = if (paid.isChecked) cost else if (credit.isChecked) 0L else (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), paidInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return@setOnClickListener showToast(R.string.supply_cost_invalid)
+                try { service.addSupplierPurchase(farmId, suppliers[supplierSpinner.selectedItemPosition].id, supply.id, quantity, supply.unit, cost, paidNow, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), supply.name, purchaseActivityChoices.getOrNull(purchaseActivitySpinner.selectedItemPosition)); dialog.dismiss(); render(); showToast(R.string.supply_saved) } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showSupplierCreationDialog(afterCreate: (Party) -> Unit) {
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val name = EditText(this).apply { hint = string(R.string.quick_sale_customer_name) }
+        val phone = EditText(this).apply { hint = string(R.string.quick_sale_customer_phone); inputType = android.text.InputType.TYPE_CLASS_PHONE }
+        content.addView(name); content.addView(phone)
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supplier_add).setView(content).setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { val farmId = currentFarmId ?: return@setOnClickListener; val value = name.text?.toString()?.trim().orEmpty(); if (value.isBlank()) return@setOnClickListener showToast(R.string.quick_sale_customer_name_required); val supplier = service.addParty(farmId, PartyDraft(value, PartyRole.SUPPLIER, phone.text?.toString()?.trim().orEmpty())); dialog.dismiss(); afterCreate(supplier) } }
+        dialog.show()
+    }
+
+    private fun showSupplierPaymentDialog(targetPartyId: String? = null) {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val suppliers = service.parties(farmId).filter { it.role.compatibleWith(TradeType.PURCHASE) }
+        if (suppliers.isEmpty()) return showToast(R.string.supplier_no_balance)
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val spinner = Spinner(this); spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, suppliers.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetPartyId != null) {
+            val idx = suppliers.indexOfFirst { it.id == targetPartyId }
+            if (idx >= 0) spinner.setSelection(idx)
+        }
+        val balance = TextView(this); val amount = EditText(this).apply { hint = string(R.string.received_money_amount); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }; val full = Button(this).apply { text = string(R.string.supplier_payment_full_amount); minHeight = dp(48) }
+        content.addView(spinner); content.addView(balance); content.addView(amount); content.addView(full)
+        fun refresh() { val value = service.partyLedgerSummary(farmId, suppliers[spinner.selectedItemPosition].id).toPayMinor; balance.text = string(R.string.supplier_payment_balance_format, formatMoney(currentFarmCurrency(), value)); full.isEnabled = value > 0; full.setOnClickListener { amount.setText(moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), value)); amount.setSelection(amount.text?.length ?: 0) } }
+        spinner.onItemSelectedListener = simpleItemSelectedListener { refresh() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supplier_payment_title).setView(content).setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { val value = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), amount.text?.toString().orEmpty()) as? MoneyInputResult.Valid)?.amountMinor ?: return@setOnClickListener showToast(R.string.received_money_amount_invalid); try { service.recordSupplierPayment(farmId, suppliers[spinner.selectedItemPosition].id, value, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)); dialog.dismiss(); render(); showToast(R.string.supplier_payment_saved) } catch (exception: Exception) { val message = if (exception.message?.contains("exceeds") == true) string(R.string.supplier_overpayment) else string(R.string.supplier_payment_failed); Toast.makeText(this, message, Toast.LENGTH_SHORT).show() } } }
+        dialog.show(); refresh()
+    }
+
+    private fun showSupplyUsageDialog(targetSupplyId: String? = null) {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val supplies = service.supplies(farmId)
+        if (supplies.isEmpty()) return showToast(R.string.supply_empty)
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val supplySpinner = Spinner(this)
+        supplySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, supplies.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetSupplyId != null) {
+            val idx = supplies.indexOfFirst { it.id == targetSupplyId }
+            if (idx >= 0) supplySpinner.setSelection(idx)
+        }
+        val balanceText = TextView(this)
+        val quantityInput = EditText(this).apply { hint = string(R.string.supply_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val noteInput = EditText(this).apply { hint = string(R.string.supply_note) }
+        content.addView(supplySpinner); content.addView(balanceText); content.addView(quantityInput); content.addView(noteInput)
+        fun refreshBalance() { supplies.getOrNull(supplySpinner.selectedItemPosition)?.let { balanceText.text = string(R.string.supply_remaining_format, it.name, formatQuantity(service.supplyAvailable(farmId, it.id))) } }
+        supplySpinner.onItemSelectedListener = simpleItemSelectedListener { refreshBalance() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_usage_title).setView(content).setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val supply = supplies.getOrNull(supplySpinner.selectedItemPosition) ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.supply_quantity_invalid)
+                try {
+                    service.addSupplyUsage(farmId, SupplyUsageDraft(supply.id, quantity, supply.unit, OffsetDateTime.now(deviceZone).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), noteInput.text?.toString().orEmpty()))
+                    dialog.dismiss(); render(); showToast(R.string.supply_used_saved)
+                } catch (exception: Exception) {
+                    if (exception.message?.contains("exceeds available") == true) showToast(R.string.supply_usage_too_high)
+                    else Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show(); refreshBalance()
+    }
+
+    private fun showSupplyStockDialog() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val message = if (farm.supplies.isEmpty()) string(R.string.supply_empty) else farm.supplies.sortedBy { it.name.lowercase() }.joinToString("\n\n") { supply ->
+            val purchases = farm.supplyPurchaseDetails.filter { it.supplyId == supply.id }.sumOf { it.quantity }
+            val used = farm.supplyUsages.filter { it.supplyId == supply.id }.sumOf { it.quantity }
+            string(R.string.supply_remaining_format, supply.name, formatQuantity(purchases.subtract(used))) +
+                "\n" + string(R.string.supply_activity_format, formatQuantity(purchases), formatQuantity(used))
+        }
+        AlertDialog.Builder(this).setTitle(R.string.supply_stock_title).setMessage(message).setPositiveButton(R.string.action_done, null).show()
+    }
+
+    private fun showSupplyCreationDialog(afterSave: (FarmSupply) -> Unit) {
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(8), dp(24), 0) }
+        val nameInput = EditText(this).apply { hint = string(R.string.supply_name_hint) }
+        val units = listOf(ProductUnit.KILOGRAM, ProductUnit.LITRE, ProductUnit.BAG, ProductUnit.PACKET, ProductUnit.BOTTLE, ProductUnit.PIECE, ProductUnit.MANA, ProductUnit.PATHI, ProductUnit.MURI)
+        val unitSpinner = Spinner(this)
+        unitSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, units.map { supplyUnitLabel(it, "") }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        content.addView(nameInput); content.addView(unitSpinner)
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.supply_add).setView(content).setPositiveButton(R.string.action_ok, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val farmId = currentFarmId ?: return@setOnClickListener
+                val name = nameInput.text?.toString()?.trim().orEmpty()
+                if (name.isBlank()) return@setOnClickListener showToast(R.string.supply_name_required)
+                try {
+                    val supply = service.addSupply(farmId, name, units[unitSpinner.selectedItemPosition])
+                    dialog.dismiss(); showToast(R.string.supply_add_saved); afterSave(supply)
+                } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun renderFarmWork() {
+        val farmId = currentFarmId ?: return
+        val farm = service.loadFarm(farmId) ?: return
+
+        // 1. Production Section
+        val products = farm.products
+        if (products.isEmpty()) {
+            farmWorkNoProductsText.visibility = View.VISIBLE
+            farmWorkProductionContainer.removeAllViews()
+        } else {
+            farmWorkNoProductsText.visibility = View.GONE
+            farmWorkProductionContainer.removeAllViews()
+            val today = OffsetDateTime.now(deviceZone).toLocalDate()
+            val todayRecords = farm.productionForDay(today, deviceZone)
+
+            products.forEach { product ->
+                val records = todayRecords.filter { it.productId == product.id }
+                val reconciliation = service.productionReconciliation(farmId, product.id, today, deviceZone)
+                val unitLabel = productUnitLabel(product.defaultUnit, product.customUnitLabel)
+
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    background = ContextCompat.getDrawable(this@FarmActivity, R.drawable.bg_today_card)
+                    setPadding(dp(16), dp(16), dp(16), dp(16))
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        topMargin = dp(8)
+                    }
+                    layoutParams = params
+                }
+
+                // Title: Product name · Today
+                val titleView = TextView(this).apply {
+                    text = "${product.name} · ${string(R.string.today_label)}"
+                    textSize = 18f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                }
+                card.addView(titleView)
+
+                // Today total produced headline
+                val producedView = TextView(this).apply {
+                    text = string(R.string.farm_work_today_production_headline, formatQuantity(reconciliation.produced), unitLabel)
+                    textSize = 15f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setPadding(0, dp(4), 0, 0)
+                }
+                card.addView(producedView)
+
+                // Sessions (Morning / Evening / Other) if any recorded
+                val morningQty = records.firstOrNull { it.session == ProductionSession.MORNING }?.quantity
+                val eveningQty = records.firstOrNull { it.session == ProductionSession.EVENING }?.quantity
+                val otherQty = records.firstOrNull { it.session == ProductionSession.OTHER }?.quantity
+
+                if (morningQty != null || eveningQty != null || otherQty != null) {
+                    val sessionParts = mutableListOf<String>()
+                    if (morningQty != null) sessionParts.add(string(R.string.farm_work_morning_label, "${formatQuantity(morningQty)} $unitLabel"))
+                    if (eveningQty != null) sessionParts.add(string(R.string.farm_work_evening_label, "${formatQuantity(eveningQty)} $unitLabel"))
+                    if (otherQty != null) sessionParts.add("${string(R.string.production_other)}: ${formatQuantity(otherQty)} $unitLabel")
+
+                    val sessionView = TextView(this).apply {
+                        text = sessionParts.joinToString("  ·  ")
+                        textSize = 13f
+                        setTextColor(getColor(R.color.textSecondary))
+                        setPadding(0, dp(2), 0, 0)
+                    }
+                    card.addView(sessionView)
+                }
+
+                // Reconciliation section ("Where did it go? / कहाँ गयो?")
+                val equationTitle = TextView(this).apply {
+                    text = string(R.string.farm_work_where_went)
+                    textSize = 14f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setPadding(0, dp(12), 0, dp(4))
+                }
+                card.addView(equationTitle)
+
+                // Sold breakdown
+                val soldText = string(R.string.farm_work_sold_label, "${formatQuantity(reconciliation.sold)} $unitLabel")
+                val soldView = TextView(this).apply {
+                    text = soldText
+                    textSize = 13f
+                }
+                card.addView(soldView)
+
+                // Allocations breakdown
+                if (reconciliation.allocations.isNotEmpty()) {
+                    val allocLines = reconciliation.allocations.map { (type, qty) ->
+                        val label = when (type) {
+                            ProductionAllocationType.HOME_USE -> string(R.string.production_home_use)
+                            ProductionAllocationType.PROCESSING -> string(R.string.production_processing)
+                            ProductionAllocationType.ANIMAL_FEED -> string(R.string.production_animal_feed)
+                            ProductionAllocationType.WASTE -> string(R.string.production_waste)
+                            ProductionAllocationType.OTHER -> string(R.string.production_other)
+                        }
+                        "$label: ${formatQuantity(qty)} $unitLabel"
+                    }
+                    val allocView = TextView(this).apply {
+                        text = allocLines.joinToString("\n")
+                        textSize = 13f
+                        setPadding(0, dp(2), 0, 0)
+                    }
+                    card.addView(allocView)
+                }
+
+                // Unexplained production status
+                if (reconciliation.unexplained > BigDecimal.ZERO) {
+                    val unexplainedTile = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        background = ContextCompat.getDrawable(this@FarmActivity, R.drawable.bg_metric_tile)
+                        setPadding(dp(12), dp(8), dp(12), dp(8))
+                        gravity = android.view.Gravity.CENTER_VERTICAL
+                        val p = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply { topMargin = dp(8) }
+                        layoutParams = p
+                    }
+                    val warnText = TextView(this).apply {
+                        text = string(R.string.farm_work_unexplained_label, "${formatQuantity(reconciliation.unexplained)} $unitLabel")
+                        textSize = 13f
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                        setTextColor(getColor(R.color.payableText))
+                        val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        layoutParams = lp
+                    }
+                    val reconcileBtn = Button(this).apply {
+                        text = string(R.string.today_reconcile_action)
+                        minHeight = dp(40)
+                        setOnClickListener { showProductionAllocationDialog(product.id) }
+                    }
+                    unexplainedTile.addView(warnText)
+                    unexplainedTile.addView(reconcileBtn)
+                    card.addView(unexplainedTile)
+                } else if (reconciliation.produced > BigDecimal.ZERO) {
+                    val explainedView = TextView(this).apply {
+                        text = string(R.string.farm_work_all_explained)
+                        textSize = 13f
+                        setTextColor(getColor(R.color.receivableText))
+                        setTypeface(typeface, android.graphics.Typeface.BOLD)
+                        setPadding(0, dp(6), 0, 0)
+                    }
+                    card.addView(explainedView)
+                }
+
+                // Contextual action buttons for this product
+                val actionRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    val p = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = dp(12) }
+                    layoutParams = p
+                }
+                val recordBtn = Button(this).apply {
+                    text = string(R.string.farm_work_record_production_action)
+                    minHeight = dp(44)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    setOnClickListener { showProductionDialog(product.id) }
+                }
+                val explainBtn = Button(this).apply {
+                    text = string(R.string.farm_work_explain_production_action)
+                    minHeight = dp(44)
+                    val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        marginStart = dp(8)
+                    }
+                    layoutParams = lp
+                    setOnClickListener { showProductionAllocationDialog(product.id) }
+                }
+                actionRow.addView(recordBtn)
+                actionRow.addView(explainBtn)
+                card.addView(actionRow)
+
+                farmWorkProductionContainer.addView(card)
+            }
+        }
+
+        // 2. Supplies Section
+        val supplies = farm.supplies
+        if (supplies.isEmpty()) {
+            farmWorkNoSuppliesText.visibility = View.VISIBLE
+            farmWorkSuppliesContainer.removeAllViews()
+        } else {
+            farmWorkNoSuppliesText.visibility = View.GONE
+            farmWorkSuppliesContainer.removeAllViews()
+
+            supplies.forEach { supply ->
+                val purchases = farm.supplyPurchaseDetails.filter { it.supplyId == supply.id }.fold(BigDecimal.ZERO) { acc, d -> acc.add(d.quantity) }
+                val used = farm.supplyUsages.filter { it.supplyId == supply.id }.fold(BigDecimal.ZERO) { acc, u -> acc.add(u.quantity) }
+                val remaining = purchases.subtract(used)
+                val unitLabel = supplyUnitLabel(supply.unit, supply.customUnitLabel)
+
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    background = ContextCompat.getDrawable(this@FarmActivity, R.drawable.bg_today_card)
+                    setPadding(dp(16), dp(16), dp(16), dp(16))
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        topMargin = dp(8)
+                    }
+                    layoutParams = params
+                }
+
+                // Top row: Supply name + Remaining quantity
+                val topRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                }
+                val nameView = TextView(this).apply {
+                    text = supply.name
+                    textSize = 18f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    layoutParams = lp
+                }
+                val remainingView = TextView(this).apply {
+                    text = string(R.string.farm_work_supply_remaining_format, formatQuantity(remaining), unitLabel)
+                    textSize = 15f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setTextColor(getColor(if (remaining > BigDecimal.ZERO) R.color.receivableText else R.color.textSecondary))
+                }
+                topRow.addView(nameView)
+                topRow.addView(remainingView)
+                card.addView(topRow)
+
+                // Secondary movement summary
+                val movementView = TextView(this).apply {
+                    text = string(R.string.farm_work_supply_movement_format, "${formatQuantity(purchases)} $unitLabel", "${formatQuantity(used)} $unitLabel")
+                    textSize = 13f
+                    setTextColor(getColor(R.color.textSecondary))
+                    setPadding(0, dp(4), 0, 0)
+                }
+                card.addView(movementView)
+
+                // Contextual buttons: [Use] [Buy]
+                val actionRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    val p = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = dp(12) }
+                    layoutParams = p
+                }
+                val useBtn = Button(this).apply {
+                    text = string(R.string.farm_work_use_supply_action)
+                    minHeight = dp(44)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    setOnClickListener { showSupplyUsageDialog(supply.id) }
+                }
+                val buyBtn = Button(this).apply {
+                    text = string(R.string.supply_purchase_action)
+                    minHeight = dp(44)
+                    val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        marginStart = dp(8)
+                    }
+                    layoutParams = lp
+                    setOnClickListener { showSupplierPurchaseDialog(supply.id) }
+                }
+                actionRow.addView(useBtn)
+                actionRow.addView(buyBtn)
+                card.addView(actionRow)
+
+                farmWorkSuppliesContainer.addView(card)
+            }
+        }
+    }
+
+    private fun supplyUnitLabel(unit: ProductUnit, customLabel: String): String = when (unit) {
+        ProductUnit.LITRE -> string(R.string.supply_unit_litre)
+        ProductUnit.KILOGRAM -> string(R.string.supply_unit_kilogram)
+        ProductUnit.PIECE -> string(R.string.supply_unit_piece)
+        ProductUnit.BAG -> string(R.string.supply_unit_bag)
+        ProductUnit.PACKET -> string(R.string.supply_unit_packet)
+        ProductUnit.BOTTLE -> string(R.string.supply_unit_bottle)
+        ProductUnit.MANA -> string(R.string.supply_unit_mana)
+        ProductUnit.PATHI -> string(R.string.supply_unit_pathi)
+        ProductUnit.MURI -> string(R.string.supply_unit_muri)
+        ProductUnit.CUSTOM -> customLabel
+    }
+
+    private fun formatQuantity(quantity: BigDecimal): String = quantity.stripTrailingZeros().toPlainString()
+
+    private fun showProductionDialog(targetProductId: String? = null) {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val products = service.products(farmId)
+        if (products.isEmpty()) {
+            showProductCreationDialog { showProductionDialog(targetProductId) }
+            return
+        }
+        val today = OffsetDateTime.now(deviceZone).toLocalDate()
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        scrollView.addView(content)
+
+        val todaySummary = TextView(this).apply {
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            textSize = 14f
+        }
+        val productSpinner = Spinner(this)
+        productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetProductId != null) {
+            val idx = products.indexOfFirst { it.id == targetProductId }
+            if (idx >= 0) productSpinner.setSelection(idx)
+        }
+        val unitText = TextView(this).apply {
+            textSize = 13f
+            setTextColor(getColor(R.color.textSecondary))
+        }
+        val quantityInput = EditText(this).apply {
+            hint = string(R.string.production_quantity)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        val sessionGroup = RadioGroup(this).apply { orientation = RadioGroup.HORIZONTAL }
+        val morning = RadioButton(this).apply { text = string(R.string.production_morning) }
+        val evening = RadioButton(this).apply { text = string(R.string.production_evening) }
+        val other = RadioButton(this).apply { text = string(R.string.production_other) }
+        sessionGroup.addView(morning)
+        sessionGroup.addView(evening)
+        sessionGroup.addView(other)
+        morning.isChecked = true
+
+        var prodOccurredAt = OffsetDateTime.now(deviceZone)
+        val dateTimeButton = Button(this).apply {
+            text = string(R.string.record_change_date_time)
+            minHeight = dp(44)
+            setOnClickListener {
+                showRecordDateTimePicker(prodOccurredAt) { selected ->
+                    prodOccurredAt = selected
+                    text = timePresentation.displayDateTime(presentationLocale, deviceZone, selected)
+                }
+            }
+        }
+
+        val records = farm.productionForDay(today, deviceZone)
+        fun sessionOf(): ProductionSession = when { morning.isChecked -> ProductionSession.MORNING; evening.isChecked -> ProductionSession.EVENING; else -> ProductionSession.OTHER }
+        fun selectedProduct(): FarmProduct? = products.getOrNull(productSpinner.selectedItemPosition)
+        fun refreshSummary() {
+            val lines = products.mapNotNull { product ->
+                val reconciliation = service.productionReconciliation(farmId, product.id, today, deviceZone)
+                reconciliation.produced.takeIf { it > BigDecimal.ZERO }?.let {
+                    string(
+                        R.string.production_reconciliation_format,
+                        product.name,
+                        formatQuantity(reconciliation.produced),
+                        formatQuantity(reconciliation.sold),
+                        formatQuantity(reconciliation.unexplained),
+                        productUnitLabel(product.defaultUnit, product.customUnitLabel)
+                    )
+                }
+            }
+            todaySummary.text = if (lines.isEmpty()) string(R.string.production_empty) else lines.joinToString("\n\n")
+        }
+        fun refreshUnitAndExisting() {
+            val product = selectedProduct() ?: return
+            unitText.text = productUnitLabel(product.defaultUnit, product.customUnitLabel)
+            val existing = records.firstOrNull { it.productId == product.id && it.session == sessionOf() }
+            quantityInput.setText(existing?.quantity?.let(::formatQuantity).orEmpty())
+        }
+        val allocationButton = Button(this).apply { text = string(R.string.production_allocate); minHeight = dp(48) }
+        content.addView(todaySummary)
+        content.addView(allocationButton)
+        content.addView(labelText(R.string.production_product))
+        content.addView(productSpinner)
+        content.addView(quantityInput)
+        content.addView(unitText)
+        content.addView(sessionGroup)
+        content.addView(dateTimeButton)
+
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.production_title).setView(scrollView)
+            .setNeutralButton(R.string.production_add_product) { _, _ -> showProductCreationDialog { showProductionDialog(targetProductId) } }
+            .setPositiveButton(R.string.production_save, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val product = selectedProduct() ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.production_quantity_invalid)
+                val existing = records.firstOrNull { it.productId == product.id && it.session == sessionOf() }
+                try {
+                    service.addProductionRecord(
+                        farmId,
+                        ProductionRecordDraft(product.id, quantity, product.defaultUnit, prodOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), sessionOf()),
+                        deviceZone
+                    )
+                    dialog.dismiss(); render(); showToast(if (existing == null) R.string.production_saved else R.string.production_updated)
+                } catch (exception: Exception) { Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show() }
+            }
+        }
+        productSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshUnitAndExisting() }
+        sessionGroup.setOnCheckedChangeListener { _, _ -> refreshUnitAndExisting() }
+        allocationButton.setOnClickListener { showProductionAllocationDialog(selectedProduct()?.id) }
+        dialog.show(); refreshSummary(); refreshUnitAndExisting()
+        scaleDialogContent(dialog)
+        if (records.isNotEmpty()) {
+            dialog.setOnDismissListener { }
+            content.setOnClickListener { refreshSummary() }
+        }
+        records.firstOrNull()?.let { first ->
+            dialog.setButton(AlertDialog.BUTTON_NEUTRAL, string(R.string.production_delete), DialogInterface.OnClickListener { _, _ ->
+                val delDialog = AlertDialog.Builder(this).setTitle(R.string.production_delete_title).setMessage(R.string.production_delete_message)
+                    .setPositiveButton(R.string.production_delete) { _, _ ->
+                        service.deleteProductionRecord(farmId, first.id); dialog.dismiss(); render(); showToast(R.string.production_deleted)
+                    }.setNegativeButton(R.string.action_cancel, null).create()
+                delDialog.show()
+                scaleDialogContent(delDialog)
+            })
+        }
+    }
+
+    private fun showProductionAllocationDialog(targetProductId: String? = null) {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val products = service.products(farmId)
+        if (products.isEmpty()) return showToast(R.string.production_empty)
+        val date = OffsetDateTime.now(deviceZone).toLocalDate()
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        scrollView.addView(content)
+
+        val productSpinner = Spinner(this)
+        productSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, products.map { it.name }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetProductId != null) {
+            val idx = products.indexOfFirst { it.id == targetProductId }
+            if (idx >= 0) productSpinner.setSelection(idx)
+        }
+        val unexplainedText = TextView(this).apply {
+            textSize = 14f
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTextColor(getColor(R.color.payableText))
+        }
+        val typeSpinner = Spinner(this)
+        val types = ProductionAllocationType.values().toList()
+        typeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, types.map { allocationTypeLabel(it) }).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        val quantityInput = EditText(this).apply { hint = string(R.string.production_quantity); inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL }
+        val noteInput = EditText(this).apply { hint = string(R.string.production_allocation_note) }
+
+        var allocOccurredAt = OffsetDateTime.now(deviceZone)
+        val dateTimeButton = Button(this).apply {
+            text = string(R.string.record_change_date_time)
+            minHeight = dp(44)
+            setOnClickListener {
+                showRecordDateTimePicker(allocOccurredAt) { selected ->
+                    allocOccurredAt = selected
+                    text = timePresentation.displayDateTime(presentationLocale, deviceZone, selected)
+                }
+            }
+        }
+
+        content.addView(productSpinner); content.addView(unexplainedText); content.addView(typeSpinner); content.addView(quantityInput); content.addView(noteInput); content.addView(dateTimeButton)
+        fun refreshUnexplained() {
+            val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return
+            val reconciliation = service.productionReconciliation(farmId, product.id, date, deviceZone)
+            unexplainedText.text = string(R.string.production_unexplained_format, formatQuantity(reconciliation.unexplained), productUnitLabel(product.defaultUnit, product.customUnitLabel))
+        }
+        productSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshUnexplained() }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.production_allocate_title).setView(scrollView).setPositiveButton(R.string.production_save, null).setNegativeButton(R.string.action_cancel, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val product = products.getOrNull(productSpinner.selectedItemPosition) ?: return@setOnClickListener
+                val quantity = parseSaleQuantity(quantityInput.text?.toString().orEmpty()) ?: return@setOnClickListener showToast(R.string.production_quantity_invalid)
+                val type = types[typeSpinner.selectedItemPosition]
+                try {
+                    service.addProductionAllocation(
+                        farmId,
+                        ProductionAllocationDraft(product.id, quantity, product.defaultUnit, allocOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME), type, noteInput.text?.toString().orEmpty()),
+                        deviceZone
+                    )
+                    dialog.dismiss(); render(); showToast(R.string.production_allocation_saved)
+                } catch (exception: Exception) {
+                    if (exception.message?.contains("exceeds unexplained") == true) showToast(R.string.production_allocation_too_high)
+                    else Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show(); refreshUnexplained()
+        scaleDialogContent(dialog)
+    }
+
+    private fun allocationTypeLabel(type: ProductionAllocationType): String = when (type) {
+        ProductionAllocationType.HOME_USE -> string(R.string.production_home_use)
+        ProductionAllocationType.PROCESSING -> string(R.string.production_processing)
+        ProductionAllocationType.ANIMAL_FEED -> string(R.string.production_animal_feed)
+        ProductionAllocationType.WASTE -> string(R.string.production_waste)
+        ProductionAllocationType.OTHER -> string(R.string.production_other)
+    }
+
+    private fun showQuickSaleSavedDialog(customerId: String, productId: String, rateMinor: Long) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.quick_sale_saved)
+            .setMessage(R.string.quick_sale_sell_again_message)
+            .setPositiveButton(R.string.quick_sale_sell_again) { _, _ ->
+                showQuickSaleDialog(customerId, productId, rateMinor)
+            }
+            .setNegativeButton(R.string.action_done, null)
+            .show()
+    }
+
+    private fun showProductCreationDialog(afterSave: () -> Unit) {
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        scrollView.addView(content)
+        val nameInput = EditText(this).apply { hint = string(R.string.quick_sale_product_name) }
+        val unitSpinner = Spinner(this)
+        val units = listOf(ProductUnit.LITRE, ProductUnit.KILOGRAM, ProductUnit.PIECE, ProductUnit.BAG, ProductUnit.PACKET, ProductUnit.BOTTLE, ProductUnit.MANA, ProductUnit.PATHI, ProductUnit.MURI)
+        unitSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, units.map { productUnitLabel(it, "") })
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        content.addView(nameInput)
+        content.addView(unitSpinner)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.quick_sale_add_product)
+            .setView(scrollView)
+            .setPositiveButton(R.string.action_ok, null)
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val farmId = currentFarmId ?: return@setOnClickListener
+                val name = nameInput.text?.toString()?.trim().orEmpty()
+                if (name.isBlank()) return@setOnClickListener showToast(R.string.quick_sale_product_name_required)
+                try {
+                    service.addProduct(farmId, name, units[unitSpinner.selectedItemPosition])
+                    dialog.dismiss()
+                    showToast(R.string.quick_sale_product_added)
+                    afterSave()
+                } catch (exception: Exception) {
+                    Toast.makeText(this, exception.message ?: string(R.string.error_unexpected), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun showReceivedMoneyDialog(targetPartyId: String? = null) {
+        if (!requireMutationsAllowed()) return
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val recentCustomerIds = ProductSaleHistory.recentCustomerIds(farm)
+        val customers = service.parties(farmId)
+            .filter { it.role.compatibleWith(TradeType.SALE) }
+            .sortedWith(compareBy<Party> { recentCustomerIds.indexOf(it.id).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }.thenBy { it.name.lowercase() })
+        if (customers.isEmpty()) return showToast(R.string.quick_sale_no_customers)
+        val scrollView = ScrollView(this).apply { isFillViewport = true }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+        }
+        scrollView.addView(content)
+        val customerSpinner = Spinner(this)
+        customerSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, customers.map { it.name })
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        if (targetPartyId != null) {
+            val idx = customers.indexOfFirst { it.id == targetPartyId }
+            if (idx >= 0) customerSpinner.setSelection(idx)
+        }
+        val balanceText = TextView(this)
+        val amountInput = EditText(this).apply {
+            hint = string(R.string.received_money_amount)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+        }
+        val fullAmountButton = Button(this).apply {
+            text = string(R.string.received_money_full_amount)
+            minHeight = dp(48)
+        }
+
+        var paymentOccurredAt = OffsetDateTime.now(deviceZone)
+        val dateTimeButton = Button(this).apply {
+            text = string(R.string.record_change_date_time)
+            minHeight = dp(44)
+            setOnClickListener {
+                showRecordDateTimePicker(paymentOccurredAt) { selected ->
+                    paymentOccurredAt = selected
+                    text = timePresentation.displayDateTime(presentationLocale, deviceZone, selected)
+                }
+            }
+        }
+
+        content.addView(customerSpinner)
+        content.addView(balanceText)
+        content.addView(amountInput)
+        content.addView(fullAmountButton)
+        content.addView(dateTimeButton)
+
+        fun selectedOutstanding(): Long = service.partyLedgerSummary(
+            farmId,
+            customers[customerSpinner.selectedItemPosition].id
+        ).toReceiveMinor
+        fun refreshBalance() {
+            balanceText.text = string(
+                R.string.received_money_balance_format,
+                formatMoney(currentFarmCurrency(), selectedOutstanding())
+            )
+            fullAmountButton.isEnabled = selectedOutstanding() > 0L
+        }
+        fullAmountButton.setOnClickListener {
+            amountInput.setText(moneyFormatter.toEditFieldValue(presentationLocale, currentFarmCurrency(), selectedOutstanding()))
+            amountInput.setSelection(amountInput.text?.length ?: 0)
+        }
+        customerSpinner.onItemSelectedListener = simpleItemSelectedListener { refreshBalance() }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.received_money_title)
+            .setView(scrollView)
+            .setPositiveButton(R.string.received_money_save, null)
+            .setNegativeButton(R.string.action_cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val amount = (moneyInputParser.parse(presentationLocale, currentFarmCurrency(), amountInput.text?.toString().orEmpty()) as? MoneyInputResult.Valid)
+                    ?: return@setOnClickListener showToast(R.string.received_money_amount_invalid)
+                try {
+                    service.recordCustomerPayment(
+                        farmId = farmId,
+                        partyId = customers[customerSpinner.selectedItemPosition].id,
+                        amountMinor = amount.amountMinor,
+                        occurredAt = paymentOccurredAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+                    )
+                    dialog.dismiss()
+                    render()
+                    showToast(R.string.received_money_saved)
+                } catch (exception: Exception) {
+                    val message = when {
+                        exception.message?.contains("No outstanding balance") == true -> string(R.string.received_money_no_balance)
+                        exception.message?.contains("exceeds the outstanding") == true -> string(R.string.received_money_overpayment)
+                        else -> string(R.string.received_money_failed)
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        dialog.show()
+        scaleDialogContent(dialog)
+        refreshBalance()
+    }
+
+    private fun parseSaleQuantity(raw: String): BigDecimal? {
+        val input = raw.trim()
+        if (input.isBlank()) return null
+        val symbols = DecimalFormatSymbols.getInstance(presentationLocale)
+        return runCatching {
+            input.replace(symbols.groupingSeparator.toString(), "")
+                .replace(symbols.decimalSeparator, '.')
+                .toBigDecimal()
+                .takeIf { it > BigDecimal.ZERO && it.scale() <= ProductSaleDetail.MAX_QUANTITY_SCALE }
+        }.getOrNull()
+    }
+
+    private fun productUnitLabel(unit: ProductUnit, customLabel: String): String = when (unit) {
+        ProductUnit.LITRE -> string(R.string.product_unit_litre)
+        ProductUnit.KILOGRAM -> string(R.string.product_unit_kilogram)
+        ProductUnit.PIECE -> string(R.string.product_unit_piece)
+        ProductUnit.BAG -> string(R.string.product_unit_bag)
+        ProductUnit.PACKET -> string(R.string.product_unit_packet)
+        ProductUnit.BOTTLE -> string(R.string.product_unit_bottle)
+        ProductUnit.MANA -> string(R.string.product_unit_mana)
+        ProductUnit.PATHI -> string(R.string.product_unit_pathi)
+        ProductUnit.MURI -> string(R.string.product_unit_muri)
+        ProductUnit.CUSTOM -> customLabel
+    }
+
+    private fun labelText(resourceId: Int): TextView = TextView(this).apply {
+        text = string(resourceId)
+        setPadding(0, dp(8), 0, dp(2))
+    }
+
+    private fun simpleItemSelectedListener(onSelected: () -> Unit) = object : android.widget.AdapterView.OnItemSelectedListener {
+        override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+        override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) = onSelected()
+    }
+
     private fun saveTransaction() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentEditorState() ?: return
         val farm = service.loadFarm(farmId)
@@ -2853,6 +5074,7 @@ class FarmActivity : AppCompatActivity() {
         val draft = FarmTransactionDraft(
             type = state.type,
             category = state.category,
+            activity = state.activity,
             amountMinor = amount,
             description = state.description,
             occurredAt = occurredAt
@@ -2873,6 +5095,7 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun deleteTransaction() {
+        if (!requireMutationsAllowed()) return
         val farmId = currentFarmId ?: return showMissingFarmMessage()
         val state = currentEditorState() ?: return
         if (state.mode != TransactionEditorMode.EDIT) return
@@ -2921,60 +5144,423 @@ class FarmActivity : AppCompatActivity() {
         datePicker.show()
     }
 
-    private fun showFarmCurrencyChooser() {
+    private fun showCurrencyChooser(currentCode: String, onSelected: (String) -> Unit) {
+        val labels = FarmCurrencies.SUPPORTED.map { FarmCurrencies.label(it, presentationLocale) }
+        val selectedIndex = FarmCurrencies.SUPPORTED.indexOf(currentCode).coerceAtLeast(0)
+        var dialog: AlertDialog? = null
+        dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.currency_choice_dialog_title))
+            .setSingleChoiceItems(labels.toTypedArray(), selectedIndex) { _, which ->
+                val code = FarmCurrencies.SUPPORTED[which]
+                dialog?.dismiss()
+                onSelected(code)
+            }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun showChangeCurrencyConfirmation(fromCode: String, toCode: String) {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_change_currency_title))
+            .setMessage(
+                string(
+                    R.string.dialog_change_currency_message_format,
+                    FarmCurrencies.label(fromCode, presentationLocale),
+                    FarmCurrencies.label(toCode, presentationLocale)
+                )
+            )
+            .setPositiveButton(string(R.string.change_currency_action)) { _, _ -> applyFarmCurrencyChange(toCode) }
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun applyFarmCurrencyChange(code: String) {
+        if (!requireMutationsAllowed()) return
+        val farmId = managedFarmId ?: currentFarmId ?: return showMissingFarmMessage()
+        try {
+            service.setFarmCurrency(farmId, code)
+            render()
+            if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()
+            showToast(R.string.toast_currency_changed)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "change farm currency failed")
+        }
+    }
+
+    // --- Farm name -------------------------------------------------------------
+
+    private fun showRenameFarmDialog() {
+        val farmId = managedFarmId ?: currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
         val input = EditText(this).apply {
-            id = R.id.currencyInput
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
-            hint = string(R.string.currency_iso_hint)
-            setText(currentFarmCurrencyOrNull())
-            setSelection(text?.length ?: 0)
-        }
-        val errorText = TextView(this).apply {
-            id = R.id.currencyErrorText
-            setTextColor(resources.getColor(android.R.color.holo_red_dark, theme))
-            text = ""
-            setPadding(0, dp(4), 0, 0)
-        }
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(8), dp(20), 0)
-            addView(input)
-            addView(errorText)
+            isSingleLine = true
+            inputType = InputType.TYPE_CLASS_TEXT
+            setText(farm.name)
+            setSelection(farm.name.length)
         }
         val dialog = AlertDialog.Builder(this)
-            .setTitle(string(R.string.currency_choice_dialog_title))
-            .setView(content)
-            .setPositiveButton(string(R.string.action_ok), null)
+            .setTitle(string(R.string.dialog_rename_farm_title))
+            .setView(input)
+            .setPositiveButton(string(R.string.settings_rename_farm_action), null)
             .setNegativeButton(string(R.string.action_cancel), null)
             .create()
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val code = input.text?.toString()?.trim()?.uppercase(Locale.US).orEmpty()
-                if (code.matches(Regex("^[A-Z]{3}$"))) {
-                    applyFarmCurrencyChange(code)
-                    dialog.dismiss()
+                val name = input.text?.toString()?.trim().orEmpty()
+                if (name.isBlank()) {
+                    showValidationMessage(FarmUiError.FARM_NAME_REQUIRED.resourceId)
                 } else {
-                    errorText.text = string(R.string.error_currency_iso_three_letters)
+                    performRenameFarm(farm, name)
+                    dialog.dismiss()
                 }
             }
         }
         dialog.show()
     }
 
-    private fun applyFarmCurrencyChange(code: String) {
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+    private fun performRenameFarm(farm: FarmState, name: String) {
+        if (!requireMutationsAllowed()) return
         try {
-            service.setFarmCurrency(farmId, code)
+            service.renameFarm(farm.id, name)
             render()
+            if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()
+            if (currentDestination == Destination.FARMS) renderFarmsList()
+            showToast(R.string.toast_farm_renamed)
         } catch (exception: Exception) {
-            showValidationMessage(FarmUiError.CURRENCY_LOCKED.resourceId)
-            Log.e(LOG_TAG, "change farm currency failed", exception)
+            showUnexpectedFailure(exception, "rename farm failed")
         }
     }
 
-    private fun currentFarmCurrencyOrNull(): String {
-        val farm = currentFarmId?.let { service.loadFarm(it) }
-        return farm?.currencyCode ?: FarmState.DEFAULT_CURRENCY_CODE
+    // --- Danger Zone ----------------------------------------------------------
+
+    private fun targetManagementFarmId(): String? =
+        managedFarmId ?: currentFarmId
+
+    private fun showResetFarmDataConfirmation() {
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        managedFarmId = farm.id
+        resetFlow.begin()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_reset_farm_title))
+            .setMessage(string(R.string.dialog_reset_farm_message))
+            .setPositiveButton(string(R.string.action_continue)) { _, _ ->
+                val recent = isRecentBackupFor(farm.id)
+                resetFlow.proceedFromWarning(recentBackup = recent)
+                if (recent) {
+                    showRecentBackupConfirmation(forDelete = false)
+                } else {
+                    showDangerBackupGateDialog(forDelete = false)
+                }
+            }
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun showDangerBackupGateDialog(forDelete: Boolean) {
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
+        val lastBackupAt = backupFreshnessStore.lastSuccessfulBackupAt(farmId)
+        val gateDetail = lastBackupAt?.let {
+            string(R.string.dialog_reset_backup_gate_stale_format, formatBackupTime(it))
+        } ?: string(R.string.dialog_reset_backup_gate_none)
+        val messageRes = if (forDelete) R.string.dialog_delete_backup_gate_message else R.string.dialog_reset_backup_gate_message
+        val titleRes = if (forDelete) R.string.dialog_delete_backup_gate_title else R.string.dialog_reset_backup_gate_title
+        val backupNowButton = Button(this).apply {
+            text = string(R.string.reset_backup_now_action)
+            minHeight = dp(52)
+        }
+        val existingBackupButton = Button(this).apply {
+            text = string(R.string.reset_backup_existing_action)
+            minHeight = dp(52)
+        }
+        val messageView = TextView(this).apply {
+            text = string(messageRes) + "\n\n" + gateDetail
+            setLineSpacing(0f, 1.15f)
+            setPadding(0, 0, 0, dp(12))
+        }
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(backupNowButton)
+            addView(
+                existingBackupButton,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(10) }
+            )
+        }
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            addView(
+                LinearLayout(this@FarmActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(4), 0, dp(4), 0)
+                    addView(messageView)
+                    addView(actions)
+                }
+            )
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(titleRes))
+            .setView(scroll)
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
+                if (forDelete) deleteFlow.cancel() else resetFlow.cancel()
+            }
+            .create()
+        backupNowButton.setOnClickListener {
+            dialog.dismiss()
+            pendingDangerBackupGate = if (forDelete) "delete" else "reset"
+            pendingResetBackupGate = !forDelete
+            exportBackupForFarm(farmId)
+        }
+        existingBackupButton.setOnClickListener {
+            dialog.dismiss()
+            if (forDelete) {
+                deleteFlow.acknowledgeExistingBackup()
+                showDeleteTypedConfirmation()
+            } else {
+                resetFlow.acknowledgeExistingBackup()
+                showResetTypedConfirmation()
+            }
+        }
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun showResetTypedConfirmation() {
+        val input = EditText(this).apply {
+            isSingleLine = true
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            minHeight = dp(52)
+        }
+        val body = typedConfirmationBody(string(R.string.dialog_reset_typed_message), input)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_reset_typed_title))
+            .setView(body)
+            .setPositiveButton(string(R.string.reset_farm_data_action), null)
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> resetFlow.cancel() }
+            .setOnCancelListener { resetFlow.cancel() }
+            .create()
+        dialog.setOnShowListener {
+            val confirmButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            confirmButton.isEnabled = resetFlow.canType(input.text?.toString().orEmpty())
+            input.addTextChangedListener(object : TextWatcher {
+                override fun afterTextChanged(text: Editable?) {
+                    confirmButton.isEnabled = resetFlow.canType(text?.toString().orEmpty())
+                }
+
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            })
+            confirmButton.setOnClickListener {
+                if (resetFlow.confirm(input.text?.toString().orEmpty())) {
+                    dialog.dismiss()
+                }
+            }
+        }
+        dialog.show()
+        scaleDialogContent(dialog)
+        input.requestFocus()
+    }
+
+    /** Resolves the pending backup-gate export result without new backup code. */
+    private fun finishDangerBackupGate(succeeded: Boolean) {
+        val kind = pendingDangerBackupGate
+        val wasReset = pendingResetBackupGate
+        pendingDangerBackupGate = null
+        pendingResetBackupGate = false
+        if (kind == null && !wasReset) return
+        val forDelete = kind == "delete"
+        if (succeeded) {
+            if (forDelete) {
+                deleteFlow.onBackupSucceeded()
+                showDeleteTypedConfirmation()
+            } else {
+                resetFlow.onBackupSucceeded()
+                showResetTypedConfirmation()
+            }
+        } else {
+            if (forDelete) deleteFlow.onBackupCancelledOrFailed()
+            else resetFlow.onBackupCancelledOrFailed()
+        }
+    }
+
+    private fun isRecentBackupFor(farmId: String): Boolean =
+        backupFreshness.isRecent(farmId)
+
+    /** Records app-local backup freshness metadata; never touches farm accounting data. */
+    private fun recordSuccessfulBackup(farmId: String? = pendingExportFarmId ?: currentFarmId) {
+        val id = farmId ?: return
+        backupFreshnessStore.recordSuccessfulBackup(id, clock.nowMillis())
+    }
+
+    private fun showRecentBackupConfirmation(forDelete: Boolean) {
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
+        val lastBackupAt = backupFreshnessStore.lastSuccessfulBackupAt(farmId)
+        val titleRes = if (forDelete) R.string.dialog_delete_recent_backup_title else R.string.dialog_reset_recent_backup_title
+        val messageRes = if (forDelete) R.string.dialog_delete_recent_backup_message_format else R.string.dialog_reset_recent_backup_message_format
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(titleRes))
+            .setMessage(string(messageRes, formatBackupTime(lastBackupAt)))
+            .setPositiveButton(string(R.string.action_continue)) { _, _ ->
+                if (forDelete) showDeleteTypedConfirmation() else showResetTypedConfirmation()
+            }
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
+                if (forDelete) deleteFlow.cancel() else resetFlow.cancel()
+            }
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    /** Farmer-friendly recorded backup time, e.g. "Today, 1:56 PM" or a localized date/time. */
+    private fun formatBackupTime(recordedAtMillis: Long?): String {
+        if (recordedAtMillis == null) return string(R.string.dialog_reset_backup_gate_none)
+        val stored = OffsetDateTime.ofInstant(Instant.ofEpochMilli(recordedAtMillis), deviceZone)
+        val now = OffsetDateTime.now(deviceZone)
+        return if (timePresentation.isToday(deviceZone, stored, now)) {
+            string(
+                R.string.today_time_format,
+                string(R.string.today_label),
+                timePresentation.shortTime(presentationLocale, deviceZone, stored)
+            )
+        } else {
+            timePresentation.displayDateTime(presentationLocale, deviceZone, stored)
+        }
+    }
+
+    private fun performResetFarmData() {
+        if (!requireMutationsAllowed()) return
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        closeEditor()
+        try {
+            service.resetFarmData(farm.id)
+            render()
+            if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()
+            showToast(R.string.toast_farm_data_reset)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "reset farm data failed")
+            render()
+        }
+    }
+
+    private fun showDeleteFarmConfirmation() {
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        managedFarmId = farm.id
+        deleteFlow.begin()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_delete_farm_title))
+            .setMessage(string(R.string.dialog_delete_farm_named_message_format, farm.name))
+            .setPositiveButton(string(R.string.action_continue)) { _, _ ->
+                val recent = isRecentBackupFor(farm.id)
+                deleteFlow.proceedFromWarning(recentBackup = recent)
+                if (recent) {
+                    showRecentBackupConfirmation(forDelete = true)
+                } else {
+                    showDangerBackupGateDialog(forDelete = true)
+                }
+            }
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> deleteFlow.cancel() }
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun showDeleteTypedConfirmation() {
+        val input = EditText(this).apply {
+            isSingleLine = true
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            minHeight = dp(52)
+        }
+        val body = typedConfirmationBody(string(R.string.dialog_delete_farm_typed_message), input)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.dialog_delete_farm_typed_title))
+            .setView(body)
+            .setPositiveButton(string(R.string.delete_farm_action), null)
+            .setNegativeButton(string(R.string.action_cancel)) { _, _ -> deleteFlow.cancel() }
+            .setOnCancelListener { deleteFlow.cancel() }
+            .create()
+        dialog.setOnShowListener {
+            val confirmButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            confirmButton.isEnabled = deleteFlow.canType(input.text?.toString().orEmpty())
+            input.addTextChangedListener(object : TextWatcher {
+                override fun afterTextChanged(text: Editable?) {
+                    confirmButton.isEnabled = deleteFlow.canType(text?.toString().orEmpty())
+                }
+
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            })
+            confirmButton.setOnClickListener {
+                if (deleteFlow.confirm(input.text?.toString().orEmpty())) {
+                    dialog.dismiss()
+                }
+            }
+        }
+        dialog.show()
+        scaleDialogContent(dialog)
+        input.requestFocus()
+    }
+
+    /** Scrollable message + keyword field so 36sp + keyboard keep actions reachable. */
+    private fun typedConfirmationBody(message: String, input: EditText): View {
+        val messageView = TextView(this).apply {
+            text = message
+            setLineSpacing(0f, 1.15f)
+        }
+        val column = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(4), 0, dp(4), 0)
+            addView(messageView)
+            addView(
+                input,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = dp(12) }
+            )
+        }
+        return ScrollView(this).apply {
+            isFillViewport = true
+            addView(column)
+        }
+    }
+
+    private fun performDeleteManagedFarm() {
+        if (!requireMutationsAllowed()) return
+        val farmId = targetManagementFarmId() ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        closeEditor()
+        try {
+            val previousCurrent = service.currentFarmId()
+            service.deleteFarm(farm.id)
+            localUserService.disassociateFarm(farm.id)
+            backupFreshnessStore.clearFarm(farm.id)
+            val remaining = service.farmIds()
+            val next = FarmManagement.nextCurrentFarmIdAfterDelete(farm.id, previousCurrent, remaining)
+            if (next != null) {
+                service.setCurrentFarmId(next)
+            }
+            currentFarmId = service.currentFarmId()
+            managedFarmId = null
+            render()
+            showDestination(if (currentFarmId == null) Destination.TODAY else Destination.FARMS)
+            showToast(R.string.toast_farm_deleted)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "delete farm failed")
+            currentFarmId = service.currentFarmId()
+            render()
+        }
     }
 
     private fun updateDateTimeDisplay() {
@@ -2992,12 +5578,14 @@ class FarmActivity : AppCompatActivity() {
     }
 
     private fun showDiscardDialog(onDiscard: () -> Unit) {
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(string(R.string.discard_changes_title))
             .setMessage(string(R.string.discard_changes_message))
             .setPositiveButton(string(R.string.action_discard)) { _, _ -> onDiscard() }
             .setNegativeButton(string(R.string.action_keep_editing), null)
-            .show()
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun saveActionRes(state: TransactionEditorState): Int = when (state.mode) {
@@ -3022,6 +5610,7 @@ class FarmActivity : AppCompatActivity() {
         bundle.putString(prefix + STATE_EDITOR_TRANSACTION_ID, state.transactionId)
         bundle.putString(prefix + STATE_EDITOR_TYPE, state.type.name)
         bundle.putString(prefix + STATE_EDITOR_CATEGORY, state.category.name)
+        bundle.putString(prefix + STATE_EDITOR_ACTIVITY, state.activity?.name)
         bundle.putString(prefix + STATE_EDITOR_AMOUNT, state.amountText)
         bundle.putString(prefix + STATE_EDITOR_DESCRIPTION, state.description)
         bundle.putString(prefix + STATE_EDITOR_OCCURRED_AT, state.occurredAt.toInstant().toString())
@@ -3037,6 +5626,9 @@ class FarmActivity : AppCompatActivity() {
         val category = bundle.getString(prefix + STATE_EDITOR_CATEGORY)?.let {
             runCatching { TransactionCategory.valueOf(it) }.getOrNull()
         } ?: return null
+        val activity = bundle.getString(prefix + STATE_EDITOR_ACTIVITY)?.let {
+            runCatching { FarmActivityType.valueOf(it) }.getOrNull()
+        }
         val occurredAt = bundle.getString(prefix + STATE_EDITOR_OCCURRED_AT)?.let {
             runCatching { OffsetDateTime.parse(it) }.getOrNull()
         } ?: return null
@@ -3045,6 +5637,7 @@ class FarmActivity : AppCompatActivity() {
             transactionId = bundle.getString(prefix + STATE_EDITOR_TRANSACTION_ID),
             type = type,
             category = category,
+            activity = activity,
             amountText = bundle.getString(prefix + STATE_EDITOR_AMOUNT).orEmpty(),
             description = bundle.getString(prefix + STATE_EDITOR_DESCRIPTION).orEmpty(),
             occurredAt = occurredAt
@@ -3059,7 +5652,10 @@ class FarmActivity : AppCompatActivity() {
             currentFarmId = null
             createFarmContainer.visibility = View.VISIBLE
             farmDetailsContainer.visibility = View.GONE
+            createFarmCurrencyText.text = FarmCurrencies.label(createFarmCurrencyCode, presentationLocale)
+            createFarmActivitiesText.text = activitySummaryText(createFarmActivities)
             updateShellTitle()
+            applyAppTextSize()
             return
         }
         currentFarmId = farm.id
@@ -3068,11 +5664,16 @@ class FarmActivity : AppCompatActivity() {
         renderFarm(farm)
         updateShellTitle()
         if (currentDestination == Destination.SETTINGS) renderSettings()
-        if (currentDestination == Destination.HISAB_KITAB) renderHisabKitab()
+        if (currentDestination == Destination.KHATA) renderHisabKitab()
+        if (currentDestination == Destination.FARM_WORK) renderFarmWork()
+        if (currentDestination == Destination.HISAB) renderHisabCalculator()
+        if (currentDestination == Destination.FARMS) renderFarmsList()
+        if (currentDestination == Destination.FARM_DETAILS) renderFarmDetails()
+        if (currentDestination == Destination.ADD_FARM) renderAddFarmScreen()
+        applyAppTextSize()
     }
 
     private fun renderFarm(farm: FarmState) {
-        farmNameText.text = farm.name
         val currency = farm.currencyCode
         val totals = try {
             FarmTotals.of(farm.transactions)
@@ -3081,16 +5682,140 @@ class FarmActivity : AppCompatActivity() {
             showValidationMessage(FarmUiError.UNEXPECTED.resourceId)
             return
         }
-        balanceText.text = string(R.string.overview_balance_format, formatMoney(currency, totals.balanceMinor))
-        incomeText.text = string(R.string.overview_income_format, formatMoney(currency, totals.incomeMinor))
-        expensesText.text = string(R.string.overview_expenses_format, formatMoney(currency, totals.expensesMinor))
-        firstActionPrompt.visibility = if (farm.transactions.isEmpty()) View.VISIBLE else View.GONE
+        renderFarmerOverview(farm)
         renderRecentTransactions(farm, currency)
         renderFarmTools(farm, currency, totals)
     }
 
+    private fun renderFarmerOverview(farm: FarmState) {
+        val now = OffsetDateTime.now(deviceZone)
+        val overview = farm.farmerOverview(now, deviceZone).daily
+        val currency = farm.currencyCode
+
+        // Date header
+        todayDateText.text = timePresentation.displayDate(presentationLocale, deviceZone, now)
+
+        // 1. Today Hero Card
+        val hasDailyProduction = overview.production.isNotEmpty()
+        val hasDailyMoney = overview.salesMinor > 0 || overview.moneyReceivedMinor > 0 || overview.expensesMinor > 0 || overview.creditSalesMinor > 0
+        val hasTodayActivity = hasDailyProduction || hasDailyMoney
+
+        todayEmptyStateText.visibility = if (hasTodayActivity) View.GONE else View.VISIBLE
+        todayProductionContainer.visibility = if (hasDailyProduction) View.VISIBLE else View.GONE
+
+        if (hasDailyProduction) {
+            val prodSummary = overview.production.joinToString(", ") {
+                "${it.name}: ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}"
+            }
+            todayProductionHeadlineText.text = string(R.string.farmer_overview_production_format, prodSummary)
+
+            val unexplained = overview.production.filter { it.unexplained != null && it.unexplained > BigDecimal.ZERO }
+            if (unexplained.isNotEmpty()) {
+                todayUnexplainedContainer.visibility = View.VISIBLE
+                val unexplainedSummary = unexplained.joinToString(", ") {
+                    "${it.name} ${formatQuantity(it.unexplained ?: BigDecimal.ZERO)} ${productUnitLabel(it.unit, "")}"
+                }
+                todayUnexplainedText.text = string(R.string.today_unexplained_warning_format, unexplainedSummary)
+            } else {
+                todayUnexplainedContainer.visibility = View.GONE
+            }
+        } else {
+            todayUnexplainedContainer.visibility = View.GONE
+        }
+
+        todaySalesValueText.text = formatMoney(currency, overview.salesMinor)
+        todayReceivedValueText.text = formatMoney(currency, overview.moneyReceivedMinor)
+        todayExpensesValueText.text = formatMoney(currency, overview.expensesMinor)
+
+        if (overview.creditSalesMinor > 0) {
+            todayCreditSalesContainer.visibility = View.VISIBLE
+            todayCreditSalesValueText.text = formatMoney(currency, overview.creditSalesMinor)
+        } else {
+            todayCreditSalesContainer.visibility = View.GONE
+        }
+
+        // 2. Money Needing Attention Card (Directional Khata)
+        val receivable = overview.currentReceivableMinor
+        val payable = overview.currentPayableMinor
+        val allSettled = receivable == 0L && payable == 0L
+
+        todayKhataSettledText.visibility = if (allSettled) View.VISIBLE else View.GONE
+        todayReceivableContainer.visibility = if (receivable > 0) View.VISIBLE else View.GONE
+        todayPayableContainer.visibility = if (payable > 0) View.VISIBLE else View.GONE
+
+        todayReceivableAmountText.text = formatMoney(currency, receivable)
+        todayPayableAmountText.text = formatMoney(currency, payable)
+
+        // 3. Farm Status Card
+        val hasProducts = farm.products.isNotEmpty()
+        val hasSupplies = overview.supplies.isNotEmpty()
+
+        if (!hasProducts && !hasSupplies && overview.production.isEmpty()) {
+            todayNoFarmStatusText.visibility = View.VISIBLE
+            todayProductionStatusText.visibility = View.GONE
+            todaySuppliesStatusText.visibility = View.GONE
+        } else {
+            todayNoFarmStatusText.visibility = View.GONE
+            if (overview.production.isNotEmpty()) {
+                todayProductionStatusText.visibility = View.VISIBLE
+                todayProductionStatusText.text = string(
+                    R.string.farmer_overview_production_format,
+                    overview.production.joinToString(", ") { "${it.name}: ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" }
+                )
+            } else {
+                todayProductionStatusText.visibility = View.GONE
+            }
+
+            if (overview.supplies.isNotEmpty()) {
+                todaySuppliesStatusText.visibility = View.VISIBLE
+                todaySuppliesStatusText.text = string(
+                    R.string.farmer_overview_supplies_format,
+                    overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" }
+                )
+            } else {
+                todaySuppliesStatusText.visibility = View.GONE
+            }
+        }
+
+        val lines = mutableListOf<String>(string(R.string.farmer_overview_today_title))
+        overview.production.forEach { production ->
+            lines += string(R.string.farmer_overview_production_format, "${production.name}: ${formatQuantity(production.quantity)} ${productUnitLabel(production.unit, "")}")
+            if (production.unexplained != null && production.unexplained != BigDecimal.ZERO) {
+                lines += string(R.string.farmer_overview_unexplained_format, "${production.name} ${formatQuantity(production.unexplained)} ${productUnitLabel(production.unit, "")}")
+            }
+        }
+        lines += string(R.string.farmer_overview_sales_format, formatMoney(farm.currencyCode, overview.salesMinor))
+        lines += string(R.string.farmer_overview_received_format, formatMoney(farm.currencyCode, overview.moneyReceivedMinor))
+        lines += string(R.string.farmer_overview_expenses_format, formatMoney(farm.currencyCode, overview.expensesMinor))
+        lines += string(R.string.farmer_overview_receivable_format, formatMoney(farm.currencyCode, overview.currentReceivableMinor))
+        lines += string(R.string.farmer_overview_payable_format, formatMoney(farm.currencyCode, overview.currentPayableMinor))
+        lines += string(R.string.farmer_overview_credit_sales_format, formatMoney(farm.currencyCode, overview.creditSalesMinor))
+        if (overview.supplies.isNotEmpty()) {
+            lines += string(R.string.farmer_overview_supplies_format, overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" })
+        }
+    }
+
+    private fun showFarmerMonthDialog() {
+        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val overview = farm.farmerOverview(OffsetDateTime.now(deviceZone), deviceZone).monthly
+        val lines = mutableListOf<String>(string(R.string.farmer_overview_month_title))
+        overview.production.forEach { production ->
+            lines += string(R.string.farmer_overview_production_format, "${production.name}: ${formatQuantity(production.quantity)} ${productUnitLabel(production.unit, "")}")
+        }
+        lines += string(R.string.farmer_overview_sales_format, formatMoney(farm.currencyCode, overview.salesMinor))
+        lines += string(R.string.farmer_overview_received_format, formatMoney(farm.currencyCode, overview.moneyReceivedMinor))
+        lines += string(R.string.farmer_overview_expenses_format, formatMoney(farm.currencyCode, overview.expensesMinor))
+        lines += string(R.string.farmer_overview_receivable_format, formatMoney(farm.currencyCode, overview.currentReceivableMinor))
+        lines += string(R.string.farmer_overview_payable_format, formatMoney(farm.currencyCode, overview.currentPayableMinor))
+        if (overview.supplies.isNotEmpty()) lines += string(R.string.farmer_overview_supplies_format, overview.supplies.joinToString(", ") { "${it.name} ${formatQuantity(it.quantity)} ${productUnitLabel(it.unit, "")}" })
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.farmer_overview_month_title).setMessage(lines.joinToString("\n")).setPositiveButton(R.string.action_done, null).create()
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
     private fun renderRecentTransactions(farm: FarmState, currency: String) {
-        val transactions = farm.transactionsNewestFirst()
+        val transactions = farm.transactionsNewestFirst().take(5)
         recentTransactionsContainer.removeAllViews()
         if (transactions.isEmpty()) {
             val empty = TextView(this)
@@ -3103,14 +5828,26 @@ class FarmActivity : AppCompatActivity() {
         transactions.forEach { transaction ->
             val row = inflater.inflate(R.layout.item_recent_transaction, recentTransactionsContainer, false) as TextView
             row.setTag(transaction.id)
-            row.text = string(
-                R.string.transaction_row_format,
-                displayTransactionTime(transaction),
-                FarmLabels.transactionType(this, transaction.type),
-                FarmLabels.transactionCategory(this, transaction.category),
-                transaction.description,
-                formatMoney(currency, transaction.amountMinor)
-            )
+            row.text = if (transaction.activity == null) {
+                string(
+                    R.string.transaction_row_format,
+                    displayTransactionTime(transaction),
+                    FarmLabels.transactionType(this, transaction.type),
+                    FarmLabels.transactionCategory(this, transaction.category),
+                    transaction.description,
+                    formatMoney(currency, transaction.amountMinor)
+                )
+            } else {
+                string(
+                    R.string.transaction_row_with_activity_format,
+                    activityDisplayName(transaction.activity),
+                    displayTransactionTime(transaction),
+                    FarmLabels.transactionType(this, transaction.type),
+                    FarmLabels.transactionCategory(this, transaction.category),
+                    transaction.description,
+                    formatMoney(currency, transaction.amountMinor)
+                )
+            }
             row.contentDescription = string(
                 R.string.recent_transaction_accessibility_format,
                 FarmLabels.transactionType(this, transaction.type),
@@ -3128,7 +5865,7 @@ class FarmActivity : AppCompatActivity() {
         summaryText.text = string(
             R.string.farm_tools_summary_format,
             farm.name,
-            numberFormatter.format(presentationLocale, farm.entries.size),
+            formatCount(farm.entries.size),
             formatMoney(currency, totals.balanceMinor)
         )
         entriesText.text = if (farm.entries.isEmpty()) {
@@ -3139,7 +5876,7 @@ class FarmActivity : AppCompatActivity() {
                     R.string.entry_row_format,
                     FarmLabels.entryKind(this, entry.kind),
                     entry.label,
-                    numberFormatter.format(presentationLocale, entry.quantity)
+                    formatCount(entry.quantity)
                 )
             }
         }
@@ -3147,14 +5884,745 @@ class FarmActivity : AppCompatActivity() {
 
     private fun renderSettings() {
         val farm = currentFarmId?.let { service.loadFarm(it) }
-        val canChangeCurrency = farm != null && farm.transactions.isEmpty()
-        settingsNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
-        settingsCurrencyText.text = farm?.currencyCode ?: ""
-        settingsCurrencyText.visibility = if (farm == null) View.GONE else View.VISIBLE
-        changeSettingsCurrencyButton.visibility = if (canChangeCurrency) View.VISIBLE else View.GONE
-        settingsCurrencyLockedText.visibility =
-            if (farm != null && !canChangeCurrency) View.VISIBLE else View.GONE
+        settingsDataNoFarmText.visibility = if (farm == null) View.VISIBLE else View.GONE
+        settingsExportBackupButton.visibility = if (farm == null) View.GONE else View.VISIBLE
+        settingsImportBackupButton.visibility = View.VISIBLE
+        settingsAboutVersionText.text = string(R.string.settings_about_version_format, appVersionName())
+        settingsAboutUpdateStatusText.text = if (BuildConfig.PRIVATE_UPDATE_MANIFEST_URL.isBlank()) {
+            string(R.string.settings_about_update_status_unknown)
+        } else {
+            string(R.string.update_status_up_to_date)
+        }
+        renderAccountSettingsSection()
+        renderNotificationsSettings()
         syncLanguageSelection()
+        syncTextSizeSelection()
+        syncAppearanceSelection()
+    }
+
+    /**
+     * Account section shows only real link state. Session is not read here
+     * (secure storage is suspend); linked without a known session stays Connected
+     * and does not show "Sign-in required" until a reliable session probe exists.
+     */
+
+    private fun renderNotificationsSettings() {
+        val granted = NotificationPermission.isGranted(this)
+        val ui = NotificationPermissionPresentation.uiState(
+            granted = granted,
+            requiresRuntime = NotificationPermission.requiresRuntimePermission()
+        )
+        settingsNotificationsStatusText.text = string(
+            if (ui == NotificationPermissionUiState.ON) R.string.settings_notifications_status_on
+            else R.string.settings_notifications_status_off
+        )
+        settingsNotificationsActionButton.text = string(
+            if (ui == NotificationPermissionUiState.ON) R.string.settings_notifications_open_system_action
+            else R.string.settings_notifications_enable_action
+        )
+        notificationSelectionSuppressed = true
+        val updatesOn = notificationPreferences.isCategoryEnabled(NotificationCategory.APP_UPDATES)
+        notificationUpdatesOnRadio.isChecked = updatesOn
+        notificationUpdatesOffRadio.isChecked = !updatesOn
+        val remindersOn = notificationPreferences.isCategoryEnabled(NotificationCategory.BACKUP_REMINDERS)
+        notificationRemindersOnRadio.isChecked = remindersOn
+        notificationRemindersOffRadio.isChecked = !remindersOn
+        notificationSelectionSuppressed = false
+    }
+
+    private fun onNotificationsActionClicked() {
+        if (!NotificationPermission.requiresRuntimePermission()) {
+            openSystemNotificationSettings()
+            return
+        }
+        if (NotificationPermission.isGranted(this)) {
+            openSystemNotificationSettings()
+            return
+        }
+        // Intentional Settings-only prompt — not on cold start.
+        requestNotificationPermissionLauncher.launch(NotificationPermission.PERMISSION)
+    }
+
+    private fun openSystemNotificationSettings() {
+        val intent = Intent().apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            } else {
+                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                data = Uri.fromParts("package", packageName, null)
+            }
+        }
+        runCatching { startActivity(intent) }
+    }
+
+    private fun handleNotificationDeepLink(intent: Intent?) {
+        val raw = intent?.getStringExtra(NotificationCoordinator.EXTRA_NOTIFICATION_DEEP_LINK) ?: return
+        intent.removeExtra(NotificationCoordinator.EXTRA_NOTIFICATION_DEEP_LINK)
+        val link = runCatching { NotificationDeepLink.valueOf(raw) }.getOrNull() ?: return
+        when (link) {
+            NotificationDeepLink.UPDATE_INFO -> {
+                showDestination(Destination.SETTINGS)
+                pendingSettingsScrollToSection = settingsAboutSection
+                settingsScreen.post {
+                    scrollSettingsToPendingSection()
+                    showPrivateBuildUpdateInfo()
+                }
+            }
+            NotificationDeepLink.BACKUP_DATA -> {
+                pendingSettingsScrollToSection = settingsDataSection
+                showDestination(Destination.SETTINGS)
+                scrollSettingsToPendingSection()
+            }
+            NotificationDeepLink.NOTIFICATION_SETTINGS -> {
+                pendingSettingsScrollToSection = settingsNotificationsSection
+                showDestination(Destination.SETTINGS)
+                scrollSettingsToPendingSection()
+            }
+        }
+    }
+
+    private fun renderAccountSettingsSection() {
+        val user = localUserService.ensureLocalUser()
+        val link = accountLinkService.linkState(user.userId)
+        val ui = AccountSettingsPresentation.uiState(link, hasActiveSession = null)
+        when (ui.status) {
+            AccountConnectionStatus.LOCAL_ONLY -> {
+                settingsAccountStatusLabel.text = string(R.string.settings_account_status_local_only)
+                settingsAccountStatusDetail.text = string(R.string.settings_account_local_only_detail)
+            }
+            AccountConnectionStatus.CONNECTED -> {
+                settingsAccountStatusLabel.text = string(R.string.settings_account_status_connected)
+                settingsAccountStatusDetail.text = string(R.string.settings_account_connected_detail)
+            }
+        }
+        settingsAccountSignInRequiredText.visibility =
+            if (ui.showSignInRequired) View.VISIBLE else View.GONE
+        if (ui.showSignInRequired) {
+            settingsAccountSignInRequiredText.text = string(R.string.settings_account_sign_in_required)
+        }
+    }
+
+    private fun renderFarmsList() {
+        farmsListContainer.removeAllViews()
+        val persisted = service.farmIds()
+        val owned = localUserService.ownedFarmIds()
+        val visibleIds = FarmManagement.visibleFarmIds(persisted, owned)
+        val activeId = service.currentFarmId()
+        farmsEmptyText.visibility = if (visibleIds.isEmpty()) View.VISIBLE else View.GONE
+        farmsEmptyText.text = string(R.string.farms_empty_text)
+        val secondaryColor = getColor(R.color.textSecondary)
+        val badgeTextColor = getColor(R.color.farmActiveBadgeText)
+        for (farmId in visibleIds) {
+            val farm = service.loadFarm(farmId) ?: continue
+            val isActive = farm.id == activeId
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(16), dp(14), dp(16), dp(14))
+                minimumHeight = dp(56)
+                isClickable = true
+                isFocusable = true
+                background = getDrawable(R.drawable.bg_farm_list_row)
+            }
+            val nameView = TextView(this).apply {
+                text = farm.name
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setLineSpacing(0f, 1.1f)
+            }
+            row.addView(nameView)
+            if (isActive) {
+                val badge = TextView(this).apply {
+                    text = string(R.string.farm_active_badge)
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                    setTextColor(badgeTextColor)
+                    background = getDrawable(R.drawable.bg_farm_active_badge)
+                    // Keep badge subordinate to the farm name (not color-only).
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = dp(8) }
+                }
+                row.addView(badge)
+            }
+            val currencyLabel = FarmCurrencies.label(farm.currencyCode, presentationLocale)
+            row.addView(
+                TextView(this).apply {
+                    text = currencyLabel
+                    setTextColor(secondaryColor)
+                    setLineSpacing(0f, 1.1f)
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = dp(6) }
+                }
+            )
+            row.setOnClickListener { openFarmDetails(farm.id) }
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(12) }
+            farmsListContainer.addView(row, lp)
+        }
+    }
+
+    private fun renderFarmDetails() {
+        val farmId = managedFarmId ?: return showDestination(Destination.FARMS)
+        val farm = service.loadFarm(farmId) ?: run {
+            managedFarmId = null
+            showDestination(Destination.FARMS)
+            return
+        }
+        val isActive = farm.id == service.currentFarmId()
+        farmDetailsNameText.text = farm.name
+        farmDetailsCurrencyText.text = FarmCurrencies.label(farm.currencyCode, presentationLocale)
+        farmDetailsActiveStatusText.text = string(
+            if (isActive) R.string.farm_active_status else R.string.farm_inactive_status
+        )
+        farmDetailsActiveStatusText.setTextColor(
+            getColor(if (isActive) R.color.farmActiveBadgeText else R.color.textSecondary)
+        )
+        farmDetailsSwitchButton.visibility = if (isActive) View.GONE else View.VISIBLE
+        renderFarmActivitiesSection(farm, farmDetailsActivitiesContainer, farmDetailsActivitiesEmptyText)
+        renderFarmActivityBreakdown(farm)
+    }
+
+    private fun renderAddFarmScreen() {
+        addFarmCurrencyCode = FarmCurrencies.defaultFor(Locale.getDefault())
+        addFarmCurrencyText.text = FarmCurrencies.label(addFarmCurrencyCode, presentationLocale)
+        addFarmActivitiesText.text = activitySummaryText(addFarmActivities)
+    }
+
+    private fun openFarmDetails(farmId: String) {
+        managedFarmId = farmId
+        showDestination(Destination.FARM_DETAILS)
+    }
+
+    private fun openAddFarmScreen() {
+        addFarmNameInput.setText("")
+        addFarmActivities = emptySet()
+        renderAddFarmScreen()
+        showDestination(Destination.ADD_FARM)
+    }
+
+    private fun createFarmFromAddScreen() {
+        if (!requireMutationsAllowed()) return
+        val name = addFarmNameInput.text?.toString()?.trim().orEmpty()
+        if (name.isBlank()) {
+            showValidationMessage(FarmUiError.FARM_NAME_REQUIRED.resourceId)
+            return
+        }
+        try {
+            val farm = service.createFarm(name, addFarmCurrencyCode, addFarmActivities.toList())
+            service.setCurrentFarmId(farm.id)
+            localUserService.associateFarm(farm.id)
+            currentFarmId = farm.id
+            managedFarmId = farm.id
+            khataPartyId = null
+            editingPartyId = null
+            tradeEditorState = null
+            settlementEditorState = null
+            render()
+            showDestination(Destination.TODAY)
+            showToast(R.string.toast_farm_created)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "add farm failed")
+        }
+    }
+
+    private fun switchToManagedFarm() {
+        val farmId = managedFarmId ?: return
+        try {
+            service.setCurrentFarmId(farmId)
+            currentFarmId = farmId
+            khataPartyId = null
+            editingPartyId = null
+            tradeEditorState = null
+            settlementEditorState = null
+            render()
+            renderFarmDetails()
+            showToast(R.string.toast_farm_switched)
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "switch farm failed")
+        }
+    }
+
+    private fun showManagedFarmCurrencyChooser() {
+        val farmId = managedFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        showCurrencyChooser(farm.currencyCode) { code ->
+            if (code != farm.currencyCode) {
+                if (farm.hasMonetaryRecords()) {
+                    showChangeCurrencyConfirmation(farm.currencyCode, code)
+                } else {
+                    applyFarmCurrencyChange(code)
+                }
+            }
+        }
+    }
+
+    private fun activityDisplayName(activity: FarmActivityType): String =
+        getString(FarmLabels.activityTypeRes(activity))
+
+    private fun activitySummaryText(activities: Set<FarmActivityType>): String {
+        if (activities.isEmpty()) return string(R.string.farm_activities_none_text)
+        return FarmActivityCatalog.displayOrder.filter { it in activities }
+            .joinToString("\n", transform = ::activityDisplayName)
+    }
+
+    private fun showFarmActivitiesChooser(
+        current: Set<FarmActivityType>,
+        onSelected: (Set<FarmActivityType>) -> Unit
+    ) {
+        val order = FarmOrdering.farmActivities
+        val checked = BooleanArray(order.size) { order[it] in current }
+        val labels = order.map { activityDisplayName(it) }.toTypedArray()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.farm_activities_dialog_title)
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                checked[which] = isChecked
+            }
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val result = order.filterIndexed { index, _ -> checked[index] }.toSet()
+                onSelected(result)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
+    }
+
+    private fun showManagedFarmActivitiesChooser() {
+        val farmId = managedFarmId ?: return showMissingFarmMessage()
+        val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        showFarmActivitiesChooser(farm.activities.toSet()) { selected ->
+            service.setFarmActivities(farmId, selected)
+            renderFarmDetails()
+        }
+    }
+
+    private fun renderFarmActivitiesSection(
+        farm: com.susankhya.kisab.domain.FarmState,
+        container: LinearLayout,
+        emptyText: TextView
+    ) {
+        container.removeAllViews()
+        val enabled = FarmActivityCatalog.displayOrder.filter { it in farm.activities }
+        val disabled = FarmActivityCatalog.displayOrder.filter { it in farm.disabledActivities }
+        emptyText.visibility = if (enabled.isEmpty()) View.VISIBLE else View.GONE
+        enabled.forEach { activity ->
+            container.addView(
+                activityRow(activity, enabled = true) {
+                    service.disableFarmActivity(farm.id, activity)
+                    renderFarmDetails()
+                }
+            )
+        }
+        disabled.forEach { activity ->
+            container.addView(
+                activityRow(activity, enabled = false) {
+                    service.reEnableFarmActivity(farm.id, activity)
+                    renderFarmDetails()
+                }
+            )
+        }
+    }
+
+    private fun activityRow(
+        activity: FarmActivityType,
+        enabled: Boolean,
+        onToggle: () -> Unit
+    ): View {
+        val label = string(
+            if (enabled) R.string.farm_activity_enabled_format else R.string.farm_activity_disabled_format,
+            activityDisplayName(activity)
+        )
+        val button = Button(this)
+        button.text = label
+        button.minHeight = dp(48)
+        button.setOnClickListener { onToggle() }
+        return button
+    }
+
+    private fun renderFarmActivityBreakdown(farm: com.susankhya.kisab.domain.FarmState) {
+        val breakdown = service.farmActivityBreakdown(farm.id)
+        val secondaryColor = getColor(R.color.textSecondary)
+        farmDetailsBreakdownContainer.removeAllViews()
+        if (breakdown.isEmpty()) {
+            val empty = TextView(this).apply {
+                setText(R.string.farm_activity_breakdown_empty_text)
+                setTextColor(secondaryColor)
+            }
+            farmDetailsBreakdownContainer.addView(empty)
+            return
+        }
+        breakdown.forEach { total ->
+            val cashLine = string(
+                R.string.farm_activity_breakdown_row_format,
+                if (total.activity == null) string(R.string.activity_general) else activityDisplayName(total.activity),
+                formatMoney(farm.currencyCode, total.incomeMinor),
+                formatMoney(farm.currencyCode, total.expenseMinor),
+                formatMoney(farm.currencyCode, total.balanceMinor)
+            )
+            val tradeLine = string(
+                R.string.farm_activity_breakdown_trade_row_format,
+                formatMoney(farm.currencyCode, total.grossSalesMinor),
+                formatMoney(farm.currencyCode, total.grossPurchasesMinor),
+                formatMoney(farm.currencyCode, total.paymentsReceivedMinor),
+                formatMoney(farm.currencyCode, total.paymentsMadeMinor)
+            )
+            val hasTrade = total.grossSalesMinor != 0L || total.grossPurchasesMinor != 0L ||
+                total.paymentsReceivedMinor != 0L || total.paymentsMadeMinor != 0L
+            val row = TextView(this).apply {
+                this.text = if (hasTrade) "$cashLine\n$tradeLine" else cashLine
+                setTextColor(secondaryColor)
+                setLineSpacing(0f, 1.1f)
+                setPadding(0, dp(4), 0, dp(4))
+            }
+            farmDetailsBreakdownContainer.addView(row)
+        }
+    }
+
+    private fun onTextSizeSelected(textSizeSp: Int) {
+        val coerced = AppTextSize.coerce(textSizeSp)
+        textSizePreferences.save(coerced)
+        settingsTextSizeValueText.text = string(R.string.text_size_value_format, coerced)
+        applyAppTextSize()
+    }
+
+    private fun syncTextSizeSelection() {
+        val selected = textSizePreferences.load()
+        textSizeChangeSuppressed = true
+        settingsTextSizeSeekBar.max = AppTextSize.MAX_SP - AppTextSize.MIN_SP
+        settingsTextSizeSeekBar.progress = selected - AppTextSize.MIN_SP
+        settingsTextSizeValueText.text = string(R.string.text_size_value_format, selected)
+        textSizeChangeSuppressed = false
+    }
+
+    private fun syncAppearanceSelection() {
+        appearanceSelectionSuppressed = true
+        val currencyDisplay = appearancePreferences.currencyDisplayOn()
+        currencyDisplayOnRadio.isChecked = currencyDisplay
+        currencyDisplayOffRadio.isChecked = !currencyDisplay
+        val numberGrouping = appearancePreferences.numberGroupingOn()
+        numberGroupingOnRadio.isChecked = numberGrouping
+        numberGroupingOffRadio.isChecked = !numberGrouping
+        val mode = appearancePreferences.appearanceMode()
+        appearanceModeFollowSystemRadio.isChecked = mode == AppearanceMode.FOLLOW_SYSTEM
+        appearanceModeLightRadio.isChecked = mode == AppearanceMode.LIGHT
+        appearanceModeDarkRadio.isChecked = mode == AppearanceMode.DARK
+        appearanceSelectionSuppressed = false
+    }
+
+    private fun onCurrencyDisplaySelected(on: Boolean) {
+        appearancePreferences.saveCurrencyDisplay(on)
+        render()
+    }
+
+    private fun onNumberGroupingSelected(on: Boolean) {
+        appearancePreferences.saveNumberGrouping(on)
+        render()
+    }
+
+    private fun onAppearanceModeSelected(mode: AppearanceMode) {
+        appearancePreferences.saveAppearanceMode(mode)
+        AppCompatDelegate.setDefaultNightMode(mode.nightMode)
+    }
+
+    private fun applyAppTextSize() {
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.BASE_SP
+        applyTextScale(shellRoot, scale)
+    }
+
+    /** Dialog windows sit outside [shellRoot]; scale their content with the same app text size. */
+    private fun scaleDialogContent(dialog: AlertDialog) {
+        val root = dialog.window?.decorView ?: return
+        val scale = textSizePreferences.load().toFloat() / AppTextSize.BASE_SP
+        applyTextScale(root, scale)
+    }
+
+    private fun applyTextScale(view: View, scale: Float) {
+        if (view is TextView) {
+            val original = originalTextSizesPx.getOrPut(view) { view.textSize }
+            view.setTextSize(TypedValue.COMPLEX_UNIT_PX, original * scale)
+        }
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                applyTextScale(view.getChildAt(index), scale)
+            }
+        }
+    }
+
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationDeepLink(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::privateBuildExpiryGate.isInitialized) {
+            val snapshot = privateBuildExpirySnapshot()
+            val dayKey = PrivateBuildExpiryPresentation.localDayKey(
+                snapshot.evaluationEpochMillis, deviceZone
+            )
+            val already = privateBuildWarningStore.lastWarningDayKey() == dayKey
+            updatePrivateBuildExpiryBanner(
+                snapshot,
+                PrivateBuildExpiryPresentation.uiHints(snapshot, already)
+            )
+        }
+    }
+
+    private fun privateBuildExpirySnapshot(): PrivateBuildExpirySnapshot =
+        privateBuildExpiryGate.snapshot()
+
+    private fun requireMutationsAllowed(): Boolean {
+        if (privateBuildExpiryGate.mutationsAllowed()) return true
+        showToast(R.string.private_build_expiry_blocked_toast)
+        return false
+    }
+
+    private fun ensurePrivateBuildExpiryUi() {
+        val snapshot = privateBuildExpirySnapshot()
+        val dayKey = PrivateBuildExpiryPresentation.localDayKey(
+            snapshot.evaluationEpochMillis,
+            deviceZone
+        )
+        val already = privateBuildWarningStore.lastWarningDayKey() == dayKey
+        val hints = PrivateBuildExpiryPresentation.uiHints(snapshot, already)
+        updatePrivateBuildExpiryBanner(snapshot, hints)
+        if (!privateBuildExpiryStartupHandled) {
+            privateBuildExpiryStartupHandled = true
+            if (hints.shouldShowStartupDialog) {
+                if (hints.kind == PrivateBuildExpiryPresentation.MessageKind.WARNING_DAYS_REMAINING) {
+                    privateBuildWarningStore.markWarningShown(dayKey)
+                }
+                showPrivateBuildExpiryDialog(snapshot, hints)
+            }
+        }
+    }
+
+    private fun updatePrivateBuildExpiryBanner(
+        snapshot: PrivateBuildExpirySnapshot,
+        hints: PrivateBuildExpiryPresentation.UiHints
+    ) {
+        if (!hints.showPersistentBanner) {
+            privateBuildExpiryBanner.visibility = View.GONE
+            return
+        }
+        privateBuildExpiryBanner.visibility = View.VISIBLE
+        privateBuildExpiryBanner.text = when (hints.kind) {
+            PrivateBuildExpiryPresentation.MessageKind.EXPIRED_BANNER ->
+                string(R.string.private_build_expiry_banner_expired)
+            PrivateBuildExpiryPresentation.MessageKind.CRITICAL_DAYS_REMAINING ->
+                string(
+                    R.string.private_build_expiry_banner_critical_format,
+                    snapshot.daysRemaining.toInt()
+                )
+            else -> string(R.string.private_build_expiry_banner_expired)
+        }
+        privateBuildExpiryBanner.setOnClickListener { showPrivateBuildUpdateInfo() }
+    }
+
+    private fun showPrivateBuildExpiryDialog(
+        snapshot: PrivateBuildExpirySnapshot,
+        hints: PrivateBuildExpiryPresentation.UiHints
+    ) {
+        val dateText = PrivateBuildExpiryPresentation.formatExpiryDate(
+            snapshot.expiresAtEpochMillis,
+            presentationLocale,
+            deviceZone
+        )
+        val (titleRes, message) = when (hints.kind) {
+            PrivateBuildExpiryPresentation.MessageKind.WARNING_DAYS_REMAINING ->
+                R.string.private_build_expiry_dialog_warning_title to string(
+                    R.string.private_build_expiry_dialog_warning_message_format,
+                    snapshot.daysRemaining.toInt(),
+                    dateText
+                )
+            PrivateBuildExpiryPresentation.MessageKind.CRITICAL_DAYS_REMAINING ->
+                R.string.private_build_expiry_dialog_critical_title to string(
+                    R.string.private_build_expiry_dialog_critical_message_format,
+                    snapshot.daysRemaining.toInt(),
+                    dateText
+                )
+            PrivateBuildExpiryPresentation.MessageKind.EXPIRED_BANNER ->
+                R.string.private_build_expiry_dialog_expired_title to string(
+                    R.string.private_build_expiry_dialog_expired_message
+                )
+            else -> return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(titleRes)
+            .setMessage(message)
+            .setPositiveButton(R.string.private_build_expiry_update_action) { _, _ ->
+                showPrivateBuildUpdateInfo()
+            }
+            .setNegativeButton(R.string.action_done, null)
+            .show()
+    }
+
+    private fun showPrivateBuildUpdateInfo() {
+        checkForPrivateAppUpdate(showDialogWhenNoUpdate = true)
+    }
+
+    private fun checkForPrivateAppUpdate(showDialogWhenNoUpdate: Boolean = false) {
+        val source = StaticManifestUpdateSource(BuildConfig.PRIVATE_UPDATE_MANIFEST_URL.takeIf { it.isNotBlank() })
+        val current = VersionInfo(appVersionCode(), appVersionName())
+        settingsAboutUpdateStatusText.text = string(R.string.update_status_checking)
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { source.checkForUpdate(current) }
+            when (result) {
+                is UpdateCheckResult.UpdateAvailable -> {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_update_available)
+                    showUpdateDialog(current, result.info)
+                }
+                UpdateCheckResult.NoUpdate -> {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_up_to_date)
+                    if (showDialogWhenNoUpdate) {
+                        showNoUpdateDialog(current)
+                    }
+                }
+                UpdateCheckResult.UnableToCheck -> {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_unable_to_check)
+                    if (showDialogWhenNoUpdate) {
+                        showUnableToCheckDialog(current)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showNoUpdateDialog(current: VersionInfo) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.update_dialog_title)
+            .setMessage(
+                string(R.string.update_dialog_current_version, current.versionName) + "\n\n" +
+                    string(R.string.update_dialog_no_update_message)
+            )
+            .setPositiveButton(R.string.update_dialog_done_action, null)
+            .show()
+    }
+
+    private fun showUnableToCheckDialog(current: VersionInfo) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.update_dialog_title)
+            .setMessage(
+                string(R.string.update_dialog_current_version, current.versionName) + "\n\n" +
+                    string(R.string.update_dialog_unable_to_check_message)
+            )
+            .setPositiveButton(R.string.update_dialog_done_action, null)
+            .show()
+    }
+
+    private fun showUpdateDialog(current: VersionInfo, update: UpdateInfo) {
+        val notes = update.releaseNotes?.takeIf { it.isNotBlank() }
+        val published = update.publishedAt?.takeIf { it.isNotBlank() }
+        val details = buildString {
+            append(string(R.string.update_dialog_current_version, current.versionName))
+            append("\n")
+            append(string(R.string.update_dialog_new_version, update.versionName))
+            if (published != null) {
+                append("\n")
+                append(string(R.string.update_published_label))
+                append(": ")
+                append(published)
+            }
+            append("\n\n")
+            append(string(R.string.update_dialog_saved_note))
+            if (!notes.isNullOrBlank()) {
+                append("\n\n")
+                append(string(R.string.update_release_notes_label))
+                append(":\n")
+                append(notes)
+            }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.update_dialog_title)
+            .setMessage(details)
+            .setPositiveButton(R.string.update_dialog_download_action) { _, _ ->
+                startPrivateApkDownload(update)
+            }
+            .setNegativeButton(R.string.update_dialog_done_action, null)
+            .show()
+    }
+
+    private fun startPrivateApkDownload(update: UpdateInfo) {
+        val installer = ApkInstaller(this)
+        if (!installer.hasInstallPermission()) {
+            settingsAboutUpdateStatusText.text = string(R.string.update_status_install_permission_required)
+            showToast(R.string.update_install_permission_required)
+            installer.openSettingsForInstallPermission()
+            return
+        }
+        settingsAboutUpdateStatusText.text = string(R.string.update_status_download_in_progress)
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                ApkDownloader(this@FarmActivity).download(update.apkUrl, update.sha256)
+            }
+            if (result.isSuccess && result.file != null) {
+                val launched = installer.launchInstall(result.file)
+                if (!launched) {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_failed)
+                    showToast(R.string.update_download_failed)
+                } else {
+                    settingsAboutUpdateStatusText.text = string(R.string.update_status_install_ready)
+                }
+            } else {
+                settingsAboutUpdateStatusText.text = string(R.string.update_status_failed)
+                showToast(if (result.error == "checksum mismatch") R.string.update_download_invalid else R.string.update_download_failed)
+            }
+        }
+    }
+
+    private fun privateBuildExpiryAboutSuffix(): String {
+        val snapshot = privateBuildExpirySnapshot()
+        if (!snapshot.enabled) return ""
+        return if (snapshot.stage == PrivateBuildAccessStage.EXPIRED) {
+            "\n\n" + string(R.string.private_build_expiry_about_expired)
+        } else {
+            val dateText = PrivateBuildExpiryPresentation.formatExpiryDate(
+                snapshot.expiresAtEpochMillis,
+                presentationLocale,
+                deviceZone
+            )
+            "\n\n" + string(R.string.private_build_expiry_about_line_format, dateText)
+        }
+    }
+
+    private fun appVersionCode(): Long {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageManager.getPackageInfo(packageName, 0).longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageInfo(packageName, 0).versionCode.toLong()
+        }
+    }
+
+    private fun appVersionName(): String {
+        val versionName = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0)).versionName
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageInfo(packageName, 0).versionName
+        }
+        return versionName ?: string(R.string.app_name)
+    }
+
+    private fun showAboutDialog() {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_about_title)
+            .setMessage(
+                string(
+                    R.string.settings_about_version_format,
+                    appVersionName()
+                ) + "\n\n" + string(R.string.settings_about_privacy_note) + privateBuildExpiryAboutSuffix()
+            )
+            .setPositiveButton(R.string.action_done, null)
+            .create()
+        dialog.show()
+        scaleDialogContent(dialog)
     }
 
     private fun onLanguageSelected(language: AppLanguage) {
@@ -3208,9 +6676,13 @@ class FarmActivity : AppCompatActivity() {
     // --- Backup -------------------------------------------------------------
 
     private fun exportBackup() {
-        val backupContent = createBackupContentForCurrentFarm() ?: return
-        val farmId = currentFarmId ?: return showMissingFarmMessage()
+        exportBackupForFarm(currentFarmId ?: return showMissingFarmMessage())
+    }
+
+    private fun exportBackupForFarm(farmId: String) {
         val farm = service.loadFarm(farmId) ?: return showMissingFarmMessage()
+        val backupContent = FarmBackupCodec.encode(farm)
+        pendingExportFarmId = farmId
         pendingExportContent = backupContent
         val safeName = farm.name.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
             .takeIf { it.isNotBlank() } ?: string(R.string.backup_filename_fallback)
@@ -3228,14 +6700,26 @@ class FarmActivity : AppCompatActivity() {
         return FarmBackupCodec.encode(farm)
     }
 
+    internal fun createBackupContentForFarm(farmId: String): String? {
+        val farm = service.loadFarm(farmId) ?: return null
+        return FarmBackupCodec.encode(farm)
+    }
+
     private fun importBackup() {
+        if (!requireMutationsAllowed()) return
         openBackupDocumentLauncher.launch(arrayOf("application/octet-stream"))
     }
 
     internal fun handleImportedBackupContent(content: String) {
         try {
             val envelope = FarmBackupCodec.decode(content)
-            showImportConfirmation(envelope.farm)
+            val localFarm = service.loadFarm(envelope.farm.id)
+            val preview = FarmImportPreviewFactory.build(
+                backupFarm = envelope.farm,
+                localFarm = localFarm,
+                exportedAt = envelope.exportedAt
+            )
+            showImportConfirmation(envelope.farm, preview)
         } catch (exception: FarmBackupException) {
             showValidationMessage(FarmUiError.fromBackupFailure(exception).resourceId)
         } catch (exception: Exception) {
@@ -3243,17 +6727,27 @@ class FarmActivity : AppCompatActivity() {
         }
     }
 
-    private fun showImportConfirmation(farm: FarmState) {
-        val summary = buildImportedFarmSummary(farm)
+    private fun showImportConfirmation(farm: FarmState, preview: FarmImportPreview) {
+        val message = buildImportPreviewMessage(farm, preview)
+        val titleRes = if (preview.isUpdate) {
+            R.string.dialog_import_update_title
+        } else {
+            R.string.dialog_import_add_title
+        }
+        val actionRes = if (preview.isUpdate) {
+            R.string.action_update_farm
+        } else {
+            R.string.action_add_imported_farm
+        }
         AlertDialog.Builder(this)
-            .setTitle(string(R.string.dialog_replace_farm_title))
-            .setMessage(string(R.string.dialog_import_backup_message_format, farm.name, summary))
-            .setPositiveButton(string(R.string.action_replace_farm)) { _, _ ->
+            .setTitle(string(titleRes))
+            .setMessage(message)
+            .setPositiveButton(string(actionRes)) { _, _ ->
                 if (editorState != null && isEditorDirty()) {
-                    showDiscardDialog { replaceFarmWith(farm) }
+                    showDiscardDialog { replaceFarmWith(farm, preview.isUpdate) }
                 } else {
                     closeEditor()
-                    replaceFarmWith(farm)
+                    replaceFarmWith(farm, preview.isUpdate)
                 }
             }
             .setNegativeButton(string(R.string.action_cancel)) { _, _ ->
@@ -3262,12 +6756,92 @@ class FarmActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun replaceFarmWith(farm: FarmState) {
+    internal fun buildImportPreviewMessage(farm: FarmState, preview: FarmImportPreview): String {
+        val lines = mutableListOf<String>()
+        lines += string(
+            if (preview.isUpdate) R.string.dialog_import_update_headline
+            else R.string.dialog_import_add_headline
+        )
+        lines += ""
+        lines += string(R.string.dialog_import_backup_farm_line_format, preview.backupFarmName)
+        preview.localFarmNameIfDifferent?.let { localName ->
+            lines += string(R.string.dialog_import_local_farm_line_format, localName)
+        }
+        lines += string(
+            R.string.dialog_import_currency_line_format,
+            FarmCurrencies.label(preview.backupCurrencyCode, presentationLocale)
+        )
+        preview.backupExportedAt?.let { exportedAt ->
+            lines += string(
+                R.string.dialog_import_exported_at_line_format,
+                timePresentation.displayDateTime(presentationLocale, deviceZone, exportedAt)
+            )
+        }
+        val balanceText = try {
+            formatMoney(farm.currencyCode, FarmTotals.of(farm.transactions).balanceMinor)
+        } catch (exception: ArithmeticException) {
+            Log.e(LOG_TAG, "imported farm totals overflow", exception)
+            formatMoney(farm.currencyCode, 0L)
+        }
+        lines += string(
+            R.string.dialog_import_summary_line_format,
+            formatCount(preview.backupEntryCount),
+            formatCount(preview.backupTransactionCount),
+            balanceText
+        )
+        preview.diffHints?.let { diff ->
+            if (diff.nameChanged && preview.localFarmNameIfDifferent != null) {
+                lines += string(
+                    R.string.dialog_import_diff_name_format,
+                    preview.localFarmNameIfDifferent,
+                    preview.backupFarmName
+                )
+            }
+            if (diff.currencyChanged) {
+                val localFarm = service.loadFarm(farm.id)
+                if (localFarm != null) {
+                    lines += string(
+                        R.string.dialog_import_diff_currency_format,
+                        FarmCurrencies.label(localFarm.currencyCode, presentationLocale),
+                        FarmCurrencies.label(preview.backupCurrencyCode, presentationLocale)
+                    )
+                }
+            }
+            if (diff.recordCountChanged) {
+                lines += string(
+                    R.string.dialog_import_diff_records_format,
+                    formatCount(diff.localRecordCount),
+                    formatCount(diff.backupRecordCount)
+                )
+            }
+        }
+        lines += ""
+        lines += string(
+            if (preview.isUpdate) R.string.dialog_import_update_note
+            else R.string.dialog_import_add_note
+        )
+        return lines.joinToString("\n")
+    }
+
+    private fun replaceFarmWith(farm: FarmState, isUpdate: Boolean) {
+        if (!requireMutationsAllowed()) return
         closeEditor()
-        store.saveFarm(farm)
-        currentFarmId = farm.id
-        render()
-        showToast(R.string.toast_farm_restored)
+        // Multi-farm safe: same id updates that farm only; new id adds another farm.
+        // Other local farms are never wiped. Ownership of other farms is unchanged.
+        try {
+            service.importFarm(farm)
+            localUserService.associateFarm(farm.id)
+            currentFarmId = farm.id
+            render()
+            showToast(
+                if (isUpdate) R.string.toast_farm_updated_from_backup
+                else R.string.toast_farm_added_from_backup
+            )
+        } catch (exception: Exception) {
+            showUnexpectedFailure(exception, "import farm failed")
+            currentFarmId = service.currentFarmId()
+            render()
+        }
     }
 
     private fun buildImportedFarmSummary(farm: FarmState): String {
@@ -3281,8 +6855,8 @@ class FarmActivity : AppCompatActivity() {
         }
         return string(
             R.string.imported_farm_summary_format,
-            numberFormatter.format(presentationLocale, farm.entries.size),
-            numberFormatter.format(presentationLocale, farm.transactions.size),
+            formatCount(farm.entries.size),
+            formatCount(farm.transactions.size),
             formatMoney(currencyCode, totals.balanceMinor)
         )
     }
@@ -3293,9 +6867,20 @@ class FarmActivity : AppCompatActivity() {
         formatMoney(currencyCode ?: "NPR", balanceMinor)
 
     internal fun formatMoney(currencyCode: String, amountMinor: Long): String =
-        moneyFormatter.format(presentationLocale, currencyCode, amountMinor)
+        moneyFormatter.format(
+            presentationLocale,
+            currencyCode,
+            amountMinor,
+            showCurrency = appearancePreferences.currencyDisplayOn(),
+            grouping = appearancePreferences.numberGroupingOn()
+        )
 
-    internal fun formatCount(value: Int): String = numberFormatter.format(presentationLocale, value)
+    internal fun formatCount(value: Int): String =
+        numberFormatter.format(
+            presentationLocale,
+            value,
+            grouping = appearancePreferences.numberGroupingOn()
+        )
 
     internal fun displayTransactionTime(transaction: FarmTransaction): String =
         timePresentation.displayDateTime(presentationLocale, deviceZone, transaction.occurredAt)
@@ -3322,15 +6907,26 @@ class FarmActivity : AppCompatActivity() {
     private fun selectedTransactionType(): TransactionType =
         if (transactionTypeExpenseRadio.isChecked) TransactionType.EXPENSE else TransactionType.INCOME
 
+    private fun activeFarmActivities(): Set<FarmActivityType> {
+        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return emptySet()
+        return farm.activities.toSet()
+    }
+
+    private fun farmPlanningCalculatorChoices(): List<FarmPlanningCalculator> =
+        FarmActivityCatalog.orderedCalculators(activeFarmActivities())
+
+    private fun transactionCategoryChoices(type: TransactionType): List<TransactionCategory> =
+        FarmActivityCatalog.orderedCategories(activeFarmActivities(), type)
+
     private fun selectedTransactionCategory(): TransactionCategory {
         val type = selectedTransactionType()
-        val categories = FarmOrdering.categoriesFor(type)
+        val categories = transactionCategoryChoices(type)
         val position = transactionCategorySpinner.selectedItemPosition.coerceIn(0, categories.size - 1)
         return categories[position]
     }
 
     private fun refreshCategoryChoices(type: TransactionType) {
-        val categories = FarmOrdering.categoriesFor(type)
+        val categories = transactionCategoryChoices(type)
         transactionCategorySpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
@@ -3338,6 +6934,46 @@ class FarmActivity : AppCompatActivity() {
         ).also { adapter ->
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
+    }
+
+    private fun transactionActivityChoices(): List<FarmActivityType?> {
+        val farm = currentFarmId?.let { service.loadFarm(it) } ?: return listOf(null)
+        return FarmActivityCatalog.activityChoices(farm.activities.toSet(), editorState?.activity)
+    }
+
+    private fun selectedTransactionActivity(): FarmActivityType? {
+        val choices = transactionActivityChoices()
+        val position = transactionActivitySpinner.selectedItemPosition.coerceIn(0, choices.size - 1)
+        return choices[position]
+    }
+
+    private fun refreshActivityChoices(currentActivity: FarmActivityType?) {
+        val farm = currentFarmId?.let { service.loadFarm(it) }
+        val hasEnabled = farm != null && farm.activities.isNotEmpty()
+        val show = hasEnabled || currentActivity != null
+        transactionActivityLabel.visibility = if (show) View.VISIBLE else View.GONE
+        transactionActivitySpinner.visibility = if (show) View.VISIBLE else View.GONE
+        val choices = if (farm == null) listOf<FarmActivityType?>(null)
+        else FarmActivityCatalog.activityChoices(farm.activities.toSet(), currentActivity)
+        transactionActivitySpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            choices.map { activity ->
+                if (activity == null) string(R.string.transaction_activity_general_option)
+                else activityDisplayName(activity)
+            }
+        ).also { adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+    }
+
+    private fun onTransactionActivityChanged() {
+        val state = editorState ?: return
+        val updated = state.copy(activity = selectedTransactionActivity())
+        editorState = updated
+        refreshCategoryChoices(updated.type)
+        val categoryIndex = transactionCategoryChoices(updated.type).indexOf(updated.category).coerceAtLeast(0)
+        transactionCategorySpinner.setSelection(categoryIndex)
     }
 
     private fun showValidationMessage(@StringRes resId: Int, vararg formatArgs: Any) {
@@ -3383,6 +7019,7 @@ class FarmActivity : AppCompatActivity() {
         const val STATE_EDITOR_TRANSACTION_ID = "TransactionId"
         const val STATE_EDITOR_TYPE = "Type"
         const val STATE_EDITOR_CATEGORY = "Category"
+        const val STATE_EDITOR_ACTIVITY = "Activity"
         const val STATE_EDITOR_AMOUNT = "Amount"
         const val STATE_EDITOR_DESCRIPTION = "Description"
         const val STATE_EDITOR_OCCURRED_AT = "OccurredAt"
@@ -3399,8 +7036,10 @@ class FarmActivity : AppCompatActivity() {
         const val STATE_TRADE_EDITOR_PAID = "Paid"
         const val STATE_TRADE_EDITOR_DESCRIPTION = "Description"
         const val STATE_TRADE_EDITOR_OCCURRED_AT = "OccurredAt"
+        const val STATE_TRADE_EDITOR_ACTIVITY = "Activity"
         const val STATE_SETTLEMENT_TARGET_TRADE_ID = "settlementTargetTradeId"
         const val STATE_KHATA_PARTY_ID = "khataPartyId"
+        const val STATE_KHATA_FILTER = "khataFilter"
         const val STATE_OVERVIEW_PERIOD_PRESET = "overviewPeriodPreset"
         const val STATE_HISAB_PARTY_ID = "hisabPartyId"
         const val STATE_HISAB_PERIOD_PRESET = "hisabPeriodPreset"

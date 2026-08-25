@@ -196,7 +196,7 @@ jobs:
           KISAB_KEYSTORE_PASSWORD: ${{ secrets.KISAB_KEYSTORE_PASSWORD }}
           KISAB_KEY_ALIAS: ${{ secrets.KISAB_KEY_ALIAS }}
           KISAB_KEY_PASSWORD: ${{ secrets.KISAB_KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease
+        run: ./gradlew :app:assembleRelease -Pkisab.privateUpdateManifestUrl="https://raw.githubusercontent.com/lazydeepak/kisab/main/docs/release/manifests/pilot-manifest.json"
 
       - name: Verify APK signing and record SHA-256
         id: verify

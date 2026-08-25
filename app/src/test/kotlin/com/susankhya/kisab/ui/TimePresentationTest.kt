@@ -28,6 +28,17 @@ class TimePresentationTest {
     }
 
     @Test
+    fun displaysDateInDeviceZone() {
+        val stored = OffsetDateTime.parse("2024-01-01T12:00:00Z")
+        val english = presentation.displayDate(Locale.ENGLISH, kathmandu, stored)
+        val normalizedEnglish = english.replace("\u202F", " ").replace("\u00A0", " ")
+        assertEquals("Jan 1, 2024", normalizedEnglish)
+
+        val nepali = presentation.displayDate(Locale.forLanguageTag("ne-NP"), kathmandu, stored)
+        assertEquals("2024 जनवरी 1", nepali)
+    }
+
+    @Test
     fun editFieldValueUsesDeviceLocalOffset() {
         val stored = OffsetDateTime.parse("2024-01-01T12:00:00Z")
         assertEquals("2024-01-01T17:45:00+05:45", presentation.toEditFieldValue(kathmandu, stored))

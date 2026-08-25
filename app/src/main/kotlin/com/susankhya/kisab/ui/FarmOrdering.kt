@@ -1,5 +1,7 @@
 package com.susankhya.kisab.ui
 
+import com.susankhya.kisab.domain.FarmActivityType
+import com.susankhya.kisab.domain.FarmActivityCatalog
 import com.susankhya.kisab.domain.FarmEntryKind
 import com.susankhya.kisab.domain.FarmPlanningCalculator
 import com.susankhya.kisab.domain.FinancialPeriodPreset
@@ -17,6 +19,9 @@ import com.susankhya.kisab.domain.TransactionType
  */
 object FarmOrdering {
     val entryKinds: List<FarmEntryKind> = listOf(FarmEntryKind.LIVESTOCK, FarmEntryKind.CROP)
+
+    /** Activity selection order (canonical, from [FarmActivityCatalog.displayOrder]). */
+    val farmActivities: List<FarmActivityType> = FarmActivityCatalog.displayOrder
 
     val partyRoles: List<PartyRole> = listOf(PartyRole.CUSTOMER, PartyRole.SUPPLIER, PartyRole.BOTH, PartyRole.OTHER)
 

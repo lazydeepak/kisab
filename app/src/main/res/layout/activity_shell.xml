@@ -30,12 +30,28 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_weight="1"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="false"
             android:ellipsize="end"
+            android:focusable="false"
             android:maxLines="1"
             android:text="@string/app_name"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/shellFarmSwitchIcon"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:clickable="false"
+            android:contentDescription="@string/farm_switcher_content_description"
+            android:focusable="false"
+            android:padding="6dp"
+            android:src="@drawable/ic_arrow_drop_down"
+            android:visibility="gone"
+            app:tint="#FFFFFF" />
 
         <ImageButton
             android:id="@+id/shellMenuButton"
@@ -46,6 +62,16 @@
             android:padding="12dp"
             android:src="@drawable/ic_more_vert" />
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/privateBuildExpiryBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/dangerZone"
+        android:padding="12dp"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
     <FrameLayout
         android:id="@+id/contentContainer"
@@ -62,7 +88,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
         <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/createFarmContainer"
@@ -84,6 +110,50 @@
                 android:hint="@string/farm_name_hint"
                 android:inputType="textCapWords" />
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/farm_currency_label"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/createFarmCurrencyText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
+                        <Button
+                android:id="@+id/changeCreateFarmCurrencyButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="48dp"
+                android:text="@string/change_currency_action" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/farm_activities_prompt"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/createFarmActivitiesText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:lineSpacingMultiplier="1.15"
+                android:textColor="@color/textSecondary" />
+
+            <Button
+                android:id="@+id/createFarmChooseActivitiesButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:minHeight="48dp"
+                android:text="@string/farm_activities_choose_action" />
+
             <Button
                 android:id="@+id/createFarmButton"
                 android:layout_width="wrap_content"
@@ -100,64 +170,417 @@
             android:orientation="vertical"
             android:visibility="gone">
 
-            <TextView
-                android:id="@+id/farmNameText"
+            <!-- Today Header Bar: Date and Month summary action -->
+            <LinearLayout
+                android:id="@+id/todayHeaderBar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/balanceText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/todayDateText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="@color/textSecondary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/incomeText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
+                <Button
+                    android:id="@+id/farmerOverviewMonthButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:text="@string/farmer_overview_month_action" />
+            </LinearLayout>
 
-            <TextView
-                android:id="@+id/expensesText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:id="@+id/firstActionPrompt"
+            <!-- 1. Today Hero Card: What happened today -->
+            <LinearLayout
+                android:id="@+id/todayHeroCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:text="@string/first_action_prompt"
-                android:textColor="#1565C0"
-                android:visibility="gone" />
+                android:background="@drawable/bg_today_card"
+                android:orientation="vertical"
+                android:padding="16dp">
 
+                <TextView
+                    android:id="@+id/todayHeroTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/today_hero_title"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <!-- Empty state when no activity today -->
+                <TextView
+                    android:id="@+id/todayEmptyStateText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/today_no_activity"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
+
+                <!-- Populated state: Production headline -->
+                <LinearLayout
+                    android:id="@+id/todayProductionContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/todayProductionHeadlineText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/todayUnexplainedContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/todayUnexplainedText"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:textColor="@color/payableText"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/todayReconcileButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minHeight="40dp"
+                            android:text="@string/today_reconcile_action" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Money metrics grid: Sales, Received, Expenses, Credit sales -->
+                <LinearLayout
+                    android:id="@+id/todayMoneyMetricsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_metric_tile"
+                            android:orientation="vertical"
+                            android:padding="8dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/today_sales_label"
+                                android:textColor="@color/textSecondary"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/todaySalesValueText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_metric_tile"
+                            android:orientation="vertical"
+                            android:padding="8dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/today_received_label"
+                                android:textColor="@color/textSecondary"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/todayReceivedValueText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_metric_tile"
+                            android:orientation="vertical"
+                            android:padding="8dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/today_expenses_label"
+                                android:textColor="@color/textSecondary"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/todayExpensesValueText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/todayCreditSalesContainer"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_metric_tile"
+                            android:orientation="vertical"
+                            android:padding="8dp"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/today_credit_sales_label"
+                                android:textColor="@color/textSecondary"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:id="@+id/todayCreditSalesValueText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 2. Money Needing Attention Card (Directional Khata) -->
             <LinearLayout
+                android:id="@+id/todayMoneyAttentionCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:orientation="horizontal">
+                android:background="@drawable/bg_today_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/today_money_attention_title"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/todayKhataSettledText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/today_khata_settled"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
+
+                <!-- To receive (customers) -->
+                <LinearLayout
+                    android:id="@+id/todayReceivableContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_receivable_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/today_receivable_label"
+                            android:textColor="@color/receivableText"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/todayReceivableAmountText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textColor="@color/receivableText"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/todayViewReceivablesButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
+                        android:text="@string/today_view_khata_action" />
+                </LinearLayout>
+
+                <!-- To pay (suppliers) -->
+                <LinearLayout
+                    android:id="@+id/todayPayableContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_payable_card"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/today_payable_label"
+                            android:textColor="@color/payableText"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/todayPayableAmountText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textColor="@color/payableText"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/todayViewPayablesButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
+                        android:text="@string/today_view_khata_action" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 3. Farm Status Card -->
+            <LinearLayout
+                android:id="@+id/todayFarmStatusCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_today_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/today_farm_status_title"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/todayNoFarmStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/today_no_farm_status"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/todayProductionStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.2"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/todaySuppliesStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.2"
+                    android:visibility="gone" />
 
                 <Button
-                    android:id="@+id/recordIncomeButton"
-                    android:layout_width="0dp"
+                    android:id="@+id/todayViewFarmWorkButton"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:minHeight="48dp"
-                    android:text="@string/record_income_action" />
+                    android:layout_marginTop="12dp"
+                    android:minHeight="44dp"
+                    android:text="@string/today_view_farm_work_action" />
+            </LinearLayout>
 
-                <Button
-                    android:id="@+id/recordExpenseButton"
-                    android:layout_width="0dp"
+            <!-- 4. Recent Activity Card -->
+            <LinearLayout
+                android:id="@+id/todayRecentActivityCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_today_card"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/recentTransactionsTitle"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:minHeight="48dp"
-                    android:text="@string/record_expense_action" />
+                    android:text="@string/today_recent_activity_title"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/recentTransactionsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
             </LinearLayout>
 
             <androidx.appcompat.widget.LinearLayoutCompat
@@ -207,11 +630,25 @@
                     android:imeOptions="actionNext"
                     android:inputType="numberDecimal" />
 
-                <Spinner
+                                <Spinner
                     android:id="@+id/transactionCategorySpinner"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:id="@+id/transactionActivityLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/transaction_activity_label"
+                    android:textStyle="bold" />
+
+                <Spinner
+                    android:id="@+id/transactionActivitySpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp" />
 
                 <EditText
                     android:id="@+id/transactionDescriptionInput"
@@ -256,7 +693,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:textColor="#D32F2F"
+                    android:textColor="@color/dangerZoneLabel"
                     android:visibility="gone" />
 
                 <LinearLayout
@@ -292,21 +729,6 @@
                         android:visibility="gone" />
                 </LinearLayout>
             </androidx.appcompat.widget.LinearLayoutCompat>
-
-            <TextView
-                android:id="@+id/recentTransactionsTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/recent_transactions_section"
-                android:textStyle="bold" />
-
-            <LinearLayout
-                android:id="@+id/recentTransactionsContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="vertical" />
 
             <Button
                 android:id="@+id/farmToolsToggleButton"
@@ -431,212 +853,217 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
+                <!-- 1. Top-level Khata Overview Container -->
                 <LinearLayout
+                    android:id="@+id/khataOverviewContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/newSaleButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:minHeight="48dp"
-                        android:text="@string/new_sale_action" />
-
-                    <Button
-                        android:id="@+id/newPurchaseButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:layout_weight="1"
-                        android:minHeight="48dp"
-                        android:text="@string/new_purchase_action" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/hisabSummaryContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
                     android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/toReceiveText"
+                    <!-- Search Input -->
+                    <EditText
+                        android:id="@+id/khataSearchInput"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="16sp" />
+                        android:background="@drawable/bg_metric_tile"
+                        android:hint="@string/khata_search_hint"
+                        android:imeOptions="actionDone"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:minHeight="48dp"
+                        android:padding="12dp"
+                        android:textSize="14sp" />
 
-                    <TextView
-                        android:id="@+id/toPayText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textSize="16sp" />
-                </LinearLayout>
-
-                <androidx.appcompat.widget.LinearLayoutCompat
-                    android:id="@+id/financialOverviewContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/financial_overview_section"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <TextView
+                    <!-- Summary Cards: Total to receive & Total to pay -->
+                    <LinearLayout
+                        android:id="@+id/hisabSummaryContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="@string/overview_period_label"
-                        android:textStyle="bold" />
+                        android:orientation="horizontal">
 
-                    <Spinner
-                        android:id="@+id/overviewPeriodSpinner"
+                        <!-- To receive summary -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_receivable_card"
+                            android:orientation="vertical"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/today_receivable_label"
+                                android:textColor="@color/receivableText"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/toReceiveText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="@color/receivableText"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- To pay summary -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_payable_card"
+                            android:orientation="vertical"
+                            android:padding="12dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/today_payable_label"
+                                android:textColor="@color/payableText"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/toPayText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textColor="@color/payableText"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Segmented Filter: [सबै] [लिन बाँकी] [तिर्न बाँकी] -->
+                    <RadioGroup
+                        android:id="@+id/khataFilterRadioGroup"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/cash_activity_section"
-                        android:textStyle="bold" />
+                        <RadioButton
+                            android:id="@+id/khataFilterAllRadio"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:checked="true"
+                            android:text="@string/khata_filter_all"
+                            android:textSize="13sp" />
 
-                    <TextView
-                        android:id="@+id/overviewCashIncomeText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
+                        <RadioButton
+                            android:id="@+id/khataFilterToReceiveRadio"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/khata_filter_to_receive"
+                            android:textSize="13sp" />
 
-                    <TextView
-                        android:id="@+id/overviewCashExpenseText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
+                        <RadioButton
+                            android:id="@+id/khataFilterToPayRadio"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/khata_filter_to_pay"
+                            android:textSize="13sp" />
+                    </RadioGroup>
 
-                    <TextView
-                        android:id="@+id/overviewCashNetText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewCashEmptyText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/overview_cash_empty"
-                        android:visibility="gone" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/trade_activity_section"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/overviewSalesText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
-
-                    <TextView
-                        android:id="@+id/overviewPurchasesText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewPaymentsReceivedText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewPaymentsMadeText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewTradeEmptyText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/overview_trade_empty"
-                        android:visibility="gone" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/current_position_section"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/overviewPositionAsOfText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp" />
-
-                    <TextView
-                        android:id="@+id/overviewReceivableText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewPayableText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp" />
-
-                    <TextView
-                        android:id="@+id/overviewNetPositionText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/overviewPositionEmptyText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/overview_position_empty"
-                        android:visibility="gone" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:text="@string/monthly_trend_section"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/overviewTrendEmptyText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="@string/overview_trend_empty"
-                        android:visibility="gone" />
-
+                    <!-- Parties Header & Add Party action -->
                     <LinearLayout
-                        android:id="@+id/overviewTrendContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/partiesSectionLabel"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/parties_section"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/addPartyButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:minHeight="44dp"
+                            android:text="@string/add_party_action" />
+                    </LinearLayout>
+
+                    <!-- Empty state: No parties at all -->
+                    <TextView
+                        android:id="@+id/partiesEmptyText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:lineSpacingMultiplier="1.15"
+                        android:text="@string/parties_empty"
+                        android:textColor="@color/textSecondary"
+                        android:visibility="gone" />
+
+                    <!-- Empty state: Filter matching 0 parties -->
+                    <TextView
+                        android:id="@+id/khataFilterEmptyText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:lineSpacingMultiplier="1.15"
+                        android:text="@string/khata_filter_empty"
+                        android:textColor="@color/textSecondary"
+                        android:visibility="gone" />
+
+                    <!-- Parties List Container -->
+                    <LinearLayout
+                        android:id="@+id/partiesContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:orientation="vertical" />
+                </LinearLayout>
+
+                <!-- Hidden compatibility container for financial overview & legacy buttons -->
+                <androidx.appcompat.widget.LinearLayoutCompat
+                    android:id="@+id/financialOverviewContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <Button android:id="@+id/newSaleButton" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <Button android:id="@+id/newPurchaseButton" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/tradesSectionLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/tradesEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <LinearLayout android:id="@+id/tradesContainer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" />
+
+                    <TextView android:id="@+id/overviewSalesText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPurchasesText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPaymentsReceivedText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPaymentsMadeText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewTradeEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewCashIncomeText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewCashExpenseText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewCashNetText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewCashEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPositionAsOfText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+
+                    <TextView android:id="@+id/overviewReceivableText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPayableText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewNetPositionText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <TextView android:id="@+id/overviewPositionEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+
+                    <TextView android:id="@+id/overviewTrendEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <LinearLayout android:id="@+id/overviewTrendContainer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" />
+                    <Spinner android:id="@+id/overviewPeriodSpinner" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </androidx.appcompat.widget.LinearLayoutCompat>
 
                 <androidx.appcompat.widget.LinearLayoutCompat
@@ -674,27 +1101,71 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp" />
 
-                    <TextView
-                        android:id="@+id/partyKhataToReceiveText"
+                    <!-- Directional Headline Card -->
+                    <LinearLayout
+                        android:id="@+id/partyKhataHeadlineCard"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
-                        android:textSize="16sp" />
+                        android:background="@drawable/bg_today_card"
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <TextView
-                        android:id="@+id/partyKhataToPayText"
+                        <TextView
+                            android:id="@+id/partyKhataHeadlineText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+
+                        <!-- Contextual payment actions -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="horizontal">
+
+                            <Button
+                                android:id="@+id/khataContextualReceiveButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:minHeight="48dp"
+                                android:text="@string/khata_contextual_receive_action"
+                                android:visibility="gone" />
+
+                            <Button
+                                android:id="@+id/khataContextualPayButton"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:minHeight="48dp"
+                                android:text="@string/khata_contextual_pay_action"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Subordinate compatibility views -->
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textSize="16sp" />
+                        android:visibility="gone">
 
-                    <TextView
-                        android:id="@+id/partyKhataNetText"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/partyKhataToReceiveText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+
+                        <TextView
+                            android:id="@+id/partyKhataToPayText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+
+                        <TextView
+                            android:id="@+id/partyKhataNetText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -780,6 +1251,22 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp" />
+
+                    <TextView
+                        android:id="@+id/tradeActivityLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/transaction_activity_label"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <Spinner
+                        android:id="@+id/tradeActivitySpinner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:visibility="gone" />
 
                     <TextView
                         android:layout_width="match_parent"
@@ -911,7 +1398,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:textColor="#D32F2F"
+                        android:textColor="@color/dangerZoneLabel"
                         android:visibility="gone" />
 
                     <LinearLayout
@@ -1052,7 +1539,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:textColor="#D32F2F"
+                        android:textColor="@color/dangerZoneLabel"
                         android:visibility="gone" />
 
                     <LinearLayout
@@ -1133,62 +1620,6 @@
                 </androidx.appcompat.widget.LinearLayoutCompat>
 
                 <TextView
-                    android:id="@+id/tradesSectionLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/trades_section"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tradesEmptyText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/trades_empty"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/tradesContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="vertical" />
-
-                <TextView
-                    android:id="@+id/partiesSectionLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="@string/parties_section"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/partiesEmptyText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/parties_empty"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/partiesContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="vertical" />
-
-                <Button
-                    android:id="@+id/addPartyButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:minHeight="48dp"
-                    android:text="@string/add_party_action" />
-
-                <TextView
                     android:id="@+id/partyEditorTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -1245,7 +1676,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:textColor="#D32F2F"
+                    android:textColor="@color/dangerZoneLabel"
                     android:visibility="gone" />
 
                 <LinearLayout
@@ -1296,7 +1727,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
                 <include layout="@layout/view_kisan_calculator_toolbox" />
 
@@ -1338,7 +1769,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:background="@drawable/bg_today_card"
                     android:orientation="vertical"
+                    android:padding="16dp"
                     android:visibility="gone">
 
                     <TextView
@@ -1464,55 +1897,46 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="20dp">
 
                 <TextView
+                    android:id="@+id/settingsAccountSection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/settings_farm_currency_section"
+                    android:text="@string/settings_account_section"
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/settingsAccountStatusLabel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/farm_currency_label"
+                    android:layout_marginTop="8dp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/settingsCurrencyText"
+                    android:id="@+id/settingsAccountStatusDetail"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp" />
 
                 <TextView
-                    android:id="@+id/settingsNoFarmText"
+                    android:id="@+id/settingsAccountSignInRequiredText"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:visibility="gone" />
-
-                <Button
-                    android:id="@+id/changeSettingsCurrencyButton"
-                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:minHeight="48dp"
-                    android:text="@string/change_currency_action"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/settingsCurrencyLockedText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/currency_locked_note"
                     android:visibility="gone" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
+                    android:text="@string/settings_app_section"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
                     android:text="@string/settings_language_section"
                     android:textStyle="bold" />
 
@@ -1541,6 +1965,856 @@
                         android:layout_height="wrap_content"
                         android:text="@string/language_nepali" />
                 </RadioGroup>
+
+                <TextView
+                    android:id="@+id/settingsAppearanceSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/settings_appearance_section"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_text_size_label"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settingsTextSizeValueText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/text_size_value_format" />
+
+                <SeekBar
+                    android:id="@+id/settingsTextSizeSeekBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:max="10"
+                    android:min="0" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/text_size_slider_note" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_currency_display_label"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/currencyDisplayRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/currencyDisplayOnRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_on" />
+
+                    <RadioButton
+                        android:id="@+id/currencyDisplayOffRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_off" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_number_grouping_label"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/numberGroupingRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/numberGroupingOnRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_on" />
+
+                    <RadioButton
+                        android:id="@+id/numberGroupingOffRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_off" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_appearance_mode_label"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/appearanceModeRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/appearanceModeFollowSystemRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/appearance_mode_follow_system" />
+
+                    <RadioButton
+                        android:id="@+id/appearanceModeLightRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/appearance_mode_light" />
+
+                    <RadioButton
+                        android:id="@+id/appearanceModeDarkRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/appearance_mode_dark" />
+                </RadioGroup>
+
+                <TextView
+                    android:id="@+id/settingsNotificationsSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/settings_notifications_section"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settingsNotificationsStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settingsNotificationsExplanationText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/settings_notifications_explanation"
+                    android:textColor="@color/textSecondary" />
+
+                <Button
+                    android:id="@+id/settingsNotificationsActionButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/settings_notifications_enable_action" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_notifications_category_updates"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/notificationUpdatesRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/notificationUpdatesOnRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_on" />
+
+                    <RadioButton
+                        android:id="@+id/notificationUpdatesOffRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_off" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/settings_notifications_category_reminders"
+                    android:textStyle="bold" />
+
+                <RadioGroup
+                    android:id="@+id/notificationRemindersRadioGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <RadioButton
+                        android:id="@+id/notificationRemindersOnRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_on" />
+
+                    <RadioButton
+                        android:id="@+id/notificationRemindersOffRadio"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/setting_off" />
+                </RadioGroup>
+
+                <TextView
+                    android:id="@+id/settingsDataSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/settings_data_section"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settingsDataNoFarmText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_data_no_farm_note"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/settingsExportBackupButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/export_backup_action" />
+
+                    <Button
+                        android:id="@+id/settingsImportBackupButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/import_backup_action" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_data_offline_note" />
+
+                <TextView
+                    android:id="@+id/settingsAboutSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/settings_about_section"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settingsAboutVersionText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:id="@+id/settingsAboutUpdateStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_about_update_status_unknown" />
+
+                <Button
+                    android:id="@+id/settingsAboutUpdateButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:minHeight="48dp"
+                    android:text="@string/settings_about_check_for_updates" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_about_privacy_note" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/farmsScreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/farms_page_title"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/farmsEmptyText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/farmsListContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="vertical" />
+
+                <Button
+                    android:id="@+id/addFarmButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:minHeight="52dp"
+                    android:text="@string/add_farm_action" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/farmDetailsScreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:paddingBottom="32dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/farm_details_page_title"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/settings_farm_name_label"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/farmDetailsNameText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.1" />
+
+                <Button
+                    android:id="@+id/farmDetailsRenameButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/settings_rename_farm_action" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/farm_currency_label"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/farmDetailsCurrencyText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.1"
+                    android:textColor="@color/textSecondary" />
+
+                <Button
+                    android:id="@+id/farmDetailsChangeCurrencyButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/change_currency_action" />
+
+                <TextView
+                    android:id="@+id/farmDetailsActiveStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:lineSpacingMultiplier="1.15" />
+
+                <Button
+                    android:id="@+id/farmDetailsSwitchButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/switch_to_farm_action"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/farm_activities_section"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/farmDetailsActivitiesEmptyText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/farm_activities_empty_text"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/farmDetailsActivitiesContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <Button
+                    android:id="@+id/farmDetailsChangeActivitiesButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/farm_activities_change_action" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/farm_activities_disabled_note"
+                    android:textColor="@color/textSecondary" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/farm_activity_breakdown_section"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/farmDetailsBreakdownContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="28dp"
+                    android:background="@color/sectionDivider" />
+
+                <LinearLayout
+                    android:id="@+id/farmDetailsDangerZonePanel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/bg_danger_zone_panel"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/farmDetailsDangerZoneSection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_danger_zone_section"
+                        android:textColor="@color/dangerZoneLabel"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/farmDetailsDangerZoneNote"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:lineSpacingMultiplier="1.2"
+                        android:text="@string/settings_danger_zone_note"
+                        android:textColor="@color/textSecondary" />
+
+                    <Button
+                        android:id="@+id/farmDetailsResetButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:backgroundTint="@color/dangerZone"
+                        android:minHeight="52dp"
+                        android:text="@string/reset_farm_data_action"
+                        android:textColor="@android:color/white" />
+
+                    <Button
+                        android:id="@+id/farmDetailsDeleteButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="@color/dangerZone"
+                        android:minHeight="52dp"
+                        android:text="@string/delete_farm_action"
+                        android:textColor="@android:color/white" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/addFarmScreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:fillViewport="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:paddingBottom="32dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/add_farm_page_title"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/settings_farm_name_label"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/addFarmNameInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/farm_name_hint"
+                    android:inputType="textCapWords"
+                    android:minHeight="52dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/farm_currency_label"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/addFarmCurrencyText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.1"
+                    android:textColor="@color/textSecondary" />
+
+                                <Button
+                    android:id="@+id/addFarmChangeCurrencyButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/change_currency_action" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/farm_activities_prompt"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/addFarmActivitiesText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:textColor="@color/textSecondary" />
+
+                <Button
+                    android:id="@+id/addFarmChooseActivitiesButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:minHeight="52dp"
+                    android:text="@string/farm_activities_choose_action" />
+
+                <Button
+                    android:id="@+id/addFarmCreateButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp"
+                    android:minHeight="52dp"
+                    android:text="@string/create_farm_action" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/farmWorkScreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <!-- 1. PRODUCTION SECTION -->
+                <LinearLayout
+                    android:id="@+id/farmWorkProductionHeaderContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/farmWorkProductionSectionLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/farm_work_production_section"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/farmWorkRecordProductionButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
+                        android:text="@string/farm_work_record_production_action" />
+                </LinearLayout>
+
+                <!-- Empty state when no products or no production today -->
+                <TextView
+                    android:id="@+id/farmWorkNoProductsText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/farm_work_no_products"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
+
+                <!-- Container for production cards (one per product) -->
+                <LinearLayout
+                    android:id="@+id/farmWorkProductionContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <!-- 2. SUPPLIES SECTION -->
+                <LinearLayout
+                    android:id="@+id/farmWorkSuppliesHeaderContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/farmWorkSuppliesSectionLabel"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/farm_work_supplies_section"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/farmWorkBuySupplyButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
+                        android:text="@string/farm_work_buy_supply_action" />
+                </LinearLayout>
+
+                <!-- Empty state when no supplies -->
+                <TextView
+                    android:id="@+id/farmWorkNoSuppliesText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:text="@string/farm_work_no_supplies"
+                    android:textColor="@color/textSecondary"
+                    android:visibility="gone" />
+
+                <!-- Container for supply cards -->
+                <LinearLayout
+                    android:id="@+id/farmWorkSuppliesContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <!-- 3. Retained Compatibility / Action Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/farmWorkProductionButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/production_action" />
+
+                    <Button
+                        android:id="@+id/farmWorkAllocationButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/production_allocate" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/farmWorkBoughtButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/supply_purchase_action" />
+
+                    <Button
+                        android:id="@+id/farmWorkUsedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/supply_usage_action" />
+
+                    <Button
+                        android:id="@+id/farmWorkRemainingButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:text="@string/supply_stock_action" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/moreScreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/more_section_management_label"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/moreHisabButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/more_hisab_label" />
+
+                <Button
+                    android:id="@+id/moreFarmsButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/more_farms_label" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/more_section_account_label"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/moreSettingsButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/nav_settings" />
+
+                <Button
+                    android:id="@+id/moreBackupButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/more_backup_label" />
+
+                <Button
+                    android:id="@+id/moreAboutButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="56dp"
+                    android:text="@string/more_about_label" />
             </LinearLayout>
         </ScrollView>
     </FrameLayout>
@@ -1559,18 +2833,19 @@
         android:paddingBottom="6dp">
 
         <LinearLayout
-            android:id="@+id/navHomeItem"
+            android:id="@+id/navTodayItem"
             android:layout_width="0dp"
-            android:layout_height="64dp"
+            android:layout_height="wrap_content"
             android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
             android:background="@drawable/bottom_nav_item_background"
             android:clickable="true"
-            android:contentDescription="@string/nav_home"
+            android:contentDescription="@string/nav_today"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
             android:importantForAccessibility="yes"
+            android:minHeight="64dp"
             android:orientation="vertical"
             android:padding="6dp">
 
@@ -1587,26 +2862,27 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:duplicateParentState="true"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/nav_home"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/nav_today"
                 android:textColor="@color/bottom_nav_item_tint"
                 android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/navHisabKitabItem"
+            android:id="@+id/navKhataItem"
             android:layout_width="0dp"
-            android:layout_height="64dp"
+            android:layout_height="wrap_content"
             android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
             android:background="@drawable/bottom_nav_item_background"
             android:clickable="true"
-            android:contentDescription="@string/nav_hisab_kitab"
+            android:contentDescription="@string/nav_khata"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
             android:importantForAccessibility="yes"
+            android:minHeight="64dp"
             android:orientation="vertical"
             android:padding="6dp">
 
@@ -1623,26 +2899,65 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:duplicateParentState="true"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/nav_hisab_kitab"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/nav_khata"
                 android:textColor="@color/bottom_nav_item_tint"
                 android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/navHisabItem"
+            android:id="@+id/navRecordItem"
             android:layout_width="0dp"
-            android:layout_height="64dp"
+            android:layout_height="wrap_content"
             android:layout_marginHorizontal="4dp"
             android:layout_weight="1"
-            android:background="@drawable/bottom_nav_item_background"
             android:clickable="true"
-            android:contentDescription="@string/nav_hisab"
+            android:contentDescription="@string/nav_record"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground"
             android:gravity="center"
             android:importantForAccessibility="yes"
+            android:minHeight="72dp"
+            android:orientation="vertical"
+            android:padding="4dp">
+
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/record_action_button_background"
+                android:contentDescription="@string/nav_record"
+                android:duplicateParentState="true"
+                android:padding="9dp"
+                android:src="@drawable/ic_nav_record"
+                app:tint="@color/recordActionContent" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:duplicateParentState="true"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/nav_record"
+                android:textColor="@color/bottom_nav_item_tint"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navFarmWorkItem"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bottom_nav_item_background"
+            android:clickable="true"
+            android:contentDescription="@string/nav_farm_work"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:importantForAccessibility="yes"
+            android:minHeight="64dp"
             android:orientation="vertical"
             android:padding="6dp">
 
@@ -1651,7 +2966,7 @@
                 android:layout_height="24dp"
                 android:duplicateParentState="true"
                 android:importantForAccessibility="no"
-                android:src="@drawable/ic_nav_hisab"
+                android:src="@drawable/ic_nav_farm_work"
                 app:tint="@color/bottom_nav_item_tint" />
 
             <TextView
@@ -1659,9 +2974,46 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:duplicateParentState="true"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/nav_hisab"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/nav_farm_work"
+                android:textColor="@color/bottom_nav_item_tint"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/navMoreItem"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/bottom_nav_item_background"
+            android:clickable="true"
+            android:contentDescription="@string/nav_more"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:importantForAccessibility="yes"
+            android:minHeight="64dp"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_nav_more"
+                app:tint="@color/bottom_nav_item_tint" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:duplicateParentState="true"
+                android:gravity="center"
+                android:maxLines="2"
+                android:text="@string/nav_more"
                 android:textColor="@color/bottom_nav_item_tint"
                 android:textSize="12sp" />
         </LinearLayout>

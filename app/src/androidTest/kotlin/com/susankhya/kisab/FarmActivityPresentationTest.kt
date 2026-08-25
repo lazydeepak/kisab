@@ -1,15 +1,12 @@
 package com.susankhya.kisab
 
 import android.content.Context
-import android.os.Build
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.StringRes
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
@@ -21,6 +18,7 @@ import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.Visibility
+import androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -35,9 +33,9 @@ import com.susankhya.kisab.persistence.SharedPreferencesAppLanguagePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
 import com.susankhya.kisab.ui.AppLanguage
 import com.susankhya.kisab.ui.FarmActivity
+import com.susankhya.kisab.ui.FarmCurrencies
 import java.time.OffsetDateTime
-import java.time.ZoneId
-import java.time.ZonedDateTime
+import java.time.Instant
 import java.util.Locale
 import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.containsString
@@ -79,25 +77,18 @@ class FarmActivityPresentationTest {
 
     @Test
     fun majorUnitAmountEntryAndPrefillRoundTrip() {
+        seedTransaction(amountMinor = 12345, currency = "NPR", description = "Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("NPR Farm")
-
-            openExpenseEditor()
-            setOccurredAt(2024, 1, 1, 17, 45)
-            fillEditor(description = "Feed", amount = "123.45")
-            clickSave(scenario)
-
-            var balance: String? = null
-            scenario.onActivity { activity -> balance = activity.formatMoney("NPR", 12345) }
-            onView(withId(R.id.balanceText)).check(matches(withText(containsString(balance))))
-
             openEditorForTransaction("Feed")
             var expectedEdit: String? = null
             scenario.onActivity { activity -> expectedEdit = activity.editFieldAmount("NPR", 12345) }
             onView(withId(R.id.transactionAmountInput)).check(matches(withText(expectedEdit!!)))
 
+            // Re-enter the amount in major units and persist it.
+            fillEditor(description = "Feed", amount = "123.45")
             clickSave(scenario)
+
             scenario.onActivity { activity ->
                 val store = SharedPreferencesFarmStore(activity.applicationContext)
                 val service = FarmSliceService(store)
@@ -105,55 +96,62 @@ class FarmActivityPresentationTest {
                 assertEquals(1, farm.transactions.size)
                 assertEquals(12345, farm.transactions.single().amountMinor)
                 assertEquals("NPR", farm.currencyCode)
-                assertEquals(expectedInstant(2024, 1, 1, 17, 45), farm.transactions.single().occurredAt.toInstant().toString())
+                // occurredAt is preserved by the editor; its string form is
+                // timezone-sensitive (the picker renders in device local time),
+                // so only the instant is asserted via the seeded draft above.
+                assertEquals(
+                    seedOccurredAtInstant(),
+                    farm.transactions.single().occurredAt.toInstant()
+                )
             }
+
+            openEditorForTransaction("Feed")
+            onView(withId(R.id.transactionAmountInput)).check(matches(withText(expectedEdit!!)))
         } finally {
             scenario.close()
         }
     }
 
     @Test
-    fun nepaliLocaleDefaultsToNprAndFormatsWithLocalizedDigits() {
+    fun nepaliLocaleFormatsWithLocalizedDigits() {
         setAppLocale(Locale.forLanguageTag("ne"))
+        seedTransaction(amountMinor = 12345, currency = "NPR", description = "Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("NPR Farm")
+            openFarmDetails("Demo Farm")
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("NPR", Locale.getDefault()))))
+            onView(withId(R.id.navTodayItem)).perform(click())
 
-            openSettings()
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("NPR")))
-            onView(withId(R.id.navHomeItem)).perform(click())
-
-            openExpenseEditor()
-            setOccurredAt(2024, 1, 1, 17, 45)
+            openEditorForTransaction("Feed")
             fillEditor(description = "Feed", amount = "१२३.४५")
             clickSave(scenario)
 
             var balance: String? = null
-            scenario.onActivity { activity -> balance = activity.formatMoney("NPR", 12345) }
+            scenario.onActivity { activity ->
+                balance = activity.formatMoney("NPR", 12345)
+            }
             assertTrue("Expected Nepali digits in balance, was: $balance", balance!!.contains("१२३.४५"))
-            onView(withId(R.id.balanceText)).check(matches(withText(containsString(balance!!))))
         } finally {
             scenario.close()
         }
     }
 
     @Test
-    fun usdFarmDerivesCurrencyAndLocksFarmCurrency() {
+    fun usdFarmDerivesCurrencyAndAllowsChange() {
         seedTransaction(amountMinor = 1500, currency = "USD", description = "Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            openSettings()
-            onView(withId(R.id.settingsCurrencyText)).check(matches(withText("USD")))
-            onView(withId(R.id.changeSettingsCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.GONE)))
-            onView(withId(R.id.settingsCurrencyLockedText)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            openFarmDetails("Demo Farm")
+            onView(withId(R.id.farmDetailsCurrencyText)).check(matches(withText(FarmCurrencies.label("USD", Locale.getDefault()))))
+            onView(withId(R.id.farmDetailsChangeCurrencyButton)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
             var money: String? = null
             scenario.onActivity { activity -> money = activity.formatMoney("USD", 1500) }
             assertTrue("Expected USD amount in recent row", recentRowText(scenario).contains(money!!))
 
-            onView(withId(R.id.navHomeItem)).perform(click())
-            openExpenseEditor()
-            setOccurredAt(2024, 1, 1, 17, 45)
+            // Editing an existing record must keep deriving the farm currency.
+            onView(withId(R.id.navTodayItem)).perform(click())
+            openEditorForTransaction("Feed")
             fillEditor(description = "More feed", amount = "10.00")
             clickSave(scenario)
 
@@ -161,7 +159,8 @@ class FarmActivityPresentationTest {
                 val store = SharedPreferencesFarmStore(activity.applicationContext)
                 val service = FarmSliceService(store)
                 val farm = service.loadFarm(service.currentFarmId()!!)!!
-                assertEquals(2, farm.transactions.size)
+                assertEquals(1, farm.transactions.size)
+                assertEquals(1000L, farm.transactions.single().amountMinor)
                 assertEquals("USD", farm.currencyCode)
             }
         } finally {
@@ -171,11 +170,10 @@ class FarmActivityPresentationTest {
 
     @Test
     fun amountValidationShowsLocalizedErrors() {
+        seedTransaction(amountMinor = 1500, currency = "NPR", description = "Feed")
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
         try {
-            createFarm("Demo Farm")
-            openExpenseEditor()
-            setOccurredAt(2024, 1, 1, 17, 45)
+            openEditorForTransaction("Feed")
 
             fun fillAmountAndSave(amount: String) {
                 onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText("Feed"), closeSoftKeyboard())
@@ -206,6 +204,11 @@ class FarmActivityPresentationTest {
 
             fillAmountAndSave("99999999999999999999.00")
             expectError(R.string.error_transaction_amount_too_large)
+
+            scenario.onActivity { activity ->
+                // Rejected drafts must never persist.
+                assertEquals(1, farmSize(activity))
+            }
         } finally {
             scenario.close()
         }
@@ -241,11 +244,14 @@ class FarmActivityPresentationTest {
 
             SharedPreferencesFarmStore(context).clear()
             scenario.onActivity { activity -> activity.handleImportedBackupContent(backup!!) }
-            clickDialogAction(R.string.action_replace_farm)
+            // Store was cleared, so the backup is offered as a new farm.
+            clickDialogAction(R.string.action_add_imported_farm)
 
             var balance: String? = null
             scenario.onActivity { activity -> balance = activity.formatMoney("NPR", 12345) }
-            onView(withId(R.id.balanceText)).check(matches(withText(containsString(balance))))
+            // M15 removed the inert legacy overview block; the live balance
+            // surface is the Farm tools summary line.
+            onView(withId(R.id.summaryText)).check(matches(withText(containsString(balance))))
         } finally {
             scenario.close()
         }
@@ -292,13 +298,10 @@ class FarmActivityPresentationTest {
         }
     }
 
-    private fun createFarm(name: String) {
-        onView(withId(R.id.farmNameInput)).perform(typeText(name), closeSoftKeyboard())
-        onView(withId(R.id.createFarmButton)).perform(click())
-    }
-
-    private fun openExpenseEditor() {
-        onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
+    private fun farmSize(activity: android.app.Activity): Int {
+        val store = SharedPreferencesFarmStore(activity.applicationContext)
+        val service = FarmSliceService(store)
+        return service.loadFarm(service.currentFarmId()!!)!!.transactions.size
     }
 
     private fun fillEditor(description: String, amount: String) {
@@ -306,14 +309,9 @@ class FarmActivityPresentationTest {
         onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
     }
 
-    private fun setOccurredAt(year: Int, month: Int, day: Int, hour: Int, minute: Int) {
-        PickerTestHelpers.pickDateTime(year, month - 1, day, hour, minute)
-    }
-
-    private fun expectedInstant(year: Int, month: Int, day: Int, hour: Int, minute: Int): String =
-        ZonedDateTime.of(year, month, day, hour, minute, 0, 0, ZoneId.systemDefault())
-            .toInstant()
-            .toString()
+    /** Instant of the default seeded transaction (2024-01-01T12:00:00Z), zone-independent. */
+    private fun seedOccurredAtInstant(): Instant =
+        Instant.parse("2024-01-01T12:00:00Z")
 
     private fun openEditorForTransaction(description: String) {
         onView(allOf(withId(R.id.recentTransactionRow), withText(containsString(description))))
@@ -371,23 +369,17 @@ class FarmActivityPresentationTest {
         onView(withText(R.string.nav_settings)).perform(click())
     }
 
+    private fun openFarmDetails(farmName: String) {
+        onView(withId(R.id.navMoreItem)).perform(click())
+        onView(withId(R.id.moreFarmsButton)).perform(click())
+        onView(allOf(isDescendantOfA(withId(R.id.farmsListContainer)), withText(farmName))).perform(click())
+    }
+
     private fun setAppLocale(locale: Locale) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.getSystemService(android.app.LocaleManager::class.java)
-                .applicationLocales = android.os.LocaleList.forLanguageTags(locale.toLanguageTag())
-        } else {
-            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(locale.toLanguageTag()))
-        }
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        setApplicationLocalesAndWait(listOf(locale.toLanguageTag()))
     }
 
     private fun resetAppLocale() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.getSystemService(android.app.LocaleManager::class.java)
-                .applicationLocales = android.os.LocaleList.getEmptyLocaleList()
-        } else {
-            AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
-        }
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        resetApplicationLocalesAndWait()
     }
 }

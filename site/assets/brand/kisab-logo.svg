@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Kisab logo</title>
+  <desc id="desc">An open farm ledger with a growing sprout.</desc>
+  <rect width="512" height="512" rx="112" fill="#2E7D32"/>
+  <path d="M96 178c54-24 107-20 160 13v220c-53-33-106-37-160-13V178Z" fill="#FFFDF5"/>
+  <path d="M416 178c-54-24-107-20-160 13v220c53-33 106-37 160-13V178Z" fill="#F4F7E9"/>
+  <path d="M256 191v220" fill="none" stroke="#D8E4C8" stroke-width="14" stroke-linecap="round"/>
+  <path d="M132 248c34-9 64-7 91 7M132 302c34-9 64-7 91 7M289 255c27-14 57-16 91-7M289 309c27-14 57-16 91-7" fill="none" stroke="#A5C889" stroke-width="14" stroke-linecap="round"/>
+  <path d="M256 191c0-51 25-86 74-105 5 48-20 83-74 105Z" fill="#FFC107"/>
+  <path d="M256 191c0-43-21-72-63-88-4 41 17 70 63 88Z" fill="#FFDF72"/>
+  <path d="M256 191v-62" fill="none" stroke="#FFFDF5" stroke-width="12" stroke-linecap="round"/>
+</svg>

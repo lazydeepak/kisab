@@ -82,6 +82,23 @@ class KisanCalculatorsTest {
         }
     }
 
+    @Test fun grainConversionsUseCanonicalRelationships() {
+        assertDecimal("8", KisanCalculators.convertGrain(BigDecimal.ONE, TraditionalGrainUnit.PATHI, TraditionalGrainUnit.MANA))
+        assertDecimal("0.125", KisanCalculators.convertGrain(BigDecimal.ONE, TraditionalGrainUnit.MANA, TraditionalGrainUnit.PATHI))
+        assertDecimal("20", KisanCalculators.convertGrain(BigDecimal.ONE, TraditionalGrainUnit.MURI, TraditionalGrainUnit.PATHI))
+        assertDecimal("160", KisanCalculators.convertGrain(BigDecimal.ONE, TraditionalGrainUnit.MURI, TraditionalGrainUnit.MANA))
+        assertDecimal("0.05", KisanCalculators.convertGrain(BigDecimal.ONE, TraditionalGrainUnit.PATHI, TraditionalGrainUnit.MURI))
+    }
+
+    @Test fun grainConversionRoundTripsAndRejectsNegativeQuantity() {
+        val inMana = KisanCalculators.convertGrain(bd("2.5"), TraditionalGrainUnit.PATHI, TraditionalGrainUnit.MANA)
+        val roundTrip = KisanCalculators.convertGrain(inMana, TraditionalGrainUnit.MANA, TraditionalGrainUnit.PATHI)
+        assertDecimal("2.5", roundTrip)
+        assertThrows(IllegalArgumentException::class.java) {
+            KisanCalculators.convertGrain(bd("-1"), TraditionalGrainUnit.PATHI, TraditionalGrainUnit.MANA)
+        }
+    }
+
     @Test fun seedAndFertilizerCalculateQuantityAndCost() {
         val seed = KisanCalculators.seedQuantityAndCost(bd("2.5"), bd("12"), bd("80"))
         assertDecimal("30", seed.quantityKg)

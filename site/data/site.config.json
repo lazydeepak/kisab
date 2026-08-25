@@ -1,0 +1,19 @@
+{
+  "_comment": "Kisab public landing site configuration. Facts here are grounded in the repository; do not invent capabilities.",
+  "brand": {
+    "name": "Kisab",
+    "appName": "Kisab",
+    "packageName": "com.susankhya.kisab"
+  },
+  "urls": {
+    "base": "https://kisab.susankhya.com",
+    "repo": "https://github.com/lazydeepak/kisab",
+    "repoReleases": "https://github.com/lazydeepak/kisab/releases",
+    "repoIssues": "https://github.com/lazydeepak/kisab/issues",
+    "updateManifest": "https://raw.githubusercontent.com/lazydeepak/kisab/main/docs/release/manifests/pilot-manifest.json"
+  },
+  "support": {
+    "_comment": "No approved public support email exists yet in the repository. Leave support_email empty to render a neutral placeholder on the Support page. Fill it here only when a real, approved public address exists.",
+    "support_email": ""
+  }
+}

@@ -29,49 +29,116 @@ class MoneyFormatterTest {
 
     @Test
     fun pseudoCurrencyFormatsAndParsesSafely() {
-        assertEquals("15.00 XXX", formatter.format(Locale.US, "XXX", 1500))
+        assertEquals("XXX 15.00", formatter.format(Locale.US, "XXX", 1500))
         assertEquals("15.00", formatter.toEditFieldValue(Locale.US, "XXX", 1500))
         assertEquals(MoneyInputResult.Valid(1500), MoneyInputParser(formatter).parse(Locale.US, "XXX", "15.00"))
     }
 
     @Test
-    fun formatsNprWithTwoFractionDigits() {
-        assertEquals("123.45 NPR", formatter.format(Locale.US, "NPR", 12345))
+    fun formatsNprWithTwoFractionDigitsAndRupeeSymbol() {
+        assertEquals("रु 123.45", formatter.format(Locale.US, "NPR", 12345))
     }
 
     @Test
-    fun formatsJpyWithZeroFractionDigits() {
-        assertEquals("1,500 JPY", formatter.format(Locale.US, "JPY", 1500))
+    fun formatsInrWithRupeeSymbol() {
+        assertEquals("₹ 1,234.56", formatter.format(Locale.US, "INR", 123456))
     }
 
     @Test
-    fun formatsKwdWithThreeFractionDigits() {
-        assertEquals("1.500 KWD", formatter.format(Locale.US, "KWD", 1500))
+    fun formatsJpyWithZeroFractionDigitsAndYenSymbol() {
+        assertEquals("¥ 1,500", formatter.format(Locale.US, "JPY", 1500))
     }
 
     @Test
-    fun unknownValidCodeFormatsWithIsoCode() {
-        assertEquals("15.00 ZZZ", formatter.format(Locale.US, "ZZZ", 1500))
+    fun formatsUsdWithDollarSymbol() {
+        assertEquals("$ 1,234.56", formatter.format(Locale.US, "USD", 123456))
+    }
+
+    @Test
+    fun disambiguatesDollarCurrenciesWithCompactPrefixes() {
+        assertEquals("A$ 1,234.56", formatter.format(Locale.US, "AUD", 123456))
+        assertEquals("C$ 1,234.56", formatter.format(Locale.US, "CAD", 123456))
+    }
+
+    @Test
+    fun disambiguatesSharedSymbolsAcrossSupportedCurrencies() {
+        assertEquals("¥ 1,500", formatter.format(Locale.US, "JPY", 1500))
+        assertEquals("CN¥ 15.00", formatter.format(Locale.US, "CNY", 1500))
+        assertEquals("Rs 1,234.56", formatter.format(Locale.US, "LKR", 123456))
+        assertEquals("Rs 1,234.56", formatter.format(Locale.US, "PKR", 123456))
+    }
+
+    @Test
+    fun formatsKwdWithThreeFractionDigitsAndDinarPrefix() {
+        assertEquals("KD 1.500", formatter.format(Locale.US, "KWD", 1500))
+    }
+
+    @Test
+    fun everyGovernedCurrencyHasADeterministicSymbol() {
+        val expected = mapOf(
+            "NPR" to "रु", "INR" to "₹", "USD" to "$", "JPY" to "¥",
+            "EUR" to "€", "GBP" to "£", "AUD" to "A$", "CAD" to "C$",
+            "CNY" to "CN¥", "BDT" to "৳", "LKR" to "Rs", "PKR" to "Rs",
+            "SAR" to "SR", "AED" to "AED", "QAR" to "QR", "KWD" to "KD", "THB" to "฿"
+        )
+        assertEquals(expected, FarmCurrencies.SUPPORTED.associateWith { CurrencySymbols.symbolFor(it) })
+    }
+
+    @Test
+    fun unknownValidCodeFallsBackToIsoCode() {
+        assertEquals("ZZZ 15.00", formatter.format(Locale.US, "ZZZ", 1500))
+    }
+
+    @Test
+    fun lowercaseInputIsNormalizedBeforeSymbolLookup() {
+        assertEquals("रु 123.45", formatter.format(Locale.US, "npr", 12345))
     }
 
     @Test
     fun formatsNegativeAndZeroBalances() {
-        assertEquals("-1,234.56 USD", formatter.format(Locale.US, "USD", -123456))
-        assertEquals("0.00 USD", formatter.format(Locale.US, "USD", 0))
+        assertEquals("-$ 1,234.56", formatter.format(Locale.US, "USD", -123456))
+        assertEquals("$ 0.00", formatter.format(Locale.US, "USD", 0))
     }
 
     @Test
     fun formatsExtremeValuesWithoutOverflow() {
-        assertEquals("0.01 USD", formatter.format(Locale.US, "USD", 1))
-        assertEquals("-0.01 USD", formatter.format(Locale.US, "USD", -1))
-        assertEquals("92,233,720,368,547,758.07 USD", formatter.format(Locale.US, "USD", Long.MAX_VALUE))
-        assertEquals("-92,233,720,368,547,758.08 USD", formatter.format(Locale.US, "USD", Long.MIN_VALUE))
+        assertEquals("$ 0.01", formatter.format(Locale.US, "USD", 1))
+        assertEquals("-$ 0.01", formatter.format(Locale.US, "USD", -1))
+        assertEquals("$ 92,233,720,368,547,758.07", formatter.format(Locale.US, "USD", Long.MAX_VALUE))
+        assertEquals("-$ 92,233,720,368,547,758.08", formatter.format(Locale.US, "USD", Long.MIN_VALUE))
         assertEquals("-92233720368547758.08", formatter.toEditFieldValue(Locale.US, "USD", Long.MIN_VALUE))
     }
 
     @Test
     fun formatsWithLocaleDigitsAndGrouping() {
-        assertEquals("१,२३४.५६ NPR", formatter.format(ne, "NPR", 123456))
+        assertEquals("रु १,२३४.५६", formatter.format(ne, "NPR", 123456))
+    }
+
+    @Test
+    fun hidesCurrencySymbolWhenRequested() {
+        assertEquals("15.00", formatter.format(Locale.US, "XXX", 1500, showCurrency = false))
+        assertEquals("123.45", formatter.format(Locale.US, "NPR", 12345, showCurrency = false))
+        assertEquals("१,२३४.५६", formatter.format(ne, "NPR", 123456, showCurrency = false))
+        assertEquals("-1,234.56", formatter.format(Locale.US, "USD", -123456, showCurrency = false))
+    }
+
+    @Test
+    fun disablesNumberGroupingWhenRequested() {
+        assertEquals("रु 123456.78", formatter.format(Locale.US, "NPR", 12345678, grouping = false))
+        assertEquals("¥ 1500", formatter.format(Locale.US, "JPY", 1500, grouping = false))
+    }
+
+    @Test
+    fun hidesCurrencyAndGroupingTogether() {
+        assertEquals("123456.78", formatter.format(Locale.US, "NPR", 12345678, showCurrency = false, grouping = false))
+    }
+
+    @Test
+    fun defaultFormatterBehaviorRemainsDeterministic() {
+        val a = formatter.format(Locale.US, "NPR", 123456)
+        val b = formatter.format(Locale.US, "NPR", 123456)
+        assertEquals(a, b)
+        assertEquals("₹ 1,234.56", formatter.format(Locale.US, "INR", 123456))
     }
 
     @Test

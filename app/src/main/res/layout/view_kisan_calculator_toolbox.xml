@@ -61,8 +61,12 @@
         android:id="@+id/arithmeticResultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_metric_tile"
+        android:lineSpacingMultiplier="1.15"
+        android:padding="12dp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -103,8 +107,12 @@
         android:id="@+id/profitResultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_metric_tile"
+        android:lineSpacingMultiplier="1.15"
+        android:padding="12dp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -154,8 +162,12 @@
         android:id="@+id/interestResultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_metric_tile"
+        android:lineSpacingMultiplier="1.15"
+        android:padding="12dp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -217,8 +229,79 @@
         android:id="@+id/landResultText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_metric_tile"
+        android:lineSpacingMultiplier="1.15"
+        android:padding="12dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="@string/grain_converter_title"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/grain_converter_body" />
+
+    <EditText
+        android:id="@+id/grainValueInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/grain_quantity_value_hint"
+        android:importantForAutofill="no"
+        android:inputType="numberDecimal"
+        android:maxLines="1" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/from_unit_label" />
+
+    <Spinner
+        android:id="@+id/grainFromUnitSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/to_unit_label" />
+
+    <Spinner
+        android:id="@+id/grainToUnitSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp" />
+
+    <Button
+        android:id="@+id/convertGrainButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:minHeight="48dp"
+        android:text="@string/convert_action" />
+
+    <TextView
+        android:id="@+id/grainResultText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:accessibilityLiveRegion="polite"
+        android:background="@drawable/bg_metric_tile"
+        android:lineSpacingMultiplier="1.15"
+        android:padding="12dp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone" />
 
@@ -227,5 +310,5 @@
         android:layout_height="1dp"
         android:layout_marginTop="28dp"
         android:layout_marginBottom="24dp"
-        android:background="#33000000" />
+        android:background="@color/sectionDivider" />
 </LinearLayout>

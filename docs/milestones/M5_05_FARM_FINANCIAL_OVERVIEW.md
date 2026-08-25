@@ -199,6 +199,8 @@ The pre-existing schema-v6 backup byte-stability and v5→v6 migration tests rem
 
 No manual or device/emulator UI validation was performed for M5-05 in this pass. The interactive overview flows (period switching re-renders all four sections, empty-state toggling, overflow error handling, period restore over configuration change, Nepali rendering) are covered by code inspection and automated unit-toolchain checks only. Per M4-04 disposition, timed Android tests on the API-26 emulator remain supplemental and are not a completion gate; device validation should still be scheduled before any production release of this feature.
 
+> **Update (RC-01, 2026-08-14):** the main on-device gap for Financial Overview was later closed on the API-36 physical device. `FarmOverviewAndHisabDeviceTest` exercises period switching, empty states, and recreation restore as part of the connected RC-01 evidence recorded in `docs/release/V0.2.0_RELEASE_CHECKLIST.md`. Overflow handling and Nepali rendering remain unit-covered rather than separately manual/device-proven.
+
 ## M6 boundary
 
 M5-05 stops at a farm-wide financial overview (period summaries, position-as-of, compact monthly trend). **M6 — Farmer Hisab calculators** is next: farmer hisab lookups and calculations built over the same Party → Trade → Settlement projection discipline (for example per-party or per-period hisab reconciliation). No M6 work is performed in this milestone.

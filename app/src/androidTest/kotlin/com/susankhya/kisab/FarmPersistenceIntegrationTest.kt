@@ -86,20 +86,27 @@ class FarmPersistenceIntegrationTest {
 
         onView(withId(R.id.farmNameInput)).perform(typeText("Demo Farm"), closeSoftKeyboard())
         onView(withId(R.id.createFarmButton)).perform(click())
-        onView(withId(R.id.farmNameText)).check(matches(withText("Demo Farm")))
 
         onView(withId(R.id.farmToolsToggleButton)).perform(scrollTo(), click())
-        onView(withId(R.id.entryLabelInput)).perform(typeText("Goat"), closeSoftKeyboard())
-        onView(withId(R.id.entryQuantityInput)).perform(typeText("3"), closeSoftKeyboard())
+        onView(withId(R.id.entryLabelInput)).perform(scrollTo(), typeText("Goat"), closeSoftKeyboard())
+        onView(withId(R.id.entryQuantityInput)).perform(scrollTo(), typeText("3"), closeSoftKeyboard())
         onView(withId(R.id.addEntryButton)).perform(scrollTo(), click())
 
-        onView(withId(R.id.recordIncomeButton)).perform(scrollTo(), click())
-        onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText("8000"), closeSoftKeyboard())
-        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText("Egg sale"), closeSoftKeyboard())
-        PickerTestHelpers.pickDateTime(2024, 0, 2, 12, 0)
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        // Seed the income record through the domain layer: the create-mode
+        // cash editor retired in M7+ no longer exists in the shell.
         scenario.onActivity { activity ->
-            activity.findViewById<Button>(R.id.saveTransactionButton).performClick()
+            val store = SharedPreferencesFarmStore(activity.applicationContext)
+            val service = FarmSliceService(store)
+            service.createTransaction(
+                service.currentFarmId()!!,
+                FarmTransactionDraft(
+                    type = TransactionType.INCOME,
+                    category = TransactionCategory.SALES,
+                    amountMinor = 800000L,
+                    description = "Egg sale",
+                    occurredAt = "2024-01-02T12:00:00Z"
+                )
+            )
         }
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
 
@@ -108,8 +115,11 @@ class FarmPersistenceIntegrationTest {
         var entryCount: String? = null
         var balance: String? = null
         scenario.onActivity { activity ->
-            entryCount = activity.formatCount(1)
-            balance = activity.formatMoney("NPR", 800000L)
+            val store = SharedPreferencesFarmStore(activity.applicationContext)
+            val service = FarmSliceService(store)
+            val farm = service.loadFarm(service.currentFarmId()!!)!!
+            entryCount = activity.formatCount(farm.entries.size)
+            balance = activity.formattedBalance(farm.currencyCode, 800000L)
         }
         onView(withId(R.id.summaryText)).check(matches(withText(containsString("Entry count: $entryCount"))))
         onView(withId(R.id.summaryText)).check(matches(withText(containsString("Balance: $balance"))))
@@ -117,13 +127,27 @@ class FarmPersistenceIntegrationTest {
 
     @Test
     fun transactionsRenderNewestFirstInHistory() {
+        run {
+            val store = SharedPreferencesFarmStore(context)
+            val service = FarmSliceService(store)
+            val farm = service.createFarm("Order Farm")
+            listOf(
+                "Old transaction" to "2024-01-01T12:00:00Z",
+                "New transaction" to "2024-01-02T12:00:00Z"
+            ).forEach { (description, occurredAt) ->
+                service.createTransaction(
+                    farm.id,
+                    FarmTransactionDraft(
+                        type = TransactionType.EXPENSE,
+                        category = TransactionCategory.FEED,
+                        amountMinor = if (description.startsWith("New")) 2000 else 1000,
+                        description = description,
+                        occurredAt = occurredAt
+                    )
+                )
+            }
+        }
         val scenario = ActivityScenario.launch(FarmActivity::class.java)
-
-        onView(withId(R.id.farmNameInput)).perform(typeText("Order Farm"), closeSoftKeyboard())
-        onView(withId(R.id.createFarmButton)).perform(click())
-
-        addTransaction(scenario, description = "Old transaction", amount = "1000", year = 2024, month = 1, day = 1)
-        addTransaction(scenario, description = "New transaction", amount = "2000", year = 2024, month = 1, day = 2)
 
         scenario.recreate()
 
@@ -136,24 +160,5 @@ class FarmPersistenceIntegrationTest {
                 first.text.contains("New transaction") && second.text.contains("Old transaction")
             )
         }
-    }
-
-    private fun addTransaction(
-        scenario: ActivityScenario<FarmActivity>,
-        description: String,
-        amount: String,
-        year: Int,
-        month: Int,
-        day: Int
-    ) {
-        onView(withId(R.id.recordExpenseButton)).perform(scrollTo(), click())
-        onView(withId(R.id.transactionAmountInput)).perform(scrollTo(), replaceText(amount), closeSoftKeyboard())
-        onView(withId(R.id.transactionDescriptionInput)).perform(scrollTo(), replaceText(description), closeSoftKeyboard())
-        PickerTestHelpers.pickDateTime(year, month - 1, day, 12, 0)
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
-        scenario.onActivity { activity ->
-            activity.findViewById<Button>(R.id.saveTransactionButton).performClick()
-        }
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 }

@@ -28,7 +28,8 @@ data class Settlement(
     val tradeId: String,
     val amountMinor: Long,
     val occurredAt: OffsetDateTime,
-    val note: String
+    val note: String,
+    val isInitialPayment: Boolean = false
 )
 
 /**
@@ -40,7 +41,8 @@ data class SettlementDraft(
     val tradeId: String,
     val amountMinor: Long,
     val occurredAt: String,
-    val note: String = ""
+    val note: String = "",
+    val isInitialPayment: Boolean = false
 ) {
     fun toSettlement(id: String): Settlement = try {
         Settlement(
@@ -49,7 +51,8 @@ data class SettlementDraft(
             amountMinor = amountMinor,
             occurredAt = OffsetDateTime.parse(occurredAt, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
                 .withOffsetSameInstant(ZoneOffset.UTC),
-            note = note.trim()
+            note = note.trim(),
+            isInitialPayment = isInitialPayment
         )
     } catch (exception: RuntimeException) {
         throw IllegalArgumentException("Settlement date/time must be a valid ISO-8601 value", exception)

@@ -1,0 +1,8 @@
+{
+  "versionCode": 5,
+  "versionName": "0.2.2",
+  "apkUrl": "https://github.com/lazydeepak/kisab/releases/download/v0.2.2/app-release.apk",
+  "sha256": "6463fe8660b6c9eb59764ad864a2581285bcbf47c6517184c2587e64398a7a94",
+  "releaseNotes": "Kisab v0.2.2: update-integrity hardening with streaming checksum verification; fully green on-device test baseline.",
+  "publishedAt": "2026-08-23T01:58:36Z"
+}

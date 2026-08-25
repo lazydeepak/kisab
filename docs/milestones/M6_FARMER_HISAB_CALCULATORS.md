@@ -124,6 +124,10 @@ The full JVM, build, lint, Android-test compilation, localization parity, schema
 
 Manual and device/emulator UI validation is intentionally deferred in this pass, consistent with the user's instruction. It should still be performed before a production release, especially Party/period switching, recreation restore, long Nepali text, and small-screen scrolling.
 
+> **Update (RC-01, 2026-08-14):** Party/period switching and recreation restore were later exercised on the API-36 physical device by `FarmOverviewAndHisabDeviceTest`, with evidence recorded in `docs/release/V0.2.0_RELEASE_CHECKLIST.md`. Long Nepali text and small-screen Party Hisab scrolling remain outstanding manual/device checks.
+
 ## Post-M6 boundary
 
 M6 completes the currently defined roadmap through Farmer Hisab calculators. No M7 scope is invented here. Any further milestone requires an explicit product decision.
+
+> **Update:** M6.3 and M6.4 were later authorized as bounded calculator/toolbox milestones. M7 remains unprioritized unless a new product decision records it.

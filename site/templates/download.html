@@ -1,0 +1,66 @@
+<section class="section page-head">
+  <div class="container">
+    <h1 class="page-title">{{page_heading}}</h1>
+    <p class="page-lead">{{page_lead}}</p>
+    <p class="note-note"><strong>{{distribution_note}}</strong></p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="card release-card">
+      <h2 class="section-title">{{current_heading}}</h2>
+      <dl class="release-facts">
+        <div class="fact"><dt>{{version_label}}</dt><dd>{{version_value}}</dd></div>
+        <div class="fact"><dt>{{versioncode_label}}</dt><dd>{{versioncode_value}}</dd></div>
+        <div class="fact"><dt>{{published_label}}</dt><dd>{{published_value}}</dd></div>
+        <div class="fact"><dt>{{channel_label}}</dt><dd>{{channel_value}}</dd></div>
+        <div class="fact"><dt>{{size_label}}</dt><dd>{{size_value}}</dd></div>
+      </dl>
+      <p class="fact-sha"><span>{{sha256_label}}</span><br><code class="sha">{{sha256_value}}</code></p>
+      <div class="release-actions">
+        <a class="btn btn-primary btn-lg" href="{{download_current_href}}" rel="noopener">{{download_button}}</a>
+        <a class="link" href="{{download_current_release_page}}" rel="noopener">{{gh_release_link}}</a>
+      </div>
+      <p class="release-note"><code>{{download_current_asset}}</code> · {{download_note_suffix}}</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">{{what_is_apk_heading}}</h2>
+    <p class="section-lead">{{what_is_apk_text}}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">{{install_heading}}</h2>
+    <ol class="steps">
+      {{#install_steps}}
+      <li class="step">
+        <strong class="step-title">{{title}}</strong>
+        <p class="step-text">{{text}}</p>
+      </li>
+      {{/install_steps}}
+    </ol>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="container">
+    <div class="split">
+      <div class="split-copy">
+        <h2 class="section-title">{{play_protect_heading}}</h2>
+        <p class="section-lead">{{play_protect_text}}</p>
+      </div>
+      <div class="split-copy">
+        <h2 class="section-title">{{upgrade_heading}}</h2>
+        <p class="section-lead">{{upgrade_text}}</p>
+        <p class="section-lead"><strong>{{backup_heading}}</strong> {{backup_text}}</p>
+      </div>
+    </div>
+    <p class="no-claims-note">{{older_note}}</p>
+  </div>
+</section>

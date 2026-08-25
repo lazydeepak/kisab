@@ -20,6 +20,9 @@ class TimePresentation {
     fun displayDateTime(locale: Locale, zoneId: ZoneId, stored: OffsetDateTime): String =
         stored.format(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withLocale(locale).withZone(zoneId))
 
+    fun displayDate(locale: Locale, zoneId: ZoneId, stored: OffsetDateTime): String =
+        stored.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).withZone(zoneId))
+
     fun shortTime(locale: Locale, zoneId: ZoneId, stored: OffsetDateTime): String =
         stored.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).withZone(zoneId))
 

@@ -1,0 +1,32 @@
+<section class="section page-head">
+  <div class="container">
+    <h1 class="page-title">{{page_heading}}</h1>
+    <p class="page-lead">{{page_lead}}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container container-narrow">
+    <div class="card support-card">
+      <h2 class="support-title">{{first_title}}</h2>
+      <p class="support-text">{{first_text}}</p>
+      <p><a class="btn btn-secondary" href="{{path_help}}">FAQ</a></p>
+    </div>
+
+    <div class="card support-card">
+      <h2 class="support-title">{{bugs_title}}</h2>
+      <p class="support-text">{{bugs_text}}</p>
+      <p><a class="btn btn-secondary" href="{{repo_issues}}" rel="noopener">{{bugs_link}}</a></p>
+    </div>
+
+    <div class="card support-card">
+      <h2 class="support-title">{{email_title}}</h2>
+      <p class="support-text">{{support_email_text}}</p>
+      {{#support_email_defined}}
+      <p class="support-email"><strong>{{email_label}}:</strong> <a class="link" href="mailto:{{support_email}}">{{support_email}}</a></p>
+      {{/support_email_defined}}
+    </div>
+
+    <p class="repo-note">{{repo_note}}</p>
+  </div>
+</section>
