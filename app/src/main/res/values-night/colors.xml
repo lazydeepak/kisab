@@ -5,9 +5,9 @@
     <color name="bottomNavContent">#a7c2ad</color>
     <color name="bottomNavSelectedContent">#c8e6c9</color>
     <color name="bottomNavSelectedBackground">#2e4a35</color>
-    <color name="recordActionBackground">#66BB6A</color>
-    <color name="recordActionContent">#0A1F0E</color>
-    <color name="recordActionSelectedBackground">#A5D6A7</color>
+    <color name="recordActionBackground">#2e4a35</color>
+    <color name="recordActionContent">#c8e6c9</color>
+    <color name="recordActionSelectedBackground">#1b5e20</color>
     <color name="dangerZone">#C62828</color>
     <color name="dangerZoneLabel">#EF9A9A</color>
     <color name="dangerZoneContainer">#3E2727</color>
