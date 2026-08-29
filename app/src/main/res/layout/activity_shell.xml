@@ -1039,8 +1039,8 @@
                     android:orientation="vertical"
                     android:visibility="gone">
 
-                    <Button android:id="@+id/newSaleButton" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-                    <Button android:id="@+id/newPurchaseButton" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    <Button android:id="@+id/newSaleButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/new_sale_action" />
+                    <Button android:id="@+id/newPurchaseButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/new_purchase_action" />
                     <TextView android:id="@+id/tradesSectionLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                     <TextView android:id="@+id/tradesEmptyText" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                     <LinearLayout android:id="@+id/tradesContainer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" />
