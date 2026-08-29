@@ -37,7 +37,7 @@
             android:maxLines="1"
             android:text="@string/app_name"
             android:textColor="@android:color/white"
-            android:textSize="18sp"
+            android:textSize="@dimen/text_size_title"
             android:textStyle="bold" />
 
         <ImageView
@@ -59,7 +59,7 @@
             android:layout_height="48dp"
             android:background="?android:attr/selectableItemBackground"
             android:contentDescription="@string/shell_menu_content_description"
-            android:padding="12dp"
+            android:padding="@dimen/card_inner_padding"
             android:src="@drawable/ic_more_vert" />
     </LinearLayout>
 
@@ -88,7 +88,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/section_padding">
 
         <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/createFarmContainer"
@@ -100,7 +100,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/create_farm_prompt"
-                android:textSize="18sp" />
+                android:textSize="@dimen/text_size_title" />
 
             <EditText
                 android:id="@+id/farmNameInput"
@@ -184,7 +184,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:textColor="@color/textSecondary"
-                    android:textSize="16sp"
+                    android:textSize="@dimen/text_size_body_large"
                     android:textStyle="bold" />
 
                 <Button
@@ -203,14 +203,14 @@
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_today_card"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/card_padding">
 
                 <TextView
                     android:id="@+id/todayHeroTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/today_hero_title"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold" />
 
                 <!-- Empty state when no activity today -->
@@ -237,7 +237,7 @@
                         android:id="@+id/todayProductionHeadlineText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="16sp"
+                        android:textSize="@dimen/text_size_body_large"
                         android:textStyle="bold" />
 
                     <LinearLayout
@@ -293,14 +293,14 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/today_sales_label"
                                 android:textColor="@color/textSecondary"
-                                android:textSize="12sp" />
+                                android:textSize="@dimen/text_size_caption" />
 
                             <TextView
                                 android:id="@+id/todaySalesValueText"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:textSize="16sp"
+                                android:textSize="@dimen/text_size_body_large"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
@@ -318,14 +318,14 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/today_received_label"
                                 android:textColor="@color/textSecondary"
-                                android:textSize="12sp" />
+                                android:textSize="@dimen/text_size_caption" />
 
                             <TextView
                                 android:id="@+id/todayReceivedValueText"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:textSize="16sp"
+                                android:textSize="@dimen/text_size_body_large"
                                 android:textStyle="bold" />
                         </LinearLayout>
                     </LinearLayout>
@@ -350,14 +350,14 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/today_expenses_label"
                                 android:textColor="@color/textSecondary"
-                                android:textSize="12sp" />
+                                android:textSize="@dimen/text_size_caption" />
 
                             <TextView
                                 android:id="@+id/todayExpensesValueText"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:textSize="16sp"
+                                android:textSize="@dimen/text_size_body_large"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
@@ -377,14 +377,14 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/today_credit_sales_label"
                                 android:textColor="@color/textSecondary"
-                                android:textSize="12sp" />
+                                android:textSize="@dimen/text_size_caption" />
 
                             <TextView
                                 android:id="@+id/todayCreditSalesValueText"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:textSize="16sp"
+                                android:textSize="@dimen/text_size_body_large"
                                 android:textStyle="bold" />
                         </LinearLayout>
                     </LinearLayout>
@@ -399,13 +399,13 @@
                 android:layout_marginTop="16dp"
                 android:background="@drawable/bg_today_card"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/card_padding">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/today_money_attention_title"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold" />
 
                 <TextView
@@ -427,7 +427,7 @@
                     android:background="@drawable/bg_receivable_card"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:padding="@dimen/card_inner_padding">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -440,7 +440,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/today_receivable_label"
                             android:textColor="@color/receivableText"
-                            android:textSize="13sp"
+                            android:textSize="@dimen/text_size_label"
                             android:textStyle="bold" />
 
                         <TextView
@@ -449,7 +449,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:textColor="@color/receivableText"
-                            android:textSize="18sp"
+                            android:textSize="@dimen/text_size_title"
                             android:textStyle="bold" />
                     </LinearLayout>
 
@@ -470,7 +470,7 @@
                     android:background="@drawable/bg_payable_card"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:padding="@dimen/card_inner_padding">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -483,7 +483,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/today_payable_label"
                             android:textColor="@color/payableText"
-                            android:textSize="13sp"
+                            android:textSize="@dimen/text_size_label"
                             android:textStyle="bold" />
 
                         <TextView
@@ -492,7 +492,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:textColor="@color/payableText"
-                            android:textSize="18sp"
+                            android:textSize="@dimen/text_size_title"
                             android:textStyle="bold" />
                     </LinearLayout>
 
@@ -513,13 +513,13 @@
                 android:layout_marginTop="16dp"
                 android:background="@drawable/bg_today_card"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/card_padding">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/today_farm_status_title"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold" />
 
                 <TextView
@@ -565,14 +565,14 @@
                 android:layout_marginTop="16dp"
                 android:background="@drawable/bg_today_card"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/card_padding">
 
                 <TextView
                     android:id="@+id/recentTransactionsTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/today_recent_activity_title"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold" />
 
                 <LinearLayout
@@ -853,7 +853,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/section_padding">
 
                 <!-- 1. Top-level Khata Overview Container -->
                 <LinearLayout
@@ -873,8 +873,8 @@
                         android:inputType="text"
                         android:maxLines="1"
                         android:minHeight="48dp"
-                        android:padding="12dp"
-                        android:textSize="14sp" />
+                        android:padding="@dimen/card_inner_padding"
+                        android:textSize="@dimen/text_size_body" />
 
                     <!-- Summary Cards: Total to receive & Total to pay -->
                     <LinearLayout
@@ -892,14 +892,14 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_receivable_card"
                             android:orientation="vertical"
-                            android:padding="12dp">
+                            android:padding="@dimen/card_inner_padding">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/today_receivable_label"
                                 android:textColor="@color/receivableText"
-                                android:textSize="12sp"
+                                android:textSize="@dimen/text_size_caption"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -908,7 +908,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:textColor="@color/receivableText"
-                                android:textSize="16sp"
+                                android:textSize="@dimen/text_size_body_large"
                                 android:textStyle="bold" />
                         </LinearLayout>
 
@@ -920,14 +920,14 @@
                             android:layout_weight="1"
                             android:background="@drawable/bg_payable_card"
                             android:orientation="vertical"
-                            android:padding="12dp">
+                            android:padding="@dimen/card_inner_padding">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="@string/today_payable_label"
                                 android:textColor="@color/payableText"
-                                android:textSize="12sp"
+                                android:textSize="@dimen/text_size_caption"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -936,7 +936,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:textColor="@color/payableText"
-                                android:textSize="16sp"
+                                android:textSize="@dimen/text_size_body_large"
                                 android:textStyle="bold" />
                         </LinearLayout>
                     </LinearLayout>
@@ -956,7 +956,7 @@
                             android:layout_weight="1"
                             android:checked="true"
                             android:text="@string/khata_filter_all"
-                            android:textSize="13sp" />
+                            android:textSize="@dimen/text_size_label" />
 
                         <RadioButton
                             android:id="@+id/khataFilterToReceiveRadio"
@@ -964,7 +964,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/khata_filter_to_receive"
-                            android:textSize="13sp" />
+                            android:textSize="@dimen/text_size_label" />
 
                         <RadioButton
                             android:id="@+id/khataFilterToPayRadio"
@@ -972,7 +972,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/khata_filter_to_pay"
-                            android:textSize="13sp" />
+                            android:textSize="@dimen/text_size_label" />
                     </RadioGroup>
 
                     <!-- Parties Header & Add Party action -->
@@ -989,7 +989,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="@string/parties_section"
-                            android:textSize="18sp"
+                            android:textSize="@dimen/text_size_title"
                             android:textStyle="bold" />
 
                         <Button
@@ -1084,7 +1084,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:textSize="18sp"
+                            android:textSize="@dimen/text_size_title"
                             android:textStyle="bold" />
 
                         <Button
@@ -1109,13 +1109,13 @@
                         android:layout_marginTop="16dp"
                         android:background="@drawable/bg_today_card"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:padding="@dimen/card_padding">
 
                         <TextView
                             android:id="@+id/partyKhataHeadlineText"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textSize="18sp"
+                            android:textSize="@dimen/text_size_title"
                             android:textStyle="bold" />
 
                         <!-- Contextual payment actions -->
@@ -1205,7 +1205,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="16dp"
                         android:text="@string/party_khata_history_label"
-                        android:textSize="18sp"
+                        android:textSize="@dimen/text_size_title"
                         android:textStyle="bold" />
 
                     <TextView
@@ -1727,7 +1727,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/section_padding">
 
                 <include layout="@layout/view_kisan_calculator_toolbox" />
 
@@ -1738,7 +1738,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/hisab_calculator_title"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold" />
 
                 <TextView
@@ -1771,7 +1771,7 @@
                     android:layout_marginTop="16dp"
                     android:background="@drawable/bg_today_card"
                     android:orientation="vertical"
-                    android:padding="16dp"
+                    android:padding="@dimen/card_padding"
                     android:visibility="gone">
 
                     <TextView
@@ -1897,7 +1897,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/section_padding">
 
                 <TextView
                     android:id="@+id/settingsAccountSection"
@@ -2270,7 +2270,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/section_padding">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -2316,7 +2316,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp"
+                android:padding="@dimen/section_padding"
                 android:paddingBottom="32dp">
 
                 <TextView
@@ -2453,7 +2453,7 @@
                     android:layout_marginTop="16dp"
                     android:background="@drawable/bg_danger_zone_panel"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="@dimen/card_padding">
 
                     <TextView
                         android:id="@+id/farmDetailsDangerZoneSection"
@@ -2507,7 +2507,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp"
+                android:padding="@dimen/section_padding"
                 android:paddingBottom="32dp">
 
                 <TextView
@@ -2598,7 +2598,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/section_padding">
 
                 <!-- 1. PRODUCTION SECTION -->
                 <LinearLayout
@@ -2614,7 +2614,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/farm_work_production_section"
-                        android:textSize="20sp"
+                        android:textSize="@dimen/text_size_headline"
                         android:textStyle="bold" />
 
                     <Button
@@ -2659,7 +2659,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/farm_work_supplies_section"
-                        android:textSize="20sp"
+                        android:textSize="@dimen/text_size_headline"
                         android:textStyle="bold" />
 
                     <Button
@@ -2759,13 +2759,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="@dimen/section_padding">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/more_section_management_label"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold" />
 
                 <Button
@@ -2789,7 +2789,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
                     android:text="@string/more_section_account_label"
-                    android:textSize="18sp"
+                    android:textSize="@dimen/text_size_title"
                     android:textStyle="bold" />
 
                 <Button
@@ -2866,7 +2866,7 @@
                 android:maxLines="2"
                 android:text="@string/nav_today"
                 android:textColor="@color/bottom_nav_item_tint"
-                android:textSize="12sp" />
+                android:textSize="@dimen/text_size_caption" />
         </LinearLayout>
 
         <LinearLayout
@@ -2903,7 +2903,7 @@
                 android:maxLines="2"
                 android:text="@string/nav_khata"
                 android:textColor="@color/bottom_nav_item_tint"
-                android:textSize="12sp" />
+                android:textSize="@dimen/text_size_caption" />
         </LinearLayout>
 
         <LinearLayout
@@ -2941,7 +2941,7 @@
                 android:maxLines="2"
                 android:text="@string/nav_record"
                 android:textColor="@color/bottom_nav_item_tint"
-                android:textSize="12sp" />
+                android:textSize="@dimen/text_size_caption" />
         </LinearLayout>
 
         <LinearLayout
@@ -2978,7 +2978,7 @@
                 android:maxLines="2"
                 android:text="@string/nav_farm_work"
                 android:textColor="@color/bottom_nav_item_tint"
-                android:textSize="12sp" />
+                android:textSize="@dimen/text_size_caption" />
         </LinearLayout>
 
         <LinearLayout
@@ -3015,7 +3015,7 @@
                 android:maxLines="2"
                 android:text="@string/nav_more"
                 android:textColor="@color/bottom_nav_item_tint"
-                android:textSize="12sp" />
+                android:textSize="@dimen/text_size_caption" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
