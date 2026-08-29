@@ -1,7 +1,13 @@
 <resources>
+    <style name="RoundedButton" parent="Widget.AppCompat.Button">
+        <item name="android:minHeight">44dp</item>
+        <item name="android:background">@drawable/button_rounded_background</item>
+    </style>
+
     <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="colorPrimary">#2e7d32</item>
         <item name="colorPrimaryDark">#1b5e20</item>
         <item name="colorAccent">#ffb300</item>
+        <item name="android:buttonStyle">@style/RoundedButton</item>
     </style>
 </resources>
