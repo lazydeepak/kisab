@@ -376,9 +376,12 @@ class FarmKhataRedesignTest {
 
             // The party khata action buttons (New Sale / New Purchase) belong
             // to a selected party, so they must be gone when no party exists.
-            onView(allOf(withId(R.id.khataNewSaleButton), isDisplayed()))
+            // Note: a GONE view is not "displayed", so the onView() input
+            // matcher must not require isDisplayed() (matches the pattern used
+            // for the contextual pay/receive GONE assertions above).
+            onView(withId(R.id.khataNewSaleButton))
                 .check(matches(withEffectiveVisibility(Visibility.GONE)))
-            onView(allOf(withId(R.id.khataNewPurchaseButton), isDisplayed()))
+            onView(withId(R.id.khataNewPurchaseButton))
                 .check(matches(withEffectiveVisibility(Visibility.GONE)))
         } finally {
             scenario.close()

@@ -1,7 +1,7 @@
 <resources>
     <style name="RoundedButton" parent="Widget.AppCompat.Button">
-        <item name="android:minHeight">48dp</item>
-        <item name="android:minWidth">120dp</item>
+        <item name="android:minHeight">@dimen/button_min_height</item>
+        <item name="android:minWidth">@dimen/button_min_width</item>
         <item name="android:paddingHorizontal">18dp</item>
         <item name="android:paddingVertical">10dp</item>
         <item name="android:background">@drawable/button_rounded_background</item>

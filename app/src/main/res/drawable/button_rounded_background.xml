@@ -2,19 +2,19 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_enabled="false">
         <shape android:shape="rectangle">
-            <corners android:radius="12dp" />
+            <corners android:radius="@dimen/button_corner_radius" />
             <solid android:color="#40000000" />
         </shape>
     </item>
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <corners android:radius="12dp" />
+            <corners android:radius="@dimen/button_corner_radius" />
             <solid android:color="?attr/colorControlHighlight" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="12dp" />
+            <corners android:radius="@dimen/button_corner_radius" />
             <solid android:color="?attr/colorButtonNormal" />
         </shape>
     </item>
