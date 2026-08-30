@@ -347,4 +347,44 @@ class FarmKhataRedesignTest {
             scenario.close()
         }
     }
+
+    @Test
+    fun testEmptyKhataFarm_emptyStateHasVisibleAddPartyCta() {
+        val store = SharedPreferencesFarmStore(context)
+        val service = FarmSliceService(store)
+        val farm = service.createFarm("Empty Khata Farm", currencyCode = "NPR")
+        service.setCurrentFarmId(farm.id)
+
+        val scenario = ActivityScenario.launch(FarmActivity::class.java)
+        try {
+            onView(withId(R.id.navKhataItem)).perform(click())
+
+            // Intentional empty state: the message must be visible.
+            onView(allOf(withId(R.id.partiesEmptyText), isDisplayed()))
+                .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(allOf(withId(R.id.partiesEmptyText), isDisplayed()))
+                .check(matches(withText(containsString("No parties yet"))))
+
+            // Regression guard: the Add party CTA must remain visible and
+            // labeled in the empty state. The khata overview chrome hides the
+            // party list and empty-state views when a party khata is open, so
+            // the CTA must be kept in sync with the overview chrome visibility.
+            onView(allOf(withId(R.id.addPartyButton), isDisplayed()))
+                .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+            onView(allOf(withId(R.id.addPartyButton), isDisplayed()))
+                .check(matches(withText(containsString("Add party"))))
+
+            // The party khata action buttons (New Sale / New Purchase) belong
+            // to a selected party, so they must be gone when no party exists.
+            // Note: a GONE view is not "displayed", so the onView() input
+            // matcher must not require isDisplayed() (matches the pattern used
+            // for the contextual pay/receive GONE assertions above).
+            onView(withId(R.id.khataNewSaleButton))
+                .check(matches(withEffectiveVisibility(Visibility.GONE)))
+            onView(withId(R.id.khataNewPurchaseButton))
+                .check(matches(withEffectiveVisibility(Visibility.GONE)))
+        } finally {
+            scenario.close()
+        }
+    }
 }

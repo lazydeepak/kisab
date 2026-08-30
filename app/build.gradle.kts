@@ -147,20 +147,40 @@ tasks.register("verifyReleaseMetadata") {
     }
 }
 
+val evidenceFile = layout.buildDirectory.file("reports/verification/local-ci-evidence.json")
+
+// Verified Git commit identity for this build. Deterministic: the repository is always a
+// git checkout (local dev and CI), so HEAD is well-defined and stable for a clean tree.
+val gitCommitSha = providers.exec {
+    commandLine("git", "rev-parse", "HEAD")
+}.standardOutput.asText.get().trim()
+
+// Runs before the gates so a failed/new verification can never leave a stale "passed" artifact.
+// The task is forced to always run (never up-to-date) and deletes any previously written evidence.
+val invalidateLocalVerificationEvidence = tasks.register("invalidateLocalVerificationEvidence") {
+    group = "verification"
+    description = "Deletes any existing local verification evidence before the gates run, so a failed gate cannot leave a stale PASS artifact."
+    outputs.upToDateWhen { false }
+    doLast {
+        evidenceFile.get().asFile.delete()
+    }
+}
+
 val writeLocalVerificationEvidence = tasks.register("writeLocalVerificationEvidence") {
     group = "verification"
     description = "Writes machine-readable evidence after all local CI gates pass."
     dependsOn(
+        "invalidateLocalVerificationEvidence",
         "testDebugUnitTest",
         "lintDebug",
         "assembleDebug",
         "compileDebugAndroidTestKotlin"
     )
     val debugApk = layout.buildDirectory.file("outputs/apk/debug/app-debug.apk")
-    val evidenceFile = layout.buildDirectory.file("reports/verification/local-ci-evidence.json")
     inputs.file(debugApk)
     inputs.property("versionName", appVersionName)
     inputs.property("versionCode", appVersionCode)
+    inputs.property("commitSha", gitCommitSha)
     inputs.property("gradleVersion", gradle.gradleVersion)
     inputs.property("javaVersion", System.getProperty("java.version"))
     outputs.file(evidenceFile)
@@ -178,6 +198,7 @@ val writeLocalVerificationEvidence = tasks.register("writeLocalVerificationEvide
   "status": "passed",
   "versionName": "$appVersionName",
   "versionCode": $appVersionCode,
+  "commitSha": "$gitCommitSha",
   "gradleVersion": "${gradle.gradleVersion}",
   "javaVersion": "${System.getProperty("java.version")}",
   "tasks": [

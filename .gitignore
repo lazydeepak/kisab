@@ -2,6 +2,9 @@
 .kotlin/
 build/
 
+# macOS Finder metadata
+.DS_Store
+
 local.properties
 
 # Signing material and secrets

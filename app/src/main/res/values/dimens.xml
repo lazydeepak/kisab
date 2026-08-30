@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 8-based scale + 4/2 for tight cases; matches observed dominant values: 8dp (89×), 16dp (36×), 12dp (25×), 4dp (25×), 24dp (10×) -->
+    <dimen name="spacing_2dp">2dp</dimen>
+    <dimen name="spacing_4dp">4dp</dimen>
+    <dimen name="spacing_8dp">8dp</dimen>
+    <dimen name="spacing_10dp">10dp</dimen>
+    <dimen name="spacing_12dp">12dp</dimen>
+    <dimen name="spacing_16dp">16dp</dimen>
+    <dimen name="spacing_20dp">20dp</dimen>
+    <dimen name="spacing_24dp">24dp</dimen>
+    <dimen name="spacing_32dp">32dp</dimen>
+
+    <dimen name="card_padding">16dp</dimen>
+    <dimen name="card_inner_padding">12dp</dimen>
+    <dimen name="section_padding">20dp</dimen>
+    <dimen name="button_corner_radius">12dp</dimen>
+    <dimen name="button_min_height">48dp</dimen>
+    <dimen name="button_min_width">120dp</dimen>
+
+    <dimen name="text_size_caption">12sp</dimen>
+    <dimen name="text_size_label">13sp</dimen>
+    <dimen name="text_size_body">14sp</dimen>
+    <dimen name="text_size_body_large">16sp</dimen>
+    <dimen name="text_size_title">18sp</dimen>
+    <dimen name="text_size_headline">20sp</dimen>
+</resources>

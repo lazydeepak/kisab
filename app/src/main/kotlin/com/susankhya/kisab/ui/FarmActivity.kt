@@ -3513,6 +3513,12 @@ class FarmActivity : AppCompatActivity() {
     private fun updateHisabKitabChromeVisibility(khataActive: Boolean) {
         val chromeVisibility = if (khataActive) View.GONE else View.VISIBLE
         khataOverviewContainer.visibility = chromeVisibility
+        // The empty-state message and the Add party CTA live inside the khata
+        // overview chrome; they must track the chrome visibility just like the
+        // overview container itself, otherwise the empty state renders with a
+        // header and no visible action. (Regained in UX redesign refactor.)
+        partiesEmptyText.visibility = chromeVisibility
+        addPartyButton.visibility = chromeVisibility
         partyKhataContainer.visibility = if (khataActive) View.VISIBLE else View.GONE
     }
 
