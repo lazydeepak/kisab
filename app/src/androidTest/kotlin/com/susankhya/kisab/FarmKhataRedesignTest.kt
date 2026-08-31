@@ -360,18 +360,18 @@ class FarmKhataRedesignTest {
             onView(withId(R.id.navKhataItem)).perform(click())
 
             // Intentional empty state: the message must be visible.
-            onView(allOf(withId(R.id.partiesEmptyText), isDisplayed()))
+            onView(withId(R.id.partiesEmptyText))
                 .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-            onView(allOf(withId(R.id.partiesEmptyText), isDisplayed()))
+            onView(withId(R.id.partiesEmptyText))
                 .check(matches(withText(containsString("No parties yet"))))
 
             // Regression guard: the Add party CTA must remain visible and
             // labeled in the empty state. The khata overview chrome hides the
             // party list and empty-state views when a party khata is open, so
             // the CTA must be kept in sync with the overview chrome visibility.
-            onView(allOf(withId(R.id.addPartyButton), isDisplayed()))
+            onView(withId(R.id.addPartyButton))
                 .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-            onView(allOf(withId(R.id.addPartyButton), isDisplayed()))
+            onView(withId(R.id.addPartyButton))
                 .check(matches(withText(containsString("Add party"))))
 
             // The party khata action buttons (New Sale / New Purchase) belong
