@@ -18,26 +18,20 @@ A smallholder or farm operator who needs to record a farm, one or more livestock
 3. Record a transaction.
 4. View the farm summary.
 
-## Roadmap
+## Current scope and architecture
 
-- **M4-05** — currency/settings ownership correction, RC validation, `v0.2.0`.
-- **M5-00** — Kisab Application Shell: top app bar, bottom navigation, Settings destination (Language, Currency), navigation/back-stack rules, editor/save/discard behavior across navigation, screen wrapper conventions, responsive behavior. Deliberate UI/UX design conversation precedes implementation. The currency domain contract locked in M4-05 moves here from its temporary Farm Tools location; the domain does not change again for that capability. **Status: COMPLETE.**
-- **M5-01** — Hisab-Kitab party domain: the **Party** model (role, contact, notes) and its persistence evolution, with the party list/editor on the Hisab-Kitab destination. **Status: COMPLETE.**
-- **M5-02** — Sale/Purchase (Trade) records with payment status: trades and their derived Paid/Due/Status, trade editor/list, farm-schema v5, farm-wide to-receive/to-pay totals. **Status: COMPLETE.**
-- **M5-03** — Settlements (receivable/payable): Trade = obligation, Settlement = payment/receipt event, Paid/Due/Status = projections from settlements; per-trade payment ledger UI; schema v6 with deterministic v5→v6 opening-settlement migration. **Status: COMPLETE** (see `docs/milestones/M5_03_SETTLEMENTS_RECEIVABLE_PAYABLE.md`).
-- **M5-04** — Party Khata / Ledger: per-party chronological projection of sales, purchases, payments received/made, running balance, and current receivable/payable position — an additional projection over the Party → Trade → Settlement model, not a second accounting authority. **Status: COMPLETE** (see `docs/milestones/M5_04_PARTY_KHATA_LEDGER.md`).
-- **M5-05** — Farm Financial Overview: farm-wide financial synthesis over the same Party → Trade → Settlement projection discipline — period summaries, trend/overview aggregates, and a whole-farm financial picture. **Status: COMPLETE** (see `docs/milestones/M5_05_FARM_FINANCIAL_OVERVIEW.md`).
-- **M6** — Farmer Hisab calculators: non-persisted per-party/per-period reconciliation of sales, purchases, payments, and period-end receivable/payable position over the existing Party → Trade → Settlement facts. **Status: COMPLETE** (see `docs/milestones/M6_FARMER_HISAB_CALCULATORS.md`).
-- **M6.1** — App Shell and Navigation Polish: original Kisab SVG/vector logo, branded top app bar and Settings overflow menu, icon-and-label bottom navigation with explicit selected states, accessibility labels, and recreation-safe shell behavior. **Status: COMPLETE** (see `docs/milestones/M6_1_APP_SHELL_NAVIGATION_POLISH.md`).
-- **M6.2** — Build and Delivery Hardening: local CI-equivalent Gradle gate, machine-readable APK evidence, API-36-hermetic GitHub CI, workflow lint, Android-test compilation in CI, and secret-free release preflight. **Status: COMPLETE** (see `docs/milestones/M6_2_BUILD_DELIVERY_HARDENING.md`).
-- **M6.3** — Kisan Calculator Toolbox: always-available offline money arithmetic, profit/loss and margin, simple-interest, and Nepali land-unit conversion tools alongside the existing Party Hisab calculator, with no persistence or accounting side effects. **Status: COMPLETE** (see `docs/milestones/M6_3_KISAN_CALCULATOR_TOOLBOX.md`).
-- **M6.4** — Farm Input Calculators: temporary farmer-entered seed, fertilizer, feed, milk, and crop-yield quantity/cost/revenue projections in Hisab, without agronomy recommendations, persistence, or accounting side effects. **Status: COMPLETE (automated and manual/device validation on API 36 + API 26)** (see `docs/milestones/M6_4_FARM_INPUT_CALCULATORS.md`).
-- **M6.4.1** — Shell System-Bar Insets: keep the app bar and bottom navigation clear of system bars on edge-to-edge Android layouts, with API-36 physical-device and API-26 emulator validation. **Status: COMPLETE** (see `docs/milestones/M6_4_1_SHELL_SYSTEM_BAR_INSETS.md`).
-- **Post-v0.2.0 multiplatform direction** — Android/Web/iPhone/iPad/macOS/Windows with one API-backed authoritative backend and offline-capable sync is **ACCEPTED BUT FROZEN**; Android features and UI/UX remain the next priority. See `docs/decisions/ADR-0002-post-v0.2.0-multiplatform-direction.md`.
-- **Agent workflow and validation depth** — implementation prompts, agent work, Codex review, maintainer function/UI acceptance, and only then approved validation prompts. **Status: ACCEPTED** (see `docs/decisions/ADR-0003-agent-workflow-and-validation-depth.md`).
+The initial journey above is the historical starting slice. Current Android code also supports farm activities/production, parties, sales/purchases, settlements, Khata, financial summaries, generic cash entry, calculators and farm backup/restore. This is a farm ledger, not a general accounting or multi-tenant administration platform.
+
+- Kotlin Android UI and presentation coordinate product-owned domain services and projections.
+- Local farm persistence and versioned migrations preserve offline records; backup validation happens before replacement. Farm backups exclude identity/session secrets.
+- Party → Trade → Settlement facts drive balances and Khata; calculators are temporary projections, not a second accounting authority.
+- Offline LocalUser identity, non-secret AccountLink metadata and secure foundation session storage are separate. Login is not required for farm work.
+- HTTPS pilot updates verify APK digests before Android's installer enforces signer continuity. Push routing and account exchange have client foundations; live FCM/backend/provider integration remain deferred.
+
+Current status and unfinished work live only in [CURRENT](../CURRENT.md); scoped milestone and validation records preserve history. The [README index](../../README.md) routes to architecture contracts and decisions. [ADR-0002](../decisions/ADR-0002-post-v0.2.0-multiplatform-direction.md) remains accepted but frozen; account client contracts do not establish a shared backend or sync implementation.
 
 ## Product boundary
 Kisab owns farm concepts, user journeys, offline persistence strategy, and product-specific presentation. It reuses the shared foundation only for technical concerns such as secure session persistence.
 
 ## Foundation reuse
-Kisab will use the published foundation artifact for app-session storage and platform integration. It will not request the foundation to own farm, crop, livestock, transaction, or accounting semantics.
+Kisab uses the published foundation artifact for app-session storage and platform integration. It will not request the foundation to own farm, crop, livestock, transaction, or accounting semantics.
