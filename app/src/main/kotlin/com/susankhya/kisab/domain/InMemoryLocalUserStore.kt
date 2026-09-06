@@ -1,6 +1,11 @@
 package com.susankhya.kisab.domain
 
-/** In-memory [LocalUserStore] for unit tests. */
+/**
+ * In-memory [LocalUserStore] for unit tests.
+ *
+ * Backed by a single [LocalUser]? and a [linkedMapOf] of owned farm sets.
+ * Not thread-safe; intended for single-threaded test use via [runTest].
+ */
 class InMemoryLocalUserStore : LocalUserStore {
     private var user: LocalUser? = null
     private val ownedByUser = linkedMapOf<String, LinkedHashSet<String>>()

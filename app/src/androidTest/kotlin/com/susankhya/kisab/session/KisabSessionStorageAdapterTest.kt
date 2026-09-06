@@ -10,10 +10,18 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Android instrumented tests for [KisabSessionStorageAdapter]
+ * using real [AndroidKeystoreSessionStorage].
+ *
+ * Verifies save/read/clear round-trips and persistence across
+ * storage instance recreation.
+ */
 @RunWith(AndroidJUnit4::class)
 class KisabSessionStorageAdapterTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
+    /** Save and read round-trip preserves all session fields. */
     @Test
     fun savesAndReadsSessionsUsingFoundationStorage() = runTest {
         val adapter = KisabSessionStorageAdapter(
@@ -29,6 +37,7 @@ class KisabSessionStorageAdapterTest {
         assertEquals("refresh-1", read?.refreshToken)
     }
 
+    /** Clear removes the stored session; read returns null. */
     @Test
     fun clearsStoredSession() = runTest {
         val adapter = KisabSessionStorageAdapter(
@@ -41,6 +50,7 @@ class KisabSessionStorageAdapterTest {
         assertNull(adapter.read())
     }
 
+    /** Session persists when accessed through a new adapter instance targeting the same store. */
     @Test
     fun preservesSessionAcrossRecreatedStorageInstance() = runTest {
         val firstAdapter = KisabSessionStorageAdapter(

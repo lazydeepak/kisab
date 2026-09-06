@@ -25,7 +25,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-
+/**
+ * Tests for [OnlineAccountService] covering the full account establishment
+ * lifecycle: success, idempotent re-linking, conflict rejection, and
+ * rollback semantics when session or link persistence fails.
+ *
+ * Each test verifies that farm data and LocalUser identity are never
+ * mutated by account operations, and that session/link state is
+ * consistent after every outcome.
+ */
 class OnlineAccountServiceTest {
 
     private lateinit var users: LocalUserService
@@ -53,6 +61,7 @@ class OnlineAccountServiceTest {
 
     private fun service(api: AccountApi) = OnlineAccountService(api, sessionStorage, links)
 
+    /** Verifies session + link are persisted and farms/LocalUser are untouched. */
     @Test
     fun successStoresSessionAndCreatesAccountLinkWithoutTouchingFarms() = runTest {
         val user = users.ensureLocalUser()
@@ -96,6 +105,7 @@ class OnlineAccountServiceTest {
         assertTrue(links.isLinked(user.userId))
     }
 
+    /** Re-linking the same account is idempotent and refreshes the session. */
     @Test
     fun sameAccountLinkIsIdempotentAndRefreshesSession() = runTest {
         val user = users.ensureLocalUser()
@@ -122,6 +132,7 @@ class OnlineAccountServiceTest {
         assertEquals("access-test-2", session.accessToken)
     }
 
+    /** Linking a different account rejects without corrupting session or farms. */
     @Test
     fun differentAccountConflictDoesNotCorruptSessionOrFarms() = runTest {
         val user = users.ensureLocalUser()
@@ -144,6 +155,7 @@ class OnlineAccountServiceTest {
         assertEquals(farm.id, farms.loadFarm(farm.id)?.id)
     }
 
+    /** Transport failures leave no link or session behind. */
     @Test
     fun backendTransportFailureCreatesNoLinkOrSession() = runTest {
         val user = users.ensureLocalUser()
@@ -163,6 +175,7 @@ class OnlineAccountServiceTest {
         assertEquals(farm.id, farms.loadFarm(farm.id)?.id)
     }
 
+    /** Invalid credential failures leave no link or session behind. */
     @Test
     fun invalidCredentialFailureCreatesNoLinkOrSession() = runTest {
         val user = users.ensureLocalUser()
@@ -177,6 +190,7 @@ class OnlineAccountServiceTest {
         assertFalse(links.isLinked(user.userId))
     }
 
+    /** Session write failure prevents AccountLink from being created. */
     @Test
     fun secureSessionWriteFailureCreatesNoAccountLink() = runTest {
         val user = users.ensureLocalUser()
@@ -195,6 +209,7 @@ class OnlineAccountServiceTest {
         assertNull(failingSessions.read())
     }
 
+    /** Account link write failure rolls back the session written earlier. */
     @Test
     fun accountLinkPersistenceFailureRollsBackSession() = runTest {
         val user = users.ensureLocalUser()
@@ -213,6 +228,7 @@ class OnlineAccountServiceTest {
         assertFalse(flakyLinks.isLinked(user.userId))
     }
 
+    /** Session and link data survive recreation of service instances. */
     @Test
     fun sessionAndLinkSurviveIndependentStoreRecreation() = runTest {
         val user = users.ensureLocalUser()
@@ -227,6 +243,7 @@ class OnlineAccountServiceTest {
         assertEquals("account-recreate", linksAgain.linkState(user.userId).accountIdOrNull)
     }
 
+    /** Clearing session does not affect link or farm data. */
     @Test
     fun clearingSessionLeavesLinkAndFarmsIntact() = runTest {
         val user = users.ensureLocalUser()
@@ -242,6 +259,7 @@ class OnlineAccountServiceTest {
         assertEquals(user.userId, users.currentUser()?.userId)
     }
 
+    /** Server rejection leaves no link or session behind. */
     @Test
     fun serverRejectedCreatesNoLinkOrSession() = runTest {
         val user = users.ensureLocalUser()
