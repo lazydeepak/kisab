@@ -1270,15 +1270,13 @@ class FarmActivity : AppCompatActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(shellRoot) { _, insets ->
             val statusBarTopInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
             val navigationBarBottomInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            ViewCompat.setPaddingRelative(
-                shellAppBar,
+            shellAppBar.setPaddingRelative(
                 baseAppBarStart,
                 ShellInsets.appBarTopPadding(baseAppBarTop, statusBarTopInset),
                 baseAppBarEnd,
                 baseAppBarBottom,
             )
-            ViewCompat.setPaddingRelative(
-                bottomNavigation,
+            bottomNavigation.setPaddingRelative(
                 baseNavStart,
                 baseNavTop,
                 baseNavEnd,
