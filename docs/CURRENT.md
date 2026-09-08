@@ -1,17 +1,33 @@
 # Current Work
 
-**Primary work:** M14 — PILOT-01 structured real-farmer validation.
+Documentation reconciled 2026-09-05 against clean `docs/context-layer` at `8f3d6fc`. This is the current status router; use the [README index](../README.md) for documentation authority and navigation.
 
-**Stage:** P01 session staged on production-signed v0.2.2; awaiting live facilitator sessions (≥3 consented participants required).
+## Implementation and release baseline
 
-**Blocker:** Real participant/facilitator session. No code or doc changes should disturb the staged pilot environment.
+- M0–M6.4.1 established offline records, Party → Trade → Settlement accounting projections, calculators and the Android shell. Later M7/UX work redesigned farmer workflows; M9 added grain units/text sizing, M10 farm activities, M11 activity-aware trades, and M12 instrumentation repairs. Their milestone/design records retain scoped acceptance evidence.
+- M13 records production-signed v0.2.2/code 5 publication and live same-signer OTA upgrade with data preservation: [validation record](validation/M13_PILOT_RELEASE_OTA_VALIDATION.md). These are repository-recorded results, not a fresh check of the remote release.
+- M15 generic cash entry is implemented (`8cccf91`); [validation](validation/M15_GENERIC_CASH_ENTRY_VALIDATION.md) and the later M14 device re-check (`a12457c`) supersede its initial Received-tile re-check limitation.
+- Later commits add empty-Khata CTA repairs, sale/purchase labels and spacing, Record theme adjustments, shared button dimensions and rounded styling. These changes are beyond the published artifact evidence even though source version remains 0.2.2/code 5.
 
-## Routing
+## Verification and Pass 3
 
-- Milestone spec, gates, non-goals, handoff state: `docs/milestones/M14_PILOT_01_REAL_FARMER_VALIDATION.md`
-- Staged P01 facilitator record: `docs/validation/PILOT_01_SESSION_P01.md`
-- Session protocol and template: `docs/validation/PILOT_01_PROTOCOL_v0.2.2.md`, `docs/validation/PILOT_01_SESSION_TEMPLATE.md`
+Normal engineering gate: `./gradlew :app:verifyLocal` (JVM tests, lintDebug, debug APK assembly, Android-test Kotlin compilation). It does **not** run connected instrumentation, human language review, or a release/device campaign. Apply [ADR-0003](decisions/ADR-0003-agent-workflow-and-validation-depth.md) proportionally; documentation changes need documentation checks.
 
-## Next governed work
+- `580462e` repairs matcher compilation and adds evidence invalidation plus `commitSha` in `app/build/reports/verification/local-ci-evidence.json`.
+- `4b770c6` and `8f3d6fc` repair GONE-view assertions; shared button dimensions are referenced by the rounded style/drawable.
+- Existing local evidence inspected during this audit reports PASS at `8f3d6fcbec37c31bdd9d4ed1e33066cdee2d8d67`, Gradle 9.6.1 / Java 21.0.12. This is retained local evidence, not a gate rerun in this documentation session. Match report commit and APK digest before reuse; a HEAD field alone does not describe uncommitted source changes.
+- Pass 3 adds `button_danger_background.xml`, but the audited source has no reference applying it. Danger-button wiring/visual acceptance therefore remains unverified and belongs in the styling audit. Commit prose alone does not prove application.
+- Prior M12/M13/RC device PASS records remain valid for their recorded candidates; they do not establish connected-test or visual PASS for later Pass 3 changes.
 
-Facilitate P01 per protocol; record observations in the P01 session file only during the live session. Results consolidate into `PILOT_01_RESULTS_v0.2.2.md` after ≥3 sessions.
+## Pending workstreams
+
+| Workstream | Remaining work / completion evidence |
+| --- | --- |
+| Global styling audit | Audit current screens, dialogs, buttons and empty states for shared colors/dimensions, light/dark pressed/disabled states, contrast, touch targets, text scaling, insets and keyboard overlap. Inspect danger-button usage. Use targeted resource/test checks followed by maintainer/device visual acceptance; recent styling commits are not a completed global audit. |
+| English/Nepali validation | Automated `LocalizationParityTest` covers resource keys, blanks, duplicates, positional placeholders and plural parity in `values`/`values-ne`. Recheck affected resources with targeted tests/lint; human bilingual review must separately validate meaning, terminology, dates/numbers, truncation and real workflows. Historical localization PASS is scoped, not blanket approval of current copy. |
+| Account setup / email login | Local identity/linking and provider-neutral secure-session contracts exist. Real backend/provider integration and email login are not implemented; resolve method and lifecycle before implementation. See [account contract](architecture/Kisab-Online-Account-Session.md). |
+| M14 farmer pilot | P01 staged per [session record](validation/PILOT_01_SESSION_P01.md); recorded session count remains 0/3. Await live facilitator sessions with at least three consented participants. Do not fabricate observations or alter the staged device environment. |
+
+Human/device validation continues alongside unrelated engineering. Participant availability blocks pilot completion, not documentation or other independent engineering. A named release gate can still require specific device/human evidence before release approval.
+
+For M14 use the [milestone](milestones/M14_PILOT_01_REAL_FARMER_VALIDATION.md), [protocol](validation/PILOT_01_PROTOCOL_v0.2.2.md) and [session template](validation/PILOT_01_SESSION_TEMPLATE.md). Write observations only from live sessions; consolidate the planned results after ≥3 sessions. Deferred pilot findings remain in [BACKLOG](BACKLOG.md).

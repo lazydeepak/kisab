@@ -1,6 +1,11 @@
 package com.susankhya.kisab.domain
 
-/** In-memory [AccountLinkStore] for unit tests. */
+/**
+ * In-memory [AccountLinkStore] for unit tests.
+ *
+ * Backed by a [linkedMapOf] preserving insertion order. Not thread-safe;
+ * intended for single-threaded test use via [runTest].
+ */
 class InMemoryAccountLinkStore : AccountLinkStore {
     private val byUser = linkedMapOf<String, AccountLink>()
 

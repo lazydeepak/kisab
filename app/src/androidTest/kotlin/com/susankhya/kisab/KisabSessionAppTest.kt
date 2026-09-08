@@ -10,10 +10,15 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Android instrumented tests for [KisabSessionApp.storage]
+ * using real [AndroidKeystoreSessionStorage].
+ */
 @RunWith(AndroidJUnit4::class)
 class KisabSessionAppTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
+    /** Save and read round-trip works through KisabSessionApp.storage. */
     @Test
     fun savesAndReadsWithFoundationStorage() = runTest {
         val storage = KisabSessionApp().storage(context)
@@ -24,6 +29,7 @@ class KisabSessionAppTest {
         assertEquals("payload", read?.payload)
     }
 
+    /** Clear removes the stored session. */
     @Test
     fun clearsStoredSession() = runTest {
         val storage = KisabSessionApp().storage(context)
