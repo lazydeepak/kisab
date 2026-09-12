@@ -715,8 +715,9 @@ class FarmSliceService(private val store: FarmStore = InMemoryFarmStore()) {
         val farm = getFarm(farmId)
         val updatedSettlements = farm.settlements.filterNot { it.id == settlementId }
         require(updatedSettlements.size < farm.settlements.size) { "Settlement not found: $settlementId" }
-        FarmStateValidator.validateFarm(farm.copy(settlements = updatedSettlements.toMutableList()))
-        store.saveFarm(farm.copy(settlements = updatedSettlements.toMutableList()))
+        val updated = farm.copy(settlements = updatedSettlements.toMutableList())
+        FarmStateValidator.validateFarm(updated)
+        store.saveFarm(updated)
     }
 
     fun settlement(farmId: String, settlementId: String): Settlement? =

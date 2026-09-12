@@ -56,3 +56,9 @@ Provider SDK (future)
 
 Provider code should only: obtain credential → `OnlineAccountService.establish` → handle `OnlineAccountResult`.
 No changes required to LocalUser, FarmStore, or farm IDs.
+
+## Account setup and email login planning
+
+Email-OTP is mentioned as a future authentication option in the [linking contract](Kisab-Account-Linking-Foundation.md). Current `AuthProvider` contains GOOGLE and APPLE only. Account Settings presents local/link state; it does not implement an email authentication journey. No email login or account-creation completion is claimed.
+
+Before implementation, choose the email authentication method and define backend exchange, verification/expiry/retry behavior, account linking conflicts, session recovery and sign-out policy. Preserve offline LocalUser/farm IDs and keep tokens out of farm backups. These are pending design decisions, not an approved email API or a change to the frozen backend/sync direction.

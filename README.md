@@ -1,6 +1,6 @@
 # Kisab
 
-A standalone Android application repository that consumes `com.susankhya.foundation:foundation-session-android:0.1.1` from GitHub Packages.
+Kisab is an offline-first Android farm ledger for smallholders: record farm work, production, cash income/expenses, sales, purchases, and payments; review Khata and summaries without requiring login. Farm data and business rules belong to Kisab. The app consumes `com.susankhya.foundation:foundation-session-android:0.1.1` from GitHub Packages.
 
 ![Kisab ledger-and-sprout logo](docs/brand/kisab-logo.svg)
 
@@ -26,7 +26,7 @@ Run the complete local CI-equivalent gate:
 ./gradlew :app:verifyLocal
 ```
 
-It runs JVM tests, lint, debug assembly, and Android-test compilation, then writes machine-readable evidence to `app/build/reports/verification/local-ci-evidence.json`. GitHub CI runs the same task and retains that report with the debug APK.
+It runs JVM tests, lint, debug assembly, and Android-test compilation, then writes machine-readable evidence to `app/build/reports/verification/local-ci-evidence.json`. This compiles instrumentation tests but does not execute them on a device. GitHub CI runs the same task and retains that report with the debug APK.
 
 Before preparing a release tag, install `actionlint` and run the secret-free release preflight from a clean worktree:
 
@@ -36,36 +36,31 @@ scripts/release-preflight.sh
 scripts/release-preflight.sh v0.2.0
 ```
 
-## Project status
+## Project overview and documentation index
 
-Current work and stage: `docs/CURRENT.md`. Milestone records and dispositions: `docs/milestones/`, with validation evidence under `docs/validation/`. Deferred work: `docs/BACKLOG.md`. Agent operating contract: `AGENTS.md`.
+Use [current status and QA](docs/CURRENT.md) for the implementation baseline, release evidence, and pending work. Code, tests, build configuration, and Git history take precedence over summaries.
 
-## Kisab M1 acceptance criteria
-- Launch a usable Android app from a launcher activity.
-- Create and reopen one locally stored farm without depending on the foundation for farm-domain semantics.
-- Add livestock or crop entries and record signed-amount transactions.
-- View entry count, transaction count, and balance.
-- Preserve farm data across app/process recreation.
-- Cover the complete journey with unit and Android integration tests.
+| Document | Authority / use |
+| --- | --- |
+| [Product charter](docs/charter/Kisab-Product-Charter.md) | Goal, current scope, ownership boundary and architecture overview |
+| [Current work](docs/CURRENT.md) | Current status, verification limits and active workstreams |
+| [Backlog](docs/BACKLOG.md) | Deferred work and pilot observations awaiting evidence |
+| [Boundary ADR](docs/decisions/ADR-0001-kisab-v1-boundary.md) | Product/foundation ownership decision |
+| [Multiplatform ADR](docs/decisions/ADR-0002-post-v0.2.0-multiplatform-direction.md) | Accepted but frozen direction; not an implemented backend |
+| [Validation-depth ADR](docs/decisions/ADR-0003-agent-workflow-and-validation-depth.md) | Maintainer acceptance and proportional validation |
+| [Account linking](docs/architecture/Kisab-Account-Linking-Foundation.md), [online session](docs/architecture/Kisab-Online-Account-Session.md), [push foundation](docs/architecture/Kisab-Push-Notification-Foundation.md) | Current client contracts and explicitly deferred integrations |
+| [Nepali terminology](docs/localization/NEPALI_TERMINOLOGY.md) | Translation reference; human review remains separate from resource checks |
+| [Release policy](docs/release/RELEASE_POLICY.md), [pilot update channel](docs/release/PILOT_UPDATE_CHANNEL.md) | Signing/version rules and Android HTTPS update operations |
+| [Agent contract](AGENTS.md) | Repository work and preservation rules |
 
-## Kisab M2 acceptance criteria
-- Support stable transaction identifiers and explicit income/expense types.
-- Constrain categories by transaction type and store money in minor units with an ISO currency code.
-- Store explicit transaction timestamps, validate the complete transaction model, and support edit/delete flows with destructive-action confirmation.
-- Present transaction history newest-first by timestamp with a deterministic tie-breaker for equal timestamps.
-- Preserve local farm data through versioned persistence migration and cover the model with unit, persistence, migration, and Android integration tests.
-
-## Kisab M3 acceptance criteria
-- Export and restore a single farm entirely offline with a versioned backup envelope.
-- Use Android's Storage Access Framework/document picker for backup files without broad filesystem permissions.
-- Validate the complete backup before replacing current state and confirm overwrites explicitly.
-- Preserve the current farm on cancelled or invalid imports and cover the flow with unit and Android integration tests.
+`docs/milestones/`, `docs/design/`, and `docs/validation/` retain scoped specifications, implementation records and historical evidence. M0–M3 architecture documents describe the initial slices, not the full current feature set. Release notes/checklists describe their named artifacts, not every later commit. Historical acceptance criteria remain in those records; they are not the current task queue.
 
 ## Release
 
 - Versioning and release policy: `docs/release/RELEASE_POLICY.md`.
 - Published and verified release record for `v0.1.0`: `docs/release/RELEASE_NOTES_0.1.0.md`.
-- Draft notes for the next candidate: `docs/release/RELEASE_NOTES_0.2.0.md`.
+- Latest recorded pilot release: [v0.2.2](docs/release/RELEASE_NOTES_0.2.2.md), with [M13 signed-release/OTA evidence](docs/validation/M13_PILOT_RELEASE_OTA_VALIDATION.md). Current source still declares 0.2.2/code 5 but includes later changes; matching version numbers do not establish artifact identity.
+- Earlier v0.2.0/v0.2.1 notes and RC checklists remain historical records.
 
 Building a signed release locally requires four environment variables — `KISAB_KEYSTORE_PATH`, `KISAB_KEYSTORE_PASSWORD`, `KISAB_KEY_ALIAS`, and `KISAB_KEY_PASSWORD` — pointing at your release keystore. These are never committed or logged; `assembleRelease` fails clearly if any is missing. Debug builds do not require them.
 

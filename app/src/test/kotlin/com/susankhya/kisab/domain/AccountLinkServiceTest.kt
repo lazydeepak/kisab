@@ -13,6 +13,15 @@ import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 
+/**
+ * Tests for [AccountLinkService] verifying the local account-linking
+ * contract: idempotent linking, conflict rejection, and isolation
+ * from farm operations.
+ *
+ * Confirms that linking a Kisab online account never mutates
+ * LocalUser ids, farm ids, or farm data. Also verifies that
+ * account identity is never embedded in farm backup or persistence payloads.
+ */
 class AccountLinkServiceTest {
 
     private lateinit var linkStore: InMemoryAccountLinkStore
@@ -34,6 +43,7 @@ class AccountLinkServiceTest {
         farms = FarmSliceService(MultiFarmStore(InMemoryMultiFarmBackend()))
     }
 
+    /** Default local user starts unlinked with no account. */
     @Test
     fun defaultLocalUserIsUnlinked() {
         val user = users.ensureLocalUser()
@@ -43,6 +53,7 @@ class AccountLinkServiceTest {
         assertNull(state.accountIdOrNull)
     }
 
+    /** Account link state survives recreation of the service and store. */
     @Test
     fun accountLinkStateSurvivesStoreRecreation() {
         val user = users.ensureLocalUser()
@@ -53,6 +64,7 @@ class AccountLinkServiceTest {
         assertEquals(now, state.linkedAtMillis)
     }
 
+    /** Linking preserves LocalUser id and all farm ownership records. */
     @Test
     fun linkingPreservesLocalUserIdAndAllFarmOwnership() {
         val user = users.ensureLocalUser()
@@ -74,6 +86,7 @@ class AccountLinkServiceTest {
         assertEquals("B", farms.loadFarm(b.id)?.name)
     }
 
+    /** Linking the same account twice keeps the original link timestamp. */
     @Test
     fun linkingSameAccountTwiceIsIdempotent() {
         val user = users.ensureLocalUser()
@@ -84,6 +97,7 @@ class AccountLinkServiceTest {
         assertEquals(first.linkedAtMillis, second.linkedAtMillis)
     }
 
+    /** Linking a different account while already linked throws [AccountLinkConflictException]. */
     @Test
     fun linkingDifferentAccountWhileLinkedIsRejected() {
         val user = users.ensureLocalUser()
@@ -99,6 +113,7 @@ class AccountLinkServiceTest {
         assertEquals("account-one", (links.linkState(user.userId) as AccountLink.Linked).accountId)
     }
 
+    /** Having no account link does not interfere with any farm operations. */
     @Test
     fun noAccountLinkDoesNotAffectFarmOperations() {
         val user = users.ensureLocalUser()
@@ -121,6 +136,7 @@ class AccountLinkServiceTest {
         assertTrue(links.linkState(user.userId) is AccountLink.Unlinked)
     }
 
+    /** Session absence does not remove link or farm data. */
     @Test
     fun sessionAbsenceDoesNotRemoveLinkOrFarms() {
         // Session is a separate store; clearing it is simulated by never touching it.
@@ -135,6 +151,7 @@ class AccountLinkServiceTest {
         assertEquals(setOf(farm.id), users.ownedFarmIds())
     }
 
+    /** Farm backup payload excludes all account and local user identity. */
     @Test
     fun farmBackupExcludesAccountAndLocalUserIdentity() {
         val user = users.ensureLocalUser()
@@ -151,6 +168,7 @@ class AccountLinkServiceTest {
         assertEquals("BackupFarm", envelope.farm.name)
     }
 
+    /** Farm persistence payload also excludes account identity. */
     @Test
     fun farmPersistencePayloadAlsoExcludesAccountIdentity() {
         val user = users.ensureLocalUser()
@@ -161,6 +179,7 @@ class AccountLinkServiceTest {
         assertFalse(payload.contains(user.userId))
     }
 
+    /** Resetting or deleting a farm does not alter the AccountLink record. */
     @Test
     fun resetAndDeleteFarmDoNotAlterAccountLink() {
         val user = users.ensureLocalUser()
@@ -178,6 +197,7 @@ class AccountLinkServiceTest {
         assertTrue(users.ownedFarmIds().isEmpty())
     }
 
+    /** Blank account id is rejected by [AccountLinkService.linkToAccount]. */
     @Test
     fun blankAccountIdRejected() {
         val user = users.ensureLocalUser()
@@ -190,6 +210,7 @@ class AccountLinkServiceTest {
         assertFalse(links.isLinked(user.userId))
     }
 
+    /** Account id format is distinct from LocalUser id format. */
     @Test
     fun linkedAccountIdIsNotProviderShapedLocalUser() {
         val user = users.ensureLocalUser()

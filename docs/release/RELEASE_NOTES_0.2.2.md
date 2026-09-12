@@ -1,6 +1,6 @@
-# Kisab v0.2.2 — Release Notes (Draft)
+# Kisab v0.2.2 — Release Notes
 
-> **Status: DRAFT — not published.** This candidate becomes releasable only after the protected `Release`/`RC sign` pipeline produces and validates the production-signed APK. Governed by `docs/release/RELEASE_POLICY.md`.
+> **Status: published pilot release, per the [M13 validation record](../validation/M13_PILOT_RELEASE_OTA_VALIDATION.md).** The earlier draft disposition is superseded by recorded production signing, publication and live OTA validation. This record covers that artifact; later source changes retaining 0.2.2/code 5 are not automatically included or release-validated.
 
 ## User-visible changes since v0.2.1
 
@@ -19,4 +19,4 @@
 
 ## Verification evidence
 
-- Filled from M13 evidence when complete: see `docs/validation/M13_PILOT_RELEASE_OTA_VALIDATION.md`.
+- [M13 evidence](../validation/M13_PILOT_RELEASE_OTA_VALIDATION.md) records protected signing, independent signer/digest verification and the live in-place upgrade with data preservation. See [current status](../CURRENT.md) for later work and verification limits.

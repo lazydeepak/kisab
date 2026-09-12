@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred/future work. Not part of normal startup context.
+Deferred/future work. Active styling, English/Nepali validation, account planning and QA status are maintained in [CURRENT](CURRENT.md). Human pilot availability does not block unrelated engineering.
 
 ## Pilot rehearsal findings — pending session evidence (M15 candidates-in-waiting)
 

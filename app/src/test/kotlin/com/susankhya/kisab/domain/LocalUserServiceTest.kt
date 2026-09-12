@@ -8,6 +8,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+/**
+ * Tests for [LocalUserService] verifying stable identity generation,
+ * farm association, and migration safety.
+ *
+ * Confirms that a [LocalUser] is generated exactly once per device,
+ * that farm operations never regenerate the user id, and that
+ * farm resets/deletes preserve local identity.
+ */
 class LocalUserServiceTest {
 
     private lateinit var userStore: InMemoryLocalUserStore
@@ -31,6 +39,7 @@ class LocalUserServiceTest {
         )
     }
 
+    /** First launch creates exactly one LocalUser with a stable id. */
     @Test
     fun firstLaunchGeneratesOneLocalUser() {
         assertNull(localUserService.currentUser())
@@ -40,6 +49,7 @@ class LocalUserServiceTest {
         assertEquals(user, localUserService.currentUser())
     }
 
+    /** Repeated loads return the same LocalUser id; id is never regenerated. */
     @Test
     fun repeatedLoadsReturnTheSameUserId() {
         val first = localUserService.ensureLocalUser()
@@ -51,6 +61,7 @@ class LocalUserServiceTest {
         assertEquals(1, nextId)
     }
 
+    /** Existing farms are associated with the generated user on first launch. */
     @Test
     fun existingFarmIsAssociatedWithGeneratedUser() {
         val farm = farmService.createFarm("Existing Farm", "NPR")
@@ -62,6 +73,7 @@ class LocalUserServiceTest {
         assertEquals("Existing Farm", farmService.loadFarm(farm.id)?.name)
     }
 
+    /** Migration preserves all farm records and the farm id. */
     @Test
     fun migrationPreservesFarmIdAndAllRecords() {
         val farm = farmService.createFarm("Records Farm", "INR")
@@ -94,6 +106,7 @@ class LocalUserServiceTest {
         assertEquals(setOf(farmIdBefore), localUserService.ownedFarmIds())
     }
 
+    /** Resetting farm data preserves LocalUser identity. */
     @Test
     fun resetFarmDataPreservesLocalUserIdentity() {
         val farm = farmService.createFarm("Reset Me")
@@ -120,6 +133,7 @@ class LocalUserServiceTest {
         assertEquals("Reset Me", reset.name)
     }
 
+    /** Deleting a farm preserves LocalUser identity. */
     @Test
     fun deleteFarmPreservesLocalUserIdentity() {
         val farm = farmService.createFarm("Delete Me")
@@ -135,6 +149,7 @@ class LocalUserServiceTest {
         assertNull(farmService.currentFarmId())
     }
 
+    /** A device with no farms still has a valid LocalUser. */
     @Test
     fun noFarmStillLeavesAValidLocalUser() {
         localUserService.migrateExistingInstall(currentFarmId = null)
@@ -144,6 +159,7 @@ class LocalUserServiceTest {
         assertTrue(localUserService.ownedFarmIds().isEmpty())
     }
 
+    /** LocalUser id is stable across store recreations with the same backing. */
     @Test
     fun localUserIdIsNotRegeneratedAfterStoreRecreationWithSameBacking() {
         val shared = InMemoryLocalUserStore()
@@ -158,6 +174,7 @@ class LocalUserServiceTest {
         assertNotEquals("user-other", second.userId)
     }
 
+    /** Associating the same farm twice is idempotent. */
     @Test
     fun associateFarmIsIdempotent() {
         localUserService.ensureLocalUser()
@@ -166,6 +183,7 @@ class LocalUserServiceTest {
         assertEquals(setOf("farm-1"), localUserService.ownedFarmIds())
     }
 
+    /** Migration with an existing farm is idempotent. */
     @Test
     fun migrateExistingInstallIsIdempotent() {
         val farm = farmService.createFarm("Once")
