@@ -59,6 +59,10 @@ No changes required to LocalUser, FarmStore, or farm IDs.
 
 ## Account setup and email login planning
 
-Email-OTP is mentioned as a future authentication option in the [linking contract](Kisab-Account-Linking-Foundation.md). Current `AuthProvider` contains GOOGLE and APPLE only. Account Settings presents local/link state; it does not implement an email authentication journey. No email login or account-creation completion is claimed.
-
-Before implementation, choose the email authentication method and define backend exchange, verification/expiry/retry behavior, account linking conflicts, session recovery and sign-out policy. Preserve offline LocalUser/farm IDs and keep tokens out of farm backups. These are pending design decisions, not an approved email API or a change to the frozen backend/sync direction.
+Method and lifecycle are resolved in [ADR-0004](../decisions/ADR-0004-email-otp-method-and-lifecycle.md):
+**Email OTP** is the chosen first method. `AuthProvider` gains `EMAIL`;
+`AccountApi` gains `requestEmailOtp` / `verifyEmailOtpAndEstablish`;
+lifecycle (10-minute single-use code, 60s resend cooldown, 5-attempt lock,
+session recovery via refresh token, non-destructive sign-out) is specified
+there. Implementation is not started; it must follow the ADR and remain
+provider-neutral with tokens kept out of farm backups.
