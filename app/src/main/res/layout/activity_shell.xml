@@ -2480,7 +2480,7 @@
                         android:background="@drawable/button_danger_background"
                         android:minHeight="52dp"
                         android:text="@string/reset_farm_data_action"
-                        android:textColor="@android:color/white" />
+                        android:textColor="@color/button_text_danger" />
 
                     <Button
                         android:id="@+id/farmDetailsDeleteButton"
@@ -2490,7 +2490,7 @@
                         android:background="@drawable/button_danger_background"
                         android:minHeight="52dp"
                         android:text="@string/delete_farm_action"
-                        android:textColor="@android:color/white" />
+                        android:textColor="@color/button_text_danger" />
                 </LinearLayout>
             </LinearLayout>
         </ScrollView>

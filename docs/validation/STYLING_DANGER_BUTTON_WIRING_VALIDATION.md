@@ -81,6 +81,39 @@ out of normal reach), but the disabled-on-light pairing is a genuine
 accessibility defect to address in the full styling audit — e.g. a state
 selector for label color or a dedicated disabled fill.
 
+## Danger label contrast rework (2026-09-12)
+
+Implemented to close the pressed and disabled contrast defects above:
+
+- Added `res/color/button_text_danger.xml` selector:
+  disabled `#757575`, pressed `#212121`, default white.
+- Added `textDangerPressed`/`textDangerDisabled` to
+  `values/colors.xml` (theme-independent, no night variant needed).
+- Both danger buttons now use `android:textColor="@color/button_text_danger"`
+  instead of `@android:color/white`.
+
+Updated contrast (computed):
+
+| Pairing | Contrast | WCAG AA normal text (4.5) | AA large text (3.0) |
+| --- | --- | --- | --- |
+| rest `#C62828` vs white label | 5.62:1 | PASS | PASS |
+| pressed `#FF5252` vs `#212121` label | 5.05:1 | PASS | PASS |
+| disabled (light fill `#F1C9C9`) vs `#757575` label | 3.06:1 | EXEMPT* | EXEMPT* |
+| disabled (dark fill `#3F1818`) vs `#757575` label | 3.36:1 | EXEMPT* | EXEMPT* |
+
+*Disabled is an inactive UI component and is exempt from the WCAG 1.4.3
+contrast requirement; the dimmed label is a deliberate visual affordance.
+
+Gate and device verification for the rework:
+
+- `./gradlew :app:verifyLocal` — **PASS** on the reworked tree.
+- Device pixel sampling (same Moto Edge 60 Fusion) on the reinstalled
+  debug APK, light and dark mode: rest shows white glyphs on `#C62828`;
+  held-press shows `#212121` glyphs on `#FF5252`
+  (`42_light_newlabel_rest.png`, `43_light_newlabel_pressed.png`,
+  `45_dark_newlabel_pressed.png`). Disabled state is not reachable at
+  runtime in normal flow; enforced by the selector.
+
 ## Full-surface styling sweep (2026-09-12)
 
 Method: uiautomator bounds analysis (touch targets < 48dp, offscreen
