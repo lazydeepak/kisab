@@ -80,3 +80,32 @@ Non-blocking for this wiring change (a gray `??` placeholder state is
 out of normal reach), but the disabled-on-light pairing is a genuine
 accessibility defect to address in the full styling audit — e.g. a state
 selector for label color or a dedicated disabled fill.
+
+## Full-surface styling sweep (2026-09-12)
+
+Method: uiautomator bounds analysis (touch targets < 48dp, offscreen
+nodes) plus pixel sampling, screen by screen on the same device, in light
+and dark mode and at font scale 1.0/1.3. Screens covered: Today/Home,
+Khata, Farm Work, More, Hisab, Farms, Settings, About dialog, Farm Details
+(top + danger-zone scroll position), Add Farm, Record action sheet, Add
+Party dialog, Production dialog, and Reset/Delete confirmation dialogs.
+Danger selector re-verified on the merged build: dark-mode rest `#C62828`
+and held pressed `#FF5252` sampled at both button centers
+(`40_dark_danger_rest.png`, `41_dark_reset_held.png`).
+
+| Check | Result |
+| --- | --- |
+| Touch targets: every clickable node ≥48dp height across all covered surfaces (light and dark) | PASS |
+| Offscreen content: no node extends past display bounds on any covered surface (light/dark, font 1.0 and 1.3) | PASS |
+| Text scaling 1.3: no truncation or horizontal overflow; only expected multi-line wrapping on headers; touch targets unaffected | PASS |
+| System-bar insets: status-bar top and nav-bar bottom padding applied via `setOnApplyWindowInsetsListener`; content sits inside decor in both modes | PASS |
+| Keyboard overlap, Production dialog: SAVE/CANCEL/ADD PRODUCT visible with IME open (IME frame top 1671px @ 1220x2712/450dpi) | PASS |
+| Keyboard overlap, Add Party dialog: ADD PARTY (y 909–1044) fully above IME top (1671) | PASS |
+| Keyboard overlap, Add Farm screen: CREATE FARM (y 1618–1764) dips below IME top (1671) — reachable via the ScrollView form but not instantly visible; minor finding | MINOR |
+| Hardcoded small paddings (4/6/8/9dp) bypass the `spacing_*` scale on a few icon/utility views in `activity_shell.xml` | MINOR (stylistic drift) |
+| Hardcoded `@android:color/white` label on both danger buttons in all states (drives the two contrast notes above) | KNOWN |
+
+Sweep screenshots `23_`–`41_` in the session screenshot directory are the
+durable evidence set for the checks above. Address the two MINOR findings
+and the contrast defects (pressed label 3.19:1, disabled-over-light
+1.51:1) in the remaining global-styling-audit workstream.
