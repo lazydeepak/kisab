@@ -784,11 +784,20 @@
     <string name="update_published_label">प्रकाशित</string>
 
     <string name="private_build_expiry_banner_expired">यो किसाब संस्करणको म्याद सकिएको छ। तपाईं अझै डेटा हेर्न र ब्याकअप गर्न सक्नुहुन्छ। सम्पादन जारी राख्न नयाँ संस्करण जडान गर्नुहोस्।</string>
-    <string name="private_build_expiry_banner_critical_format">यो किसाब संस्करण %1$d दिनमा सकिन्छ। नयाँ संस्करण उपलब्ध हुँदा अद्यावधिक गर्नुहोस्।</string>
+    <plurals name="private_build_expiry_banner_critical_format">
+        <item quantity="one">यो किसाब संस्करण %1$d दिनमा सकिन्छ। नयाँ संस्करण उपलब्ध हुँदा अद्यावधिक गर्नुहोस्।</item>
+        <item quantity="other">यो किसाब संस्करण %1$d दिनमा सकिन्छ। नयाँ संस्करण उपलब्ध हुँदा अद्यावधिक गर्नुहोस्।</item>
+    </plurals>
     <string name="private_build_expiry_dialog_warning_title">चाँडै अद्यावधिक गर्नुहोस्</string>
-    <string name="private_build_expiry_dialog_warning_message_format">यो किसाब संस्करण %1$d दिनमा (%2$s मा) सकिन्छ। नयाँ संस्करण उपलब्ध हुँदा अद्यावधिक गर्नुहोस्। तपाईंको फार्म डेटा यसै उपकरणमा रहन्छ।</string>
+    <plurals name="private_build_expiry_dialog_warning_message_format">
+        <item quantity="one">यो किसाब संस्करण %1$d दिनमा (%2$s मा) सकिन्छ। नयाँ संस्करण उपलब्ध हुँदा अद्यावधिक गर्नुहोस्। तपाईंको फार्म डेटा यसै उपकरणमा रहन्छ।</item>
+        <item quantity="other">यो किसाब संस्करण %1$d दिनमा (%2$s मा) सकिन्छ। नयाँ संस्करण उपलब्ध हुँदा अद्यावधिक गर्नुहोस्। तपाईंको फार्म डेटा यसै उपकरणमा रहन्छ।</item>
+    </plurals>
     <string name="private_build_expiry_dialog_critical_title">चाँडै अद्यावधिक गर्नुहोस्</string>
-    <string name="private_build_expiry_dialog_critical_message_format">यो किसाब संस्करण %1$d दिनमा (%2$s मा) सकिन्छ। चाँडै नयाँ संस्करण जडान गर्नुहोस्। त्यसबेलासम्म काम गर्न सकिन्छ, र ब्याकअपका लागि डेटा उपलब्ध रहन्छ।</string>
+    <plurals name="private_build_expiry_dialog_critical_message_format">
+        <item quantity="one">यो किसाब संस्करण %1$d दिनमा (%2$s मा) सकिन्छ। चाँडै नयाँ संस्करण जडान गर्नुहोस्। त्यसबेलासम्म काम गर्न सकिन्छ, र ब्याकअपका लागि डेटा उपलब्ध रहन्छ।</item>
+        <item quantity="other">यो किसाब संस्करण %1$d दिनमा (%2$s मा) सकिन्छ। चाँडै नयाँ संस्करण जडान गर्नुहोस्। त्यसबेलासम्म काम गर्न सकिन्छ, र ब्याकअपका लागि डेटा उपलब्ध रहन्छ।</item>
+    </plurals>
     <string name="private_build_expiry_dialog_expired_title">यो संस्करणको म्याद सकियो</string>
     <string name="private_build_expiry_dialog_expired_message">यो किसाब संस्करणको म्याद सकिएको छ। तपाईं अझै फार्म हेर्न र ब्याकअप निर्यात गर्न सक्नुहुन्छ। रेकर्ड थप्न वा परिवर्तन गर्न नयाँ संस्करण जडान गर्नुहोस्।</string>
     <string name="private_build_expiry_update_action">कसरी अद्यावधिक गर्ने</string>
