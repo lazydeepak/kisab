@@ -789,11 +789,20 @@ Unexplained: %4$s %5$s</string>
     <string name="update_published_label">Published</string>
 
     <string name="private_build_expiry_banner_expired">This Kisab version has expired. You can still view and back up your data. Install a newer version to continue editing.</string>
-    <string name="private_build_expiry_banner_critical_format">This Kisab version expires in %1$d days. Please update when a newer version is available.</string>
+    <plurals name="private_build_expiry_banner_critical_format">
+        <item quantity="one">This Kisab version expires in %1$d day. Please update when a newer version is available.</item>
+        <item quantity="other">This Kisab version expires in %1$d days. Please update when a newer version is available.</item>
+    </plurals>
     <string name="private_build_expiry_dialog_warning_title">Update available soon</string>
-    <string name="private_build_expiry_dialog_warning_message_format">This Kisab version expires in %1$d days (on %2$s). Please update when a newer version is available. Your farm data stays on this device.</string>
+    <plurals name="private_build_expiry_dialog_warning_message_format">
+        <item quantity="one">This Kisab version expires in %1$d day (on %2$s). Please update when a newer version is available. Your farm data stays on this device.</item>
+        <item quantity="other">This Kisab version expires in %1$d days (on %2$s). Please update when a newer version is available. Your farm data stays on this device.</item>
+    </plurals>
     <string name="private_build_expiry_dialog_critical_title">Update soon</string>
-    <string name="private_build_expiry_dialog_critical_message_format">This Kisab version expires in %1$d days (on %2$s). Install a newer version soon. You can still work until then, and your data remains available for backup.</string>
+    <plurals name="private_build_expiry_dialog_critical_message_format">
+        <item quantity="one">This Kisab version expires in %1$d day (on %2$s). Install a newer version soon. You can still work until then, and your data remains available for backup.</item>
+        <item quantity="other">This Kisab version expires in %1$d days (on %2$s). Install a newer version soon. You can still work until then, and your data remains available for backup.</item>
+    </plurals>
     <string name="private_build_expiry_dialog_expired_title">This version has expired</string>
     <string name="private_build_expiry_dialog_expired_message">This Kisab version has expired. You can still view your farms and export a backup. Install a newer version to add or change records.</string>
     <string name="private_build_expiry_update_action">How to update</string>

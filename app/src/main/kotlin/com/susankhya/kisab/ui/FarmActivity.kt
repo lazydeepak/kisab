@@ -6420,8 +6420,9 @@ class FarmActivity : AppCompatActivity() {
             PrivateBuildExpiryPresentation.MessageKind.EXPIRED_BANNER ->
                 string(R.string.private_build_expiry_banner_expired)
             PrivateBuildExpiryPresentation.MessageKind.CRITICAL_DAYS_REMAINING ->
-                string(
-                    R.string.private_build_expiry_banner_critical_format,
+                resources.getQuantityString(
+                    R.plurals.private_build_expiry_banner_critical_format,
+                    snapshot.daysRemaining.toInt(),
                     snapshot.daysRemaining.toInt()
                 )
             else -> string(R.string.private_build_expiry_banner_expired)
@@ -6440,14 +6441,16 @@ class FarmActivity : AppCompatActivity() {
         )
         val (titleRes, message) = when (hints.kind) {
             PrivateBuildExpiryPresentation.MessageKind.WARNING_DAYS_REMAINING ->
-                R.string.private_build_expiry_dialog_warning_title to string(
-                    R.string.private_build_expiry_dialog_warning_message_format,
+                R.string.private_build_expiry_dialog_warning_title to resources.getQuantityString(
+                    R.plurals.private_build_expiry_dialog_warning_message_format,
+                    snapshot.daysRemaining.toInt(),
                     snapshot.daysRemaining.toInt(),
                     dateText
                 )
             PrivateBuildExpiryPresentation.MessageKind.CRITICAL_DAYS_REMAINING ->
-                R.string.private_build_expiry_dialog_critical_title to string(
-                    R.string.private_build_expiry_dialog_critical_message_format,
+                R.string.private_build_expiry_dialog_critical_title to resources.getQuantityString(
+                    R.plurals.private_build_expiry_dialog_critical_message_format,
+                    snapshot.daysRemaining.toInt(),
                     snapshot.daysRemaining.toInt(),
                     dateText
                 )
