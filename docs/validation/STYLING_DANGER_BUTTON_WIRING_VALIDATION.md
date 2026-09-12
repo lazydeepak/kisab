@@ -40,6 +40,10 @@ from the verified working tree.
 | Record sheet opens with all actions reachable | PASS | `20_record_sheet_final.png` |
 | Production dialog with open keyboard: dialog resizes, SAVE / CANCEL / ADD PRODUCT remain visible (no fatal overlap) | PASS | `22_keyboard_overlap.png` |
 | Touch targets: reset/delete buttons measured ≥52dp height via uiautomator bounds | PASS | uiautomator dump in session log |
+| Danger buttons render with new selector (rest state, light mode) — `#C62828` sampled at both button centers | PASS | `24_light_danger_rest.png` |
+| Pressed state in light mode shows selector `#FF5252` (reset held via `input motionevent DOWN`; delete untouched sample stayed `#C62828`) | PASS | `27_reset_held.png` |
+| DELETE FARM opens "Delete farm?" confirmation dialog with CANCEL | PASS | `30_delete_confirm_dialog.png` |
+| RESET FARM DATA opens "Reset farm data?" confirmation dialog with CANCEL / CONTINUE, scrim dims backdrop (`#4F1010` on held-delete mid-hold explained by this scrim) | PASS | `31_reset_confirm_dialog.png` |
 
 Screenshots were captured in a temporary session directory and are not
 committed; the table above is the durable record. Re-run this acceptance on
@@ -57,3 +61,22 @@ any future restyle of the danger buttons.
 - Manifest declares no `windowSoftInputMode`; current behavior (resize) is
   acceptable on the tested device, but a future device matrix should
   reconfirm keyboard behavior.
+
+## Contrast review (WCAG 2.1, computed)
+
+Label color is hard-coded `@android:color/white` on both danger buttons in
+all states (`activity_shell.xml:2483`, `:2493`). Ratios per relative
+luminance formula; disabled = `#C62828 @ 25% alpha` over the card
+background:
+
+| Pairing | Contrast | WCAG AA normal text (4.5) | AA large text (3.0) |
+| --- | --- | --- | --- |
+| rest `#C62828` vs white label | 5.62:1 | PASS | PASS |
+| pressed `#FF5252` vs white label | 3.19:1 | FAIL | PASS |
+| disabled over light bg vs white label | 1.51:1 | FAIL | FAIL |
+| disabled over dark bg vs white label | 15.50:1 | PASS | PASS |
+
+Non-blocking for this wiring change (a gray `??` placeholder state is
+out of normal reach), but the disabled-on-light pairing is a genuine
+accessibility defect to address in the full styling audit — e.g. a state
+selector for label color or a dedicated disabled fill.
