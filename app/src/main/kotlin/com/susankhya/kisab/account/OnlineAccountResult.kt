@@ -40,6 +40,8 @@ sealed class OnlineAccountResult {
  * - [INVALID_CREDENTIAL] — provider assertion rejected by backend
  * - [SERVER_REJECTED] — backend accepted transport but rejected request
  * - [INVALID_RESPONSE] — backend response missing required fields
+ * - [OTP_EXPIRED] — the OTP request expired before the code was used (ADR-0004)
+ * - [OTP_RATE_LIMITED] — OTP attempt limit exhausted (ADR-0004)
  * - [SESSION_PERSISTENCE_FAILED] — secure session write failed after successful API call
  * - [ACCOUNT_LINK_CONFLICT] — LocalUser already linked to a different account
  * - [ACCOUNT_LINK_PERSISTENCE_FAILED] — AccountLink write failed; session was rolled back
@@ -49,6 +51,8 @@ enum class OnlineAccountFailureReason {
     INVALID_CREDENTIAL,
     SERVER_REJECTED,
     INVALID_RESPONSE,
+    OTP_EXPIRED,
+    OTP_RATE_LIMITED,
     SESSION_PERSISTENCE_FAILED,
     ACCOUNT_LINK_CONFLICT,
     ACCOUNT_LINK_PERSISTENCE_FAILED

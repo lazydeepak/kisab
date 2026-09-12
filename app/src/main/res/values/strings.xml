@@ -697,6 +697,25 @@ Unexplained: %4$s %5$s</string>
     <string name="settings_account_local_only_detail">Kisab works on this device without signing in. Your farm data stays here. Use Data → Backup to keep a copy.</string>
     <string name="settings_account_connected_detail">This device is linked to your Kisab account. Farm data on this device still works offline.</string>
     <string name="settings_account_sign_in_required">Sign-in required to use online features.</string>
+    <string name="settings_account_sign_in_action">Sign in with email</string>
+    <string name="email_sign_in_title">Sign in with email</string>
+    <string name="email_input_hint">Email address</string>
+    <string name="email_input_next">Continue</string>
+    <string name="email_otp_title">Check your email</string>
+    <string name="email_otp_message_format">We sent a 6-digit code to %1$s.</string>
+    <string name="otp_input_hint">6-digit code</string>
+    <string name="otp_submit_action">Sign in</string>
+    <string name="otp_resend_action">Resend code</string>
+    <string name="otp_resend_available_in_format">Resend available in %1$d s</string>
+    <string name="email_otp_resend_not_ready">Please wait before requesting another code.</string>
+    <string name="account_error_invalid_email">Enter a valid email address.</string>
+    <string name="account_error_invalid_email_or_code">Enter a valid email address and code.</string>
+    <string name="account_error_otp_expired">That code expired. Please start again.</string>
+    <string name="account_error_otp_rate_limited">Too many attempts. Please start again.</string>
+    <string name="account_error_transport">Could not reach the server. Check your connection and try again.</string>
+    <string name="account_error_unavailable">Online sign-in is not available in this build yet.</string>
+    <string name="account_error_account_conflict">This device is already linked to a different Kisab account.</string>
+    <string name="toast_account_signed_in">Signed in to your Kisab account.</string>
 
     <string name="settings_app_section">App</string>
     <string name="settings_appearance_section">Appearance</string>

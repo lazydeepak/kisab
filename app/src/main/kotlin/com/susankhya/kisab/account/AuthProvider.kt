@@ -6,5 +6,7 @@ package com.susankhya.kisab.account
  */
 enum class AuthProvider {
     GOOGLE,
-    APPLE
+    APPLE,
+    /** Email OTP (ADR-0004). The code is a provider credential, never an account id. */
+    EMAIL
 }
