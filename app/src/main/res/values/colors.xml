@@ -8,6 +8,8 @@
     <color name="recordActionContent">#FFFFFF</color>
     <color name="recordActionSelectedBackground">#1B5E20</color>
     <color name="dangerZone">#C62828</color>
+    <color name="textDangerPressed">#212121</color>
+    <color name="textDangerDisabled">#757575</color>
     <color name="dangerZoneLabel">#C62828</color>
     <color name="dangerZoneContainer">#FFEBEE</color>
     <color name="textSecondary">#5F6368</color>
