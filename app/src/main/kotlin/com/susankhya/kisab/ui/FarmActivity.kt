@@ -117,6 +117,18 @@ import com.susankhya.kisab.persistence.SharedPreferencesAppAppearancePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesAppTextSizePreferences
 import com.susankhya.kisab.persistence.SharedPreferencesBackupFreshnessStore
 import com.susankhya.kisab.persistence.SharedPreferencesFarmStore
+import com.susankhya.kisab.KisabSessionApp
+import com.susankhya.kisab.account.AccountApi
+import com.susankhya.kisab.account.EmailOtpFlow
+import com.susankhya.kisab.account.EmailOtpFlowError
+import com.susankhya.kisab.account.EmailOtpFlowResult
+import com.susankhya.kisab.account.EmailOtpFlowState
+import com.susankhya.kisab.account.EstablishAccountResponse
+import com.susankhya.kisab.account.FakeAccountApi
+import com.susankhya.kisab.account.OnlineAccountFailureReason
+import com.susankhya.kisab.account.OnlineAccountResult
+import com.susankhya.kisab.account.OnlineAccountService
+import com.susankhya.kisab.account.UnavailableAccountApi
 import com.susankhya.kisab.notifications.NotificationCategory
 import com.susankhya.kisab.notifications.NotificationChannels
 import com.susankhya.kisab.notifications.NotificationCoordinator
@@ -132,6 +144,7 @@ import com.susankhya.kisab.persistence.SharedPreferencesPrivateBuildWarningStore
 import com.susankhya.kisab.release.PrivateBuildAccessStage
 import com.susankhya.kisab.release.PrivateBuildExpiryGate
 import com.susankhya.kisab.release.PrivateBuildExpirySnapshot
+import com.susankhya.kisab.session.KisabSessionStorageAdapter
 import com.susankhya.kisab.persistence.SharedPreferencesLocalUserStore
 import com.susankhya.kisab.update.ApkDownloader
 import com.susankhya.kisab.update.ApkInstaller
@@ -140,6 +153,8 @@ import com.susankhya.kisab.update.UpdateCheckResult
 import com.susankhya.kisab.update.UpdateInfo
 import com.susankhya.kisab.update.VersionInfo
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -158,6 +173,8 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var service: FarmSliceService
     private lateinit var localUserService: LocalUserService
     private lateinit var accountLinkService: AccountLinkService
+    private lateinit var onlineAccountService: OnlineAccountService
+    private lateinit var emailOtpFlow: EmailOtpFlow
     private lateinit var privateBuildExpiryGate: PrivateBuildExpiryGate
     private lateinit var privateBuildWarningStore: SharedPreferencesPrivateBuildWarningStore
     private var privateBuildExpiryStartupHandled = false
@@ -393,6 +410,7 @@ class FarmActivity : AppCompatActivity() {
     private lateinit var settingsAccountStatusLabel: TextView
     private lateinit var settingsAccountStatusDetail: TextView
     private lateinit var settingsAccountSignInRequiredText: TextView
+    private lateinit var settingsAccountEmailSignInButton: Button
     private lateinit var settingsNotificationsSection: TextView
     private lateinit var settingsNotificationsStatusText: TextView
     private lateinit var settingsNotificationsExplanationText: TextView
@@ -596,6 +614,13 @@ class FarmActivity : AppCompatActivity() {
         localUserService = LocalUserService(SharedPreferencesLocalUserStore(applicationContext))
         localUserService.migrateExistingInstall(service.currentFarmId())
         accountLinkService = AccountLinkService(SharedPreferencesAccountLinkStore(applicationContext))
+        val accountApi: AccountApi = if (BuildConfig.DEBUG) FakeAccountApi.demo() else UnavailableAccountApi
+        onlineAccountService = OnlineAccountService(
+            accountApi,
+            KisabSessionStorageAdapter(KisabSessionApp().storage(applicationContext)),
+            accountLinkService
+        )
+        emailOtpFlow = EmailOtpFlow(accountApi)
         notificationPreferences = SharedPreferencesNotificationPreferences(applicationContext)
         NotificationChannels.ensureCreated(applicationContext)
         requestNotificationPermissionLauncher = registerForActivityResult(
@@ -1025,6 +1050,8 @@ class FarmActivity : AppCompatActivity() {
         settingsAccountStatusLabel = findViewById(R.id.settingsAccountStatusLabel)
         settingsAccountStatusDetail = findViewById(R.id.settingsAccountStatusDetail)
         settingsAccountSignInRequiredText = findViewById(R.id.settingsAccountSignInRequiredText)
+        settingsAccountEmailSignInButton = findViewById(R.id.settingsAccountEmailSignInButton)
+        settingsAccountEmailSignInButton.setOnClickListener { showEmailSignInDialog() }
         settingsNotificationsSection = findViewById(R.id.settingsNotificationsSection)
         settingsNotificationsStatusText = findViewById(R.id.settingsNotificationsStatusText)
         settingsNotificationsExplanationText = findViewById(R.id.settingsNotificationsExplanationText)
@@ -6000,11 +6027,212 @@ class FarmActivity : AppCompatActivity() {
                 settingsAccountStatusDetail.text = string(R.string.settings_account_connected_detail)
             }
         }
+        settingsAccountEmailSignInButton.visibility =
+            if (ui.status == AccountConnectionStatus.LOCAL_ONLY) View.VISIBLE else View.GONE
         settingsAccountSignInRequiredText.visibility =
             if (ui.showSignInRequired) View.VISIBLE else View.GONE
         if (ui.showSignInRequired) {
             settingsAccountSignInRequiredText.text = string(R.string.settings_account_sign_in_required)
         }
+    }
+
+    // --- Email OTP sign-in (ADR-0004) --------------------------------------
+
+    private fun showEmailSignInDialog() {
+        val emailInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            hint = string(R.string.email_input_hint)
+            setPadding(dp(20), 0, dp(20), 0)
+        }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), 0)
+            addView(emailInput)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.email_sign_in_title))
+            .setView(container)
+            .setPositiveButton(string(R.string.email_input_next), null)
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .create()
+        val continueButton: () -> Unit = {
+            val email = emailInput.text.toString().trim()
+            if (email.isEmpty()) {
+                showToast(R.string.account_error_invalid_email)
+            } else {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+                lifecycleScope.launch {
+                    val result = withContext(Dispatchers.IO) { emailOtpFlow.request(email) }
+                    when (result) {
+                        is EmailOtpFlowResult.Success -> {
+                            dialog.dismiss()
+                            showOtpDialog(email)
+                        }
+                        is EmailOtpFlowResult.Error -> {
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                            showToast(flowErrorStringRes(result.error))
+                        }
+                    }
+                }
+            }
+        }
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { continueButton() }
+        }
+        emailInput.setOnEditorActionListener { _, _, _ ->
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+            true
+        }
+        dialog.show()
+    }
+
+    private fun showOtpDialog(email: String) {
+        val messageText = TextView(this).apply {
+            text = string(R.string.email_otp_message_format, email)
+            setLineSpacing(0f, 1.2f)
+        }
+        val codeInput = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = string(R.string.otp_input_hint)
+            setPadding(dp(20), 0, dp(20), 0)
+        }
+        val errorText = TextView(this).apply {
+            text = ""
+            setTextColor(getColor(R.color.textSecondary))
+            setPadding(dp(4), dp(4), dp(4), 0)
+        }
+        val resendText = TextView(this).apply {
+            setPadding(dp(4), dp(8), dp(4), 0)
+            setTextColor(getColor(R.color.textSecondary))
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), 0)
+            addView(messageText)
+            addView(codeInput)
+            addView(errorText)
+            addView(resendText)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(string(R.string.email_otp_title))
+            .setView(content)
+            .setPositiveButton(string(R.string.otp_submit_action), null)
+            .setNegativeButton(string(R.string.action_cancel), null)
+            .create()
+
+        fun renderResend() {
+            val availableAt = emailOtpFlow.resendAvailableAtEpochMillis()
+            val remainingSeconds = availableAt?.let { (it - System.currentTimeMillis()) } ?: 0L
+            resendText.text = if (remainingSeconds > 0) {
+                string(R.string.otp_resend_available_in_format, (remainingSeconds + 999) / 1000)
+            } else {
+                string(R.string.otp_resend_action)
+            }
+            resendText.setTextColor(
+                getColor(if (remainingSeconds > 0) R.color.textSecondary else R.color.bottomNavSelectedContent)
+            )
+        }
+
+        fun onResendClicked() {
+            if (!emailOtpFlow.isAwaitingCode()) return
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+            errorText.text = ""
+            lifecycleScope.launch {
+                val result = withContext(Dispatchers.IO) { emailOtpFlow.resend() }
+                when (result) {
+                    is EmailOtpFlowResult.Success -> {
+                        codeInput.text?.clear()
+                        renderResend()
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                    }
+                    is EmailOtpFlowResult.Error -> {
+                        errorText.text = string(flowErrorStringRes(result.error))
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                        renderResend()
+                    }
+                }
+            }
+        }
+
+        dialog.setOnShowListener {
+            resendText.setOnClickListener { onResendClicked() }
+            renderResend()
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val code = codeInput.text.toString().trim()
+                if (code.isEmpty()) {
+                    errorText.text = string(R.string.account_error_invalid_email_or_code)
+                    return@setOnClickListener
+                }
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+                errorText.text = ""
+                lifecycleScope.launch {
+                    val result = withContext(Dispatchers.IO) { emailOtpFlow.verify(code) }
+                    when (result) {
+                        is EmailOtpFlowResult.Error -> {
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true
+                            errorText.text = string(flowErrorStringRes(result.error))
+                            renderResend()
+                        }
+                        is EmailOtpFlowResult.Success -> {
+                            val established = (result.state as? EmailOtpFlowState.Established)
+                                ?: return@launch
+                            persistEmailOtpEstablishment(established.response, dialog::dismiss)
+                        }
+                    }
+                }
+            }
+            lifecycleScope.launch {
+                while (isActive && dialog.isShowing) {
+                    renderResend()
+                    delay(1000)
+                }
+            }
+        }
+        codeInput.setOnEditorActionListener { _, _, _ ->
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+            true
+        }
+        dialog.show()
+    }
+
+    private fun persistEmailOtpEstablishment(
+        response: EstablishAccountResponse,
+        onDone: () -> Unit
+    ) {
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                onlineAccountService.persistEstablishment(
+                    localUserId = localUserService.currentUser()?.userId
+                        ?: localUserService.ensureLocalUser().userId,
+                    response = response
+                )
+            }
+            when (result) {
+                is OnlineAccountResult.Success -> {
+                    emailOtpFlow.reset()
+                    onDone()
+                    renderAccountSettingsSection()
+                    showToast(R.string.toast_account_signed_in)
+                }
+                is OnlineAccountResult.Failure -> {
+                    emailOtpFlow.reset()
+                    val messageRes = when (result.reason) {
+                        OnlineAccountFailureReason.ACCOUNT_LINK_CONFLICT -> R.string.account_error_account_conflict
+                        else -> R.string.account_error_unavailable
+                    }
+                    showToast(messageRes)
+                }
+            }
+        }
+    }
+
+    private fun flowErrorStringRes(error: EmailOtpFlowError): Int = when (error) {
+        EmailOtpFlowError.INVALID_CODE -> R.string.account_error_invalid_email_or_code
+        EmailOtpFlowError.OTP_EXPIRED -> R.string.account_error_otp_expired
+        EmailOtpFlowError.OTP_RATE_LIMITED -> R.string.account_error_otp_rate_limited
+        EmailOtpFlowError.RESEND_NOT_READY -> R.string.email_otp_resend_not_ready
+        EmailOtpFlowError.CONNECTION -> R.string.account_error_transport
+        EmailOtpFlowError.UNAVAILABLE -> R.string.account_error_unavailable
     }
 
     private fun renderFarmsList() {

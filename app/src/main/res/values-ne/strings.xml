@@ -692,6 +692,25 @@
     <string name="settings_account_local_only_detail">किसाब साइन इन बिना यस उपकरणमा चल्छ। तपाईंको फार्म डेटा यहीँ रहन्छ। प्रतिलिपि राख्न डेटा → ब्याकअप प्रयोग गर्नुहोस्।</string>
     <string name="settings_account_connected_detail">यो उपकरण तपाईंको किसाब खातासँग जोडिएको छ। यस उपकरणको फार्म डेटा अफलाइन पनि चल्छ।</string>
     <string name="settings_account_sign_in_required">अनलाइन सुविधा प्रयोग गर्न साइन इन आवश्यक छ।</string>
+    <string name="settings_account_sign_in_action">इमेलबाट साइन इन</string>
+    <string name="email_sign_in_title">इमेलबाट साइन इन</string>
+    <string name="email_input_hint">इमेल ठेगाना</string>
+    <string name="email_input_next">जारी राख्नुहोस्</string>
+    <string name="email_otp_title">आफ्नो इमेल जाँच्नुहोस्</string>
+    <string name="email_otp_message_format">हामीले %1$s मा ६ अङ्कको कोड पठायौं।</string>
+    <string name="otp_input_hint">६ अङ्कको कोड</string>
+    <string name="otp_submit_action">साइन इन</string>
+    <string name="otp_resend_action">कोड पुन: पठाउनुहोस्</string>
+    <string name="otp_resend_available_in_format">पुन: पठाउन %1$d सेकेन्ड पर्खनुहोस्</string>
+    <string name="email_otp_resend_not_ready">अर्को कोड पठाउनुअघि पर्खनुहोस्।</string>
+    <string name="account_error_invalid_email">मान्य इमेल ठेगाना प्रविष्ट गर्नुहोस्।</string>
+    <string name="account_error_invalid_email_or_code">मान्य इमेल ठेगाना र कोड प्रविष्ट गर्नुहोस्।</string>
+    <string name="account_error_otp_expired">त्यो कोडको म्याद सकियो। फेरि सुरु गर्नुहोस्।</string>
+    <string name="account_error_otp_rate_limited">धेरै प्रयास भयो। फेरि सुरु गर्नुहोस्।</string>
+    <string name="account_error_transport">सर्भरमा जडान हुन सकेन। आफ्नो इन्टरनेट जाँचेर फेरि प्रयास गर्नुहोस्।</string>
+    <string name="account_error_unavailable">यो बिल्डमा अनलाइन साइन इन उपलब्ध छैन।</string>
+    <string name="account_error_account_conflict">यो उपकरण अर्को किसाब खातामा जोडिएको छ।</string>
+    <string name="toast_account_signed_in">तपाईंको किसाब खातामा साइन इन भयो।</string>
 
     <string name="settings_app_section">एप</string>
     <string name="settings_appearance_section">देखावट</string>

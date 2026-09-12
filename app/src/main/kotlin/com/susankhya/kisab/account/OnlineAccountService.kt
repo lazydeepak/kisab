@@ -13,14 +13,14 @@ import com.susankhya.kisab.session.KisabSessionStorageAdapter
  * Does not mutate farms, LocalUser ids, or upload/download farm data.
  *
  * ## Ordering
- * 1. Backend [AccountApi.establishAccount]
+ * 1. Backend [AccountApi.establishAccount] (or email OTP exchange)
  * 2. Validate response fields
  * 3. Pre-check AccountLink conflict (different account → fail, no session write)
  * 4. Persist session via secure foundation storage
  * 5. Persist AccountLink
  * 6. If step 5 fails after step 4, clear the session just written and fail
  *
- * No secrets are logged.
+ * No secrets are logged. Email OTP paths reuse [persistEstablishment].
  */
 class OnlineAccountService(
     private val accountApi: AccountApi,
@@ -56,6 +56,22 @@ class OnlineAccountService(
                 detail = "unexpected transport failure"
             )
         }
+
+        return persistEstablishment(localUserId, response)
+    }
+
+    /**
+     * Persists a validated [EstablishAccountResponse] (e.g. obtained via the
+     * email OTP exchange in [AccountApi.verifyEmailOtpAndEstablish]) into the
+     * secure session + AccountLink with the same ordering and rollback
+     * guarantees as [establish]. Safe to call at most once per exchange; the
+     * exchanged OTP is single-use.
+     */
+    suspend fun persistEstablishment(
+        localUserId: String,
+        response: EstablishAccountResponse
+    ): OnlineAccountResult {
+        require(localUserId.isNotBlank()) { "localUserId is required" }
 
         val validated = try {
             validateResponse(response)
@@ -134,5 +150,7 @@ class OnlineAccountService(
         AccountApiFailureKind.INVALID_CREDENTIAL -> OnlineAccountFailureReason.INVALID_CREDENTIAL
         AccountApiFailureKind.SERVER_REJECTED -> OnlineAccountFailureReason.SERVER_REJECTED
         AccountApiFailureKind.INVALID_RESPONSE -> OnlineAccountFailureReason.INVALID_RESPONSE
+        AccountApiFailureKind.OTP_EXPIRED -> OnlineAccountFailureReason.OTP_EXPIRED
+        AccountApiFailureKind.OTP_RATE_LIMITED -> OnlineAccountFailureReason.OTP_RATE_LIMITED
     }
 }

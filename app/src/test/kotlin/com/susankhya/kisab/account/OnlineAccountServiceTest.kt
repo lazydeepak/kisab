@@ -273,6 +273,55 @@ class OnlineAccountServiceTest {
         assertFalse(links.isLinked(user.userId))
     }
 
+    /** Email OTP exchange + [OnlineAccountService.persistEstablishment] completes the sign-in. */
+    @Test
+    fun emailOtpExchangePersistsSessionAndLinkWithoutTouchingFarms() = runTest {
+        val user = users.ensureLocalUser()
+        val farm = farms.createFarm("Email Farm", "NPR")
+        users.associateFarm(farm.id)
+        val farmIdsBefore = farms.farmIds()
+
+        val api = FakeAccountApi(
+            handler = { throw AssertionError("no establishAccount expected on the OTP path") }
+        )
+        val requested = api.requestEmailOtp("farmer@example.com")
+        val response = api.verifyEmailOtpAndEstablish(requested.requestId, "123456", user.userId)
+
+        val result = service(api).persistEstablishment(user.userId, response)
+        assertTrue(result is OnlineAccountResult.Success)
+        val success = result as OnlineAccountResult.Success
+        assertEquals("account-farmer@example.com", success.accountId)
+
+        val session = sessionStorage.read()
+        assertNotNull(session)
+        assertTrue(session!!.sessionId.startsWith("session-otp-"))
+        assertTrue(links.isLinked(user.userId))
+        assertEquals("account-farmer@example.com", links.linkState(user.userId).accountIdOrNull)
+        assertEquals(farmIdsBefore, farms.farmIds())
+        assertEquals(user.userId, users.currentUser()?.userId)
+    }
+
+    /** OTP link conflict rejects exactly like provider credential linking. */
+    @Test
+    fun emailOtpConflictRejectsWithoutCorruptingSessionOrFarms() = runTest {
+        val user = users.ensureLocalUser()
+        service(FakeAccountApi.success(accountId = "account-one")).establish(user.userId, credential)
+
+        val api = FakeAccountApi(
+            handler = { throw AssertionError("no establishAccount expected on the OTP path") }
+        )
+        val requested = api.requestEmailOtp("other@example.com")
+        val response = api.verifyEmailOtpAndEstablish(requested.requestId, "123456", user.userId)
+
+        val result = service(api).persistEstablishment(user.userId, response)
+        assertEquals(
+            OnlineAccountFailureReason.ACCOUNT_LINK_CONFLICT,
+            (result as OnlineAccountResult.Failure).reason
+        )
+        assertEquals("account-one", links.linkState(user.userId).accountIdOrNull)
+        assertNotNull(sessionStorage.read())
+    }
+
     /** Session storage that fails on save; read/clear succeed. */
     private class FailingSaveSessionStorage : SessionStorage {
         override suspend fun save(session: StoredSession) {
