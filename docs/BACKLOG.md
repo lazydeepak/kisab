@@ -14,3 +14,16 @@ These are facilitator briefings, not approved fixes. Each must be confirmed or r
 - **F6** — Over-production shown as "All accounted for" in allocation summary. (Origin: M14 §5)
 
 Source of truth for scope and disposition: `docs/milestones/M14_PILOT_01_REAL_FARMER_VALIDATION.md` §5.
+
+## Global styling audit (2026-09-12 sweep) — accepted minor items
+
+Accepted as-is for the current release; revisit with the next styling pass.
+Source: `docs/validation/STYLING_DANGER_BUTTON_WIRING_VALIDATION.md`.
+
+- **S1** — Add Farm screen: CREATE FARM dips below the IME top while the
+  farm-name field is focused. The form is a scrollable `ScrollView`, so the
+  button is reachable; not fixed because it matches standard scrollable-form
+  UX. Revisit if a farmer reports it.
+- **S2** — A handful of icon/utility views in `activity_shell.xml` use
+  hardcoded small paddings (4/6/8/9dp) instead of the `spacing_*` scale.
+  Clean-up candidate for a dedicated styling pass; no functional impact.
